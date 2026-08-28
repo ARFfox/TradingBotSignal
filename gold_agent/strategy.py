@@ -49,6 +49,7 @@ class Params:
     rsi_max_achat: float = 70.0    # ne pas acheter au-dessus de ce RSI
     rsi_min_vente: float = 30.0    # ne pas vendre en dessous de ce RSI
     extension_max: float = 101.0   # score d'extension 0-100 (redondant avec le RSI en pratique)
+    bb_filtre: bool = False        # exiger %B < 0,55 a l'achat (repli reel), > 0,45 a la vente
 
 
 @dataclass
@@ -146,6 +147,7 @@ def detecter(bars: list[dict], p: Params) -> list[Signal]:
     ema_s = ind.ema(c, p.ema_slow)
     rsi_v = ind.rsi(c, p.rsi_len)
     atr_v = ind.atr(h, l, c, p.atr_len)
+    bb = ind.bollinger(c, 20, 2.0) if p.bb_filtre else None
 
     pivots_complets = _tous_les_pivots(h, l, p.pivot_span)
     contexte = _contexte_superieur(bars, p.facteur_superieur, p.ema_fast, p.ema_slow) \
@@ -175,9 +177,11 @@ def detecter(bars: list[dict], p: Params) -> list[Signal]:
         ext = rg.score_extension(prix, ef, rs)["score"]
 
         # ---- ACHAT ----
+        pb = bb["pct_b"][t - 1] if bb else None
         if p.sens in ("achat", "les_deux") and ef > es and prix > es \
                 and (ctx is None or ctx == "haussier") \
-                and rs < p.rsi_max_achat and ext < p.extension_max:
+                and rs < p.rsi_max_achat and ext < p.extension_max \
+                and (pb is None or pb < 0.55):
             if True:
                 supports = [x["price"] for x in niv["lows"] if x["price"] < prix]
                 resistances = [x["price"] for x in niv["highs"] if x["price"] > prix]
@@ -202,7 +206,8 @@ def detecter(bars: list[dict], p: Params) -> list[Signal]:
         # ---- VENTE ----
         if p.sens in ("vente", "les_deux") and ef < es and prix < es \
                 and (ctx is None or ctx == "baissier") \
-                and rs > p.rsi_min_vente and ext < p.extension_max:
+                and rs > p.rsi_min_vente and ext < p.extension_max \
+                and (pb is None or pb > 0.45):
             if True:
                 resistances = [x["price"] for x in niv["highs"] if x["price"] > prix]
                 supports = [x["price"] for x in niv["lows"] if x["price"] < prix]

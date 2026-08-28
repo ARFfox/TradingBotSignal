@@ -74,6 +74,19 @@ footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b94
 #notif-etat{font-size:12px;color:#8b949e}
 .on{color:#3fb950}
 .flash{animation:flash 1.4s ease-out}
+.news{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin:0 0 18px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.news{grid-template-columns:1fr}}
+.news h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.evt{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid #21262d}
+.evt:last-child{border-bottom:none}
+.evt .t{color:#c9d1d9}.evt .q{color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums}
+.risque{padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:10px}
+.risque.veto{background:#3d1d1d;color:#ffa198;border-left:3px solid #f85149}
+.risque.reserve{background:#3a2e12;color:#e3b341;border-left:3px solid #d29922}
+.risque.ok{background:#12341f;color:#3fb950;border-left:3px solid #238636}
+.risque.inconnu{background:#21262d;color:#8b949e;border-left:3px solid #8b949e}
+.macrol{font-size:13px;color:#c9d1d9;padding:4px 0}
+.macrol b{font-variant-numeric:tabular-nums}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .var.hausse{color:#3fb950}.var.baisse{color:#f85149}
 .direct{font-size:11.5px;color:#6e7681}
@@ -264,6 +277,43 @@ def rendre(d: dict) -> str:
     frais = ('<span class="vif">prix en direct</span>' if age <= 20
              else f"prix il y a {age}s") if q else ""
 
+    n = d.get("news") or {}
+    risque = n.get("risque") or {}
+    et = risque.get("etat", "inconnu")
+    lignes_agenda = ""
+    for e in (n.get("agenda") or [])[:5]:
+        h = e["dans_minutes"] / 60
+        quand = f"dans {e['dans_minutes']} min" if h < 1.5 else f"dans {h:.1f} h"
+        prevu = f" · prévu {e['prevu']}" if e.get("prevu") else ""
+        lignes_agenda += (f'<div class="evt"><span class="t">{e["titre"]}{prevu}</span>'
+                          f'<span class="q">{quand}</span></div>')
+    if not lignes_agenda:
+        lignes_agenda = '<div class="evt"><span class="t">aucun événement USD à fort impact sous 48 h</span></div>'
+
+    ma = (n.get("macro") or {})
+    lignes_macro = ""
+    if ma.get("disponible"):
+        tr = ma["taux_reel_10a"]; dl = ma["dollar_large"]
+        v1 = tr.get("tendance_1m") or {}
+        v2 = dl.get("tendance_1m") or {}
+        lignes_macro = (
+            f'<div class="macrol">Taux réel 10 ans : <b>{tr["dernier"]}%</b>'
+            f' ({v1.get("variation", 0):+.2f} sur 1 mois)</div>'
+            f'<div class="macrol">Dollar pondéré : <b>{dl["dernier"]}</b>'
+            f' ({v2.get("variation", 0):+.2f} sur 1 mois)</div>')
+        for camp, poids, txt in ma.get("arguments", []):
+            fleche = "▲ or" if camp == "haussier" else "▼ or"
+            lignes_macro += f'<div class="macrol">{fleche} — {txt}</div>'
+    else:
+        lignes_macro = '<div class="macrol">macro FRED indisponible</div>'
+
+    bloc_news = f"""<div class="news">
+<div><h3>Risque événementiel</h3>
+<div class="risque {et}">{risque.get("detail", "?")}</div>
+{lignes_agenda}</div>
+<div><h3>Macro — moteurs de fond de l'or</h3>{lignes_macro}</div>
+</div>"""
+
     u = d.get("usage") or {}
     if u.get("limite"):
         quota_txt = f"{u['restant']} / {u['limite']} requêtes restantes"
@@ -293,6 +343,7 @@ def rendre(d: dict) -> str:
 Les niveaux découlent des paramètres de la règle : support confirmé = entrée, −1&nbsp;ATR = stop,
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement
 mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuve derrière lui.</div>
+{bloc_news}
 <div class="grille">{cartes}</div>
 <footer>
 <span id="etat-cles"></span>Données Twelve Data · filtres : RSI max 70 à l'achat,
@@ -561,6 +612,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         for r in d["timeframes"] if (r.get("setup") or {}).get("setup")
                     ],
                     "html": "".join(_carte(r) for r in d["timeframes"]),
+                    "news": d.get("news"),
                     "quota": ds.COMPTEUR["twelvedata"],
                     "rotation": ds.etat_rotation(),
                     "quote": d.get("quote"),

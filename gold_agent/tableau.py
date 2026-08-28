@@ -200,12 +200,25 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     except Exception:
         usage = None
 
+    from . import news as _news
+    try:
+        evenementiel = _news.risque_evenementiel()
+        agenda = _news.prochains(fenetre_heures=48)
+    except Exception as e:
+        evenementiel = {"etat": "inconnu", "detail": str(e)[:80]}
+        agenda = []
+    try:
+        macro = _news.macro()
+    except Exception:
+        macro = {"disponible": False}
+
     return {
         "genere_le": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "symbole": symbole,
         "prix": round(prix_actuel, 2) if prix_actuel else None,
         "quote": quote,
         "usage": usage,
+        "news": {"risque": evenementiel, "agenda": agenda, "macro": macro},
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }

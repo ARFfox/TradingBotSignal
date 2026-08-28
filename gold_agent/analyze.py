@@ -274,6 +274,19 @@ def run(symbol: str = GOLD, bars_count: int = 300, context_symbols: tuple = ("TV
 
     synthese = combine(tf_results)
     _sauver_dernier = True
+
+    # News : risque evenementiel + arguments macro. Jamais bloquant — une
+    # panne du calendrier ne doit pas empecher l'analyse technique.
+    try:
+        from . import news as _news
+        synthese["risque_evenementiel"] = _news.risque_evenementiel()
+        m = _news.macro()
+        if m.get("disponible"):
+            context["macro_arguments"] = m["arguments"]
+            context["macro_fred"] = {"taux_reel_10a": m["taux_reel_10a"],
+                                     "dollar_large": m["dollar_large"]}
+    except Exception as e:
+        synthese["risque_evenementiel"] = {"etat": "inconnu", "detail": str(e)[:80]}
     cases = debate.build_cases(tf_results, context)
     gate = debate.risk_gate(cases, tf_results, synthese)
 

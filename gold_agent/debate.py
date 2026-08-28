@@ -126,6 +126,10 @@ def build_cases(tf_results: list[dict], context: dict) -> dict:
                     bull.append(_arg("haussier", label, w * 1.0,
                                      f"support à {s['price']} à moins d'un ATR"))
 
+    # --- Macro FRED : taux reels et dollar pondere ---
+    for camp, poids, txt in context.get("macro_arguments", []):
+        (bull if camp == "haussier" else bear).append(_arg(camp, "macro", poids, txt))
+
     # --- Macro : l'or évolue à l'inverse du dollar ---
     dxy = context.get("TVC:DXY")
     if dxy and dxy.get("position"):
@@ -169,6 +173,14 @@ def risk_gate(cases: dict, tf_results: list[dict], synthese: dict) -> dict:
     # 1. Conflit entre contexte et biais de session
     if synthese.get("verdict") == "CONFLIT DAILY / H4":
         vetos.append("Daily et H4 se contredisent — configuration à éviter, pas à arbitrer.")
+
+    # 0. Risque evenementiel : un chiffre a fort impact imminent rend les
+    # stops sans valeur — le spread s'elargit et le prix saute plusieurs ATR.
+    evt = synthese.get("risque_evenementiel") or {}
+    if evt.get("etat") == "veto":
+        vetos.append(f"NEWS : {evt['detail']}")
+    elif evt.get("etat") == "reserve":
+        reserves.append(f"News : {evt['detail']}")
 
     # 1b. Coherence avec la synthese : annoncer une "conviction nette" alors que
     # les timeframes ne s'alignent pas etait une contradiction interne.

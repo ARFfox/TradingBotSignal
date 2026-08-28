@@ -164,3 +164,46 @@ def last_valid(series: Sequence[Num]) -> Num:
         if v is not None:
             return v
     return None
+
+
+def bollinger(closes: Sequence[float], period: int = 20,
+              mult: float = 2.0) -> dict:
+    """Bandes de Bollinger : %B (position dans le canal) et largeur relative.
+
+    %B < 0,5 : le prix est dans la moitié basse du canal — un repli réel.
+    Largeur croissante : la volatilité s'ouvre, souvent en début de mouvement.
+    """
+    n = len(closes)
+    pb: list = [None] * n
+    largeur: list = [None] * n
+    if n < period:
+        return {"pct_b": pb, "largeur": largeur}
+    for i in range(period - 1, n):
+        fen = closes[i - period + 1:i + 1]
+        m = sum(fen) / period
+        var = sum((x - m) ** 2 for x in fen) / period
+        et = var ** 0.5
+        haut, bas = m + mult * et, m - mult * et
+        if haut > bas:
+            pb[i] = (closes[i] - bas) / (haut - bas)
+            largeur[i] = (haut - bas) / m * 100
+    return {"pct_b": pb, "largeur": largeur}
+
+
+def stochastique(highs: Sequence[float], lows: Sequence[float],
+                 closes: Sequence[float], k: int = 14, d: int = 3) -> dict:
+    """%K et %D — surachat/survente à courte échéance."""
+    n = len(closes)
+    pk: list = [None] * n
+    if n < k:
+        return {"k": pk, "d": [None] * n}
+    for i in range(k - 1, n):
+        hh = max(highs[i - k + 1:i + 1])
+        ll = min(lows[i - k + 1:i + 1])
+        pk[i] = 50.0 if hh == ll else (closes[i] - ll) / (hh - ll) * 100
+    pd: list = [None] * n
+    for i in range(n):
+        fen = [v for v in pk[max(0, i - d + 1):i + 1] if v is not None]
+        if len(fen) == d:
+            pd[i] = sum(fen) / d
+    return {"k": pk, "d": pd}
