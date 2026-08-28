@@ -476,6 +476,35 @@ python3 -m gold_agent.web --surveillance 0     # tableau seul, sans surveillance
 python3 -m gold_agent.web --surveillance 120   # plus réactif, consomme plus
 ```
 
+### Connexion par mot de passe
+
+```bash
+python3 -m gold_agent.auth ajouter <identifiant>     # saisie masquée
+python3 -m gold_agent.auth lister
+python3 -m gold_agent.auth motdepasse <identifiant>  # changer
+python3 -m gold_agent.auth supprimer <identifiant>
+```
+
+Dès qu'au moins un compte existe, le site exige une connexion ; `/json` renvoie
+401 sans session. **Tant qu'aucun compte n'est créé, l'accès reste libre** —
+exiger un mot de passe inexistant verrouillerait l'utilisateur dehors.
+
+Sécurité : condensés **scrypt** avec sel par compte (le mot de passe n'est
+jamais stocké ni affiché), fichier en permissions 600, cookie de session
+`HttpOnly; SameSite=Strict` (12 h), 5 échecs = 5 minutes de blocage, temps de
+réponse identique que l'identifiant existe ou non. La saisie de création est
+masquée dans le terminal.
+
+### Rafraîchissement à 10 s et budget
+
+La page sonde `/json` toutes les **10 s**. Les bougies sortent du cache ; seul
+le prix (`/quote`, TTL 15 s) consomme. La jauge d'usage passe à un
+rafraîchissement toutes les 30 min — chaque relevé coûte une requête *par clé*.
+
+Garde-fou : le TTL du prix se dégrade **automatiquement** quand le quota
+s'épuise — 15 s en temps normal, 60 s à 80 % de consommation, 300 s à 95 %.
+Le dépassement s'auto-limite au prix d'un prix moins frais.
+
 ### Prix en direct
 
 Le prix affiché vient d'un appel `/quote` **séparé** du cache des bougies —
