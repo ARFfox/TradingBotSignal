@@ -569,3 +569,4 @@ comme figée** — une carte datée mais annoncée vaut mieux qu'une carte vide.
 - Chaque appel CLI relance un process Node et rouvre une connexion CDP
   (~3-5 s). Une analyse complète prend environ 60-90 s.
 # TradingBotSignal
+# TradingBotSignal
