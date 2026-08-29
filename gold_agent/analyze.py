@@ -289,6 +289,10 @@ def run(symbol: str = GOLD, bars_count: int = 300, context_symbols: tuple = ("TV
         if mi.get("disponible"):
             context.setdefault("macro_arguments", []).extend(mi["arguments"])
             context["minieres"] = mi
+        cot = _news.positionnement()
+        if cot.get("disponible"):
+            context.setdefault("macro_arguments", []).extend(cot["arguments"])
+            context["cot"] = cot
     except Exception as e:
         synthese["risque_evenementiel"] = {"etat": "inconnu", "detail": str(e)[:80]}
     cases = debate.build_cases(tf_results, context)

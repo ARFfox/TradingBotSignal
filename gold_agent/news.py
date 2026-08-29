@@ -285,3 +285,85 @@ def minieres(fenetre: int = 20, ttl: int = TTL_MINES) -> dict:
     with _MINES["verrou"]:
         _MINES["valeur"], _MINES["t"] = out, time.time()
     return out
+
+
+# --------------------------------------------------------------------------
+# Positionnement COT (CFTC) : les positions REELLES des fonds speculatifs
+# sur les contrats or COMEX, declarees chaque semaine. Pas des opinions
+# d'analystes — des engagements chiffres.
+#
+# Lecture double, volontairement :
+#   - la TENDANCE du positionnement net soutient le mouvement en cours ;
+#   - un positionnement EXTREME (percentile eleve) est un trade encombre :
+#     quand tout le monde est deja long, il ne reste plus d'acheteurs, et
+#     les debouclages sont violents.
+# --------------------------------------------------------------------------
+
+URL_COT = ("https://publicreporting.cftc.gov/resource/6dca-aqww.json"
+           "?$select=report_date_as_yyyy_mm_dd,noncomm_positions_long_all,"
+           "noncomm_positions_short_all,open_interest_all"
+           "&$where=starts_with(market_and_exchange_names,'GOLD%20-%20COMMODITY')"
+           "&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=156")
+
+_COT = {"valeur": None, "t": 0.0, "verrou": threading.Lock()}
+TTL_COT = 12 * 3600      # publication hebdomadaire — inutile de sonder plus
+
+
+def positionnement(ttl: int = TTL_COT) -> dict:
+    """Position nette des fonds spéculatifs sur l'or, percentile 3 ans."""
+    with _COT["verrou"]:
+        if _COT["valeur"] is not None and (time.time() - _COT["t"]) < ttl:
+            return _COT["valeur"]
+
+    out = {"disponible": False, "arguments": []}
+    try:
+        brut = _curl_json(URL_COT)
+        series = []
+        for r in brut:
+            net = (int(float(r["noncomm_positions_long_all"]))
+                   - int(float(r["noncomm_positions_short_all"])))
+            series.append({"date": r["report_date_as_yyyy_mm_dd"][:10], "net": net})
+        if len(series) < 20:
+            raise RuntimeError(f"{len(series)} rapports seulement")
+        series.sort(key=lambda x: x["date"])
+
+        nets = [x["net"] for x in series]
+        actuel = nets[-1]
+        percentile = sum(1 for v in nets if v < actuel) / len(nets) * 100
+        var_4s = actuel - nets[-5] if len(nets) >= 5 else 0
+
+        out = {
+            "disponible": True,
+            "date": series[-1]["date"],
+            "net": actuel,
+            "percentile": round(percentile, 0),
+            "variation_4s": var_4s,
+            "semaines": len(nets),
+            "arguments": [],
+        }
+
+        # Tendance : plus de 15k contrats en 4 semaines est un mouvement franc
+        if var_4s >= 15000:
+            out["arguments"].append(("haussier", 1.5,
+                f"fonds spéculatifs en accumulation : net {actuel:+,} contrats or, "
+                f"{var_4s:+,} en 4 semaines (COT)"))
+        elif var_4s <= -15000:
+            out["arguments"].append(("baissier", 1.5,
+                f"fonds spéculatifs en dégagement : net {actuel:+,} contrats or, "
+                f"{var_4s:+,} en 4 semaines (COT)"))
+
+        # Extreme : au-dela du 90e percentile, le camp long est plein
+        if percentile >= 90:
+            out["arguments"].append(("baissier", 2.0,
+                f"positionnement long au {percentile:.0f}e percentile sur "
+                f"{len(nets)} semaines — trade encombré, débouclages violents possibles"))
+        elif percentile <= 10:
+            out["arguments"].append(("haussier", 2.0,
+                f"positionnement au {percentile:.0f}e percentile — camp vendeur plein, "
+                f"rebond de couverture possible"))
+    except Exception as e:
+        out["erreur"] = str(e)[:120]
+
+    with _COT["verrou"]:
+        _COT["valeur"], _COT["t"] = out, time.time()
+    return out

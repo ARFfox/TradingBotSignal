@@ -307,6 +307,13 @@ def rendre(d: dict) -> str:
     else:
         lignes_macro = '<div class="macrol">macro FRED indisponible</div>'
 
+    cot = n.get("cot") or {}
+    if cot.get("disponible"):
+        lignes_macro += (
+            f'<div class="macrol">Fonds spéculatifs (COT {cot["date"]}) : '
+            f'<b>{cot["net"]:+,}</b> contrats — {cot["percentile"]:.0f}e percentile, '
+            f'{cot["variation_4s"]:+,} en 4 sem.</div>')
+
     mi = n.get("minieres") or {}
     if mi.get("disponible"):
         div = mi.get("divergence")
