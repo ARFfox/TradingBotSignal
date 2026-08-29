@@ -211,6 +211,10 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         macro = _news.macro()
     except Exception:
         macro = {"disponible": False}
+    try:
+        minieres = _news.minieres()
+    except Exception:
+        minieres = {"disponible": False}
 
     return {
         "genere_le": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -218,7 +222,8 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "prix": round(prix_actuel, 2) if prix_actuel else None,
         "quote": quote,
         "usage": usage,
-        "news": {"risque": evenementiel, "agenda": agenda, "macro": macro},
+        "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
+                 "minieres": minieres},
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }

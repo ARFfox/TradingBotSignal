@@ -222,3 +222,66 @@ def macro(ttl: int = TTL_MACRO) -> dict:
     with _MACRO["verrou"]:
         _MACRO["valeur"], _MACRO["t"] = out, time.time()
     return out
+
+
+# --------------------------------------------------------------------------
+# Minieres d'or (AEM) : confirmation, pas prediction
+#
+# Mesure sur 359 jours communs (03/2025-08/2026) : correlation quotidienne
+# +0,80 mais correlations decalees toutes < 0,12 — AEM et l'or bougent
+# ENSEMBLE, aucun des deux ne precede l'autre. La seule lecture defendable
+# est la divergence de confirmation : l'or monte mais les minieres (beta
+# ~1,4) refusent de suivre -> le mouvement manque d'adhesion.
+# --------------------------------------------------------------------------
+
+_MINES = {"valeur": None, "t": 0.0, "verrou": threading.Lock()}
+TTL_MINES = 4 * 3600
+
+
+def minieres(fenetre: int = 20, ttl: int = TTL_MINES) -> dict:
+    """Divergence or / minières sur `fenetre` jours ouvrés."""
+    with _MINES["verrou"]:
+        if _MINES["valeur"] is not None and (time.time() - _MINES["t"]) < ttl:
+            return _MINES["valeur"]
+
+    out = {"disponible": False, "arguments": []}
+    try:
+        aem = ds.twelvedata_bars("AEM", "D", fenetre + 10)
+        oro = ds.twelvedata_bars("XAU/USD", "D", fenetre + 10)
+        pa = {dt.datetime.fromtimestamp(b["time"], dt.timezone.utc).date(): b["close"] for b in aem}
+        po = {dt.datetime.fromtimestamp(b["time"], dt.timezone.utc).date(): b["close"] for b in oro}
+        jours = sorted(set(pa) & set(po))[-fenetre:]
+        if len(jours) < fenetre:
+            raise RuntimeError(f"{len(jours)} jours communs seulement")
+
+        var_aem = (pa[jours[-1]] / pa[jours[0]] - 1) * 100
+        var_or = (po[jours[-1]] / po[jours[0]] - 1) * 100
+        out = {
+            "disponible": True,
+            "fenetre_jours": fenetre,
+            "aem": {"dernier": round(pa[jours[-1]], 2), "variation_pct": round(var_aem, 2)},
+            "or": {"variation_pct": round(var_or, 2)},
+            "arguments": [],
+        }
+
+        # Divergence : l'or bouge nettement, les minieres (qui amplifient
+        # normalement x1,4) vont dans l'autre sens. Seuils : 2 % sur l'or
+        # pour parler d'un mouvement, signe oppose sur AEM.
+        if var_or >= 2.0 and var_aem <= 0:
+            out["arguments"].append(("baissier", 1.5,
+                f"divergence minières : or {var_or:+.1f}% sur {fenetre} j mais AEM {var_aem:+.1f}% — "
+                f"les actionnaires des minières ne confirment pas la hausse"))
+            out["divergence"] = "baissiere"
+        elif var_or <= -2.0 and var_aem >= 0:
+            out["arguments"].append(("haussier", 1.5,
+                f"divergence minières : or {var_or:+.1f}% sur {fenetre} j mais AEM {var_aem:+.1f}% — "
+                f"les minières ne confirment pas la baisse"))
+            out["divergence"] = "haussiere"
+        else:
+            out["divergence"] = None
+    except Exception as e:
+        out["erreur"] = str(e)[:120]
+
+    with _MINES["verrou"]:
+        _MINES["valeur"], _MINES["t"] = out, time.time()
+    return out

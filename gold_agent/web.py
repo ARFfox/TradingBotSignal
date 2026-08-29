@@ -307,6 +307,16 @@ def rendre(d: dict) -> str:
     else:
         lignes_macro = '<div class="macrol">macro FRED indisponible</div>'
 
+    mi = n.get("minieres") or {}
+    if mi.get("disponible"):
+        div = mi.get("divergence")
+        etat_mi = (f'divergence {div} détectée' if div
+                   else 'les minières confirment le mouvement')
+        lignes_macro += (
+            f'<div class="macrol">Minières (AEM, {mi["fenetre_jours"]} j) : '
+            f'<b>{mi["aem"]["variation_pct"]:+.1f}%</b> vs or '
+            f'<b>{mi["or"]["variation_pct"]:+.1f}%</b> — {etat_mi}</div>')
+
     bloc_news = f"""<div class="news">
 <div><h3>Risque événementiel</h3>
 <div class="risque {et}">{risque.get("detail", "?")}</div>
