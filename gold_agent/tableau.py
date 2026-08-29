@@ -25,9 +25,9 @@ _VERROU = threading.Lock()
 # permet de les raccourcir d'autant.
 # Allonges depuis que le prix en direct vient d'un appel /quote separe :
 # les bougies servent a l'analyse structurelle, qui bouge lentement.
-TTL_BASE_SURVEILLANCE = {"240": 3600, "60": 1800, "30": 1200, "15": 600}
+TTL_BASE_SURVEILLANCE = {"240": 3600, "60": 1800, "30": 1200, "15": 600, "5": 300}
 # Plancher : en dessous, on rafraichit plus vite que la bougie ne se forme.
-TTL_PLANCHER = {"240": 600, "60": 300, "30": 180, "15": 120}
+TTL_PLANCHER = {"240": 600, "60": 300, "30": 180, "15": 120, "5": 60}
 
 PROFILS = {"consultation": TTL_PLANCHER, "surveillance": None}
 _PROFIL = {"actif": "consultation"}
@@ -92,6 +92,8 @@ TIMEFRAMES = [
      "params": dict(ema_fast=20, ema_slow=50, pivot_span=3, delai_max=40)},
     {"tf": "15", "nom": "M15", "role": "Exécution", "mtf": 4,
      "params": dict(ema_fast=20, ema_slow=50, pivot_span=3, delai_max=60)},
+    {"tf": "5", "nom": "M5", "role": "Scalp", "mtf": 12,
+     "params": dict(ema_fast=20, ema_slow=50, pivot_span=2, delai_max=60)},
 ]
 
 # Fiabilité mesurée par backtest — affichée à côté de chaque signal pour que
@@ -105,6 +107,8 @@ FIABILITE = {
             "note": "jamais backtesté", "niveau": "non mesuré"},
     "M15": {"trades": None, "esperance": None, "pf": None, "creux": None,
             "note": "jamais backtesté", "niveau": "non mesuré"},
+    "M5": {"trades": 32, "esperance": 0.194, "pf": 1.29, "creux": -6.03,
+           "note": "17 j de données, spread sensible", "niveau": "indicatif"},
 }
 
 
@@ -130,7 +134,7 @@ def _avec_prix_direct(bars: list[dict], prix: float) -> list[dict]:
 # Poids par timeframe pour le consensus : le H4 pese plus que le M15,
 # comme dans le module de debat (un signal court ne renverse pas une
 # structure longue).
-POIDS_TF = {"H4": 3.0, "H1": 2.0, "M30": 1.0, "M15": 0.5}
+POIDS_TF = {"H4": 3.0, "H1": 2.0, "M30": 1.0, "M15": 0.5, "M5": 0.25}
 
 
 def _consensus(resultats: list, macro: dict, minieres: dict, cot: dict) -> dict:

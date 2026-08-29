@@ -99,6 +99,20 @@ footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b94
 .contribs div{display:flex;justify-content:space-between;padding:2px 0}
 .tv-cadre{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;min-height:460px}
 .tv-cadre h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;padding:14px 16px 0}
+.onglets{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.onglet{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:8px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-family:inherit;font-weight:600}
+.onglet.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.panneau{display:none}.panneau.actif{display:block}
+.tf-btns{display:flex;gap:6px;margin:0 0 10px}
+.tf-btn{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.tf-btn.actif{background:#238636;border-color:#238636;color:#fff}
+.grand-chart{display:none;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px}
+.grand-chart.actif{display:block}
+.strats{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;overflow-x:auto}
+.strats table{width:100%;border-collapse:collapse;font-size:13px}
+.strats th{text-align:left;color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;border-bottom:1px solid #30363d}
+.strats td{padding:7px 10px;border-bottom:1px solid #21262d;color:#c9d1d9;font-variant-numeric:tabular-nums}
+.strats .ok{color:#3fb950}.strats .ko{color:#f85149}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .var.hausse{color:#3fb950}.var.baisse{color:#f85149}
 .direct{font-size:11.5px;color:#6e7681}
@@ -309,23 +323,12 @@ def _boule(c: dict) -> str:
 # Widget officiel TradingView — construit HORS f-string : son JSON de config
 # est plein d'accolades qui entreraient en collision avec le gabarit.
 WIDGET_TV = """<div class="tv-cadre"><h3>Graphique en direct — TradingView</h3>
-<div class="tradingview-widget-container" style="height:430px">
-<div id="tv-graph" style="height:100%"></div>
-<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-{
-"autosize": true,
-"symbol": "OANDA:XAUUSD",
-"interval": "30",
-"timezone": "Etc/UTC",
-"theme": "dark",
-"style": "1",
-"locale": "fr",
-"backgroundColor": "rgba(13, 17, 23, 1)",
-"hide_top_toolbar": false,
-"allow_symbol_change": false,
-"support_host": "https://www.tradingview.com"
-}
-</script></div></div>"""
+<iframe src="https://s.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=30&theme=dark&style=1&locale=fr&hide_side_toolbar=0&allow_symbol_change=0&timezone=Etc%2FUTC"
+ style="width:100%;height:430px;border:0;display:block" loading="lazy"
+ title="TradingView XAUUSD"></iframe>
+<div style="padding:8px 16px;font-size:11.5px;color:#6e7681">Si ce cadre reste noir,
+un bloqueur de publicité filtre probablement tradingview.com — ajoute une exception
+pour 127.0.0.1.</div></div>"""
 
 
 def rendre(d: dict) -> str:
@@ -399,6 +402,37 @@ def rendre(d: dict) -> str:
     boule = _boule(d.get("consensus"))
     widget = WIDGET_TV
 
+    # Onglet analyse graphique : nos graphiques en grand, avec les zones de
+    # la regle superposees — ce que le widget TradingView ne peut pas montrer.
+    btns, charts = "", ""
+    for i, r in enumerate(d["timeframes"]):
+        actif = " actif" if i == 0 else ""
+        btns += f'<button class="tf-btn{actif}" data-c="gc-{r["nom"]}">{r["nom"]}</button>'
+        svg = _chandeliers(r.get("bougies", []), r.get("setup") or {}, largeur=920, hauteur=340)
+        s_ = r.get("setup") or {}
+        etat = (f'{s_["setup"].upper()} — entrée {s_["entree"]} · stop {s_["stop"]} · '
+                f'TP {s_["objectif"]} · R:R {s_["rr"]}') if s_.get("setup")                else f'aucun signal — {s_.get("raison", "")}'
+        charts += (f'<div id="gc-{r["nom"]}" class="grand-chart{actif}">'
+                   f'<div style="font-size:13px;color:#c9d1d9;margin-bottom:8px">'
+                   f'<b>{r["nom"]}</b> · {etat}</div>{svg}</div>')
+    bloc_graph = f'<div class="tf-btns">{btns}</div>{charts}'
+
+    # Onglet strategies : ce qui a ete mesure, y compris ce qui a ete rejete.
+    bloc_strats = """<div class="strats"><table>
+<tr><th>Couche</th><th>Effet mesuré (H4, ~3 ans, coût 0,3 pt)</th><th>Statut</th></tr>
+<tr><td>Repli sur support en tendance (base)</td><td>70 trades · +0,656R · creux −4,11R</td><td class="ok">active</td></tr>
+<tr><td>Filtre surachat/survente RSI 70/30</td><td>+0,762R · creux −3,10R (−25 %)</td><td class="ok">active</td></tr>
+<tr><td>Contexte du timeframe supérieur</td><td>+16 % d'espérance (H4→Daily)</td><td class="ok">active</td></tr>
+<tr><td>Veto d'extension gradué (score 0-100)</td><td>a évité l'achat au sommet du 24-25/08</td><td class="ok">active</td></tr>
+<tr><td>Veto news à fort impact (calendrier éco)</td><td>non backtestable — protection de spread</td><td class="ok">active</td></tr>
+<tr><td>Macro FRED (taux réels, dollar)</td><td>arguments de débat, poids ≤ 2,5</td><td class="ok">active</td></tr>
+<tr><td>COT — positions des fonds spéculatifs</td><td>tendance + percentile 3 ans</td><td class="ok">active</td></tr>
+<tr><td>Divergence minières (AEM)</td><td>corrélation +0,80 même jour, lead-lag nul</td><td class="ok">confirmation seule</td></tr>
+<tr><td>Filtre Bollinger %B</td><td>+0,762R → +0,352R : dégrade</td><td class="ko">rejetée</td></tr>
+<tr><td>AEM comme prédicteur</td><td>corrélations décalées &lt; 0,12</td><td class="ko">rejetée</td></tr>
+<tr><td>Côté vendeur</td><td>5 trades, espérance négative</td><td class="ko">non validé</td></tr>
+</table></div>"""
+
     u = d.get("usage") or {}
     if u.get("limite"):
         quota_txt = f"{u['restant']} / {u['limite']} requêtes restantes"
@@ -429,7 +463,14 @@ Les niveaux découlent des paramètres de la règle : support confirmé = entré
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement
 mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuve derrière lui.</div>
 <div class="haut-page">{boule}{widget}</div>
-{bloc_news}
+<div class="onglets">
+<button class="onglet actif" data-p="p-risque">Risque événementiel</button>
+<button class="onglet" data-p="p-graph">Analyse graphique</button>
+<button class="onglet" data-p="p-strats">Stratégies</button>
+</div>
+<div id="p-risque" class="panneau actif">{bloc_news}</div>
+<div id="p-graph" class="panneau">{bloc_graph}</div>
+<div id="p-strats" class="panneau">{bloc_strats}</div>
 <div class="grille">{cartes}</div>
 <footer>
 <span id="etat-cles"></span>Données Twelve Data · filtres : RSI max 70 à l'achat,
@@ -511,7 +552,7 @@ async function rafraichir(manuel) {{
       j.className = pct > 85 ? "haut" : (pct > 60 ? "moyen" : "");
       document.getElementById("quota").title =
         u.detail.map(c => c.erreur ? `clé ${{c.cle}} : ${{c.erreur}}`
-          : `clé ${{c.cle}} : ${{c.restant}} restantes (minute ${{c.par_minute}})`).join("\n");
+          : `clé ${{c.cle}} : ${{c.restant}} restantes (minute ${{c.par_minute}})`).join(" | ");
     }}
 
     if (d.rotation && d.rotation.cles) {{
@@ -540,6 +581,19 @@ async function rafraichir(manuel) {{
     document.getElementById("pastille").classList.remove("charge");
   }}
 }}
+
+document.querySelectorAll(".onglet").forEach(b => b.onclick = () => {{
+  document.querySelectorAll(".onglet").forEach(x => x.classList.remove("actif"));
+  document.querySelectorAll(".panneau").forEach(x => x.classList.remove("actif"));
+  b.classList.add("actif");
+  document.getElementById(b.dataset.p).classList.add("actif");
+}});
+document.querySelectorAll(".tf-btn").forEach(b => b.onclick = () => {{
+  document.querySelectorAll(".tf-btn").forEach(x => x.classList.remove("actif"));
+  document.querySelectorAll(".grand-chart").forEach(x => x.classList.remove("actif"));
+  b.classList.add("actif");
+  document.getElementById(b.dataset.c).classList.add("actif");
+}});
 
 document.getElementById("btn-notif").onclick = async () => {{
   if (!window.Notification) {{
