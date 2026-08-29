@@ -87,6 +87,18 @@ footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b94
 .risque.inconnu{background:#21262d;color:#8b949e;border-left:3px solid #8b949e}
 .macrol{font-size:13px;color:#c9d1d9;padding:4px 0}
 .macrol b{font-variant-numeric:tabular-nums}
+.haut-page{display:grid;grid-template-columns:340px 1fr;gap:18px;margin:0 0 18px}
+@media(max-width:900px){.haut-page{grid-template-columns:1fr}}
+.boule{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.boule h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;align-self:flex-start}
+.verdict-b{font-size:20px;font-weight:700}
+.verdict-b.h{color:#3fb950}.verdict-b.b{color:#f85149}.verdict-b.n{color:#d29922}
+.legende{display:flex;gap:16px;font-size:12.5px;color:#c9d1d9}
+.legende i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.contribs{width:100%;font-size:11.5px;color:#8b949e;max-height:150px;overflow-y:auto;border-top:1px solid #21262d;padding-top:8px}
+.contribs div{display:flex;justify-content:space-between;padding:2px 0}
+.tv-cadre{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;min-height:460px}
+.tv-cadre h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;padding:14px 16px 0}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .var.hausse{color:#3fb950}.var.baisse{color:#f85149}
 .direct{font-size:11.5px;color:#6e7681}
@@ -263,6 +275,59 @@ def _carte(r: dict) -> str:
     return "".join(h)
 
 
+def _boule(c: dict) -> str:
+    """Donut de consensus, façon TipRanks — mais décomposable ligne par ligne."""
+    if not c:
+        return ""
+    pct = c["pct_haussier"]
+    r, circ = 62, 2 * 3.14159 * 62
+    arc_h = circ * pct / 100
+    cls = "h" if c["verdict"] == "HAUSSIER" else ("b" if c["verdict"] == "BAISSIER" else "n")
+    lignes = "".join(
+        f'<div><span>{"▲" if x["camp"]=="haussier" else "▼"} {x["source"]}</span>'
+        f'<span>{x["poids"]}</span></div>'
+        for x in c.get("contributions", []))
+    return f"""<div class="boule">
+<h3>Consensus des couches d'analyse</h3>
+<svg width="160" height="160" viewBox="0 0 160 160">
+<circle cx="80" cy="80" r="{r}" fill="none" stroke="#f85149" stroke-width="17"/>
+<circle cx="80" cy="80" r="{r}" fill="none" stroke="#3fb950" stroke-width="17"
+ stroke-dasharray="{arc_h:.1f} {circ - arc_h:.1f}" stroke-dashoffset="{circ/4:.1f}"
+ transform="rotate(0 80 80)" stroke-linecap="butt"/>
+<text x="80" y="76" text-anchor="middle" fill="#e6edf3" font-size="24" font-weight="700">{pct:.0f}%</text>
+<text x="80" y="96" text-anchor="middle" fill="#8b949e" font-size="11">haussier</text>
+</svg>
+<div class="verdict-b {cls}">{c["verdict"]}</div>
+<div class="legende">
+<span><i style="background:#3fb950"></i>{c["nb_haussier"]} haussiers · {c["haussier"]} pts</span>
+<span><i style="background:#f85149"></i>{c["nb_baissier"]} baissiers · {c["baissier"]} pts</span>
+</div>
+<div class="contribs">{lignes}</div>
+</div>"""
+
+
+# Widget officiel TradingView — construit HORS f-string : son JSON de config
+# est plein d'accolades qui entreraient en collision avec le gabarit.
+WIDGET_TV = """<div class="tv-cadre"><h3>Graphique en direct — TradingView</h3>
+<div class="tradingview-widget-container" style="height:430px">
+<div id="tv-graph" style="height:100%"></div>
+<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+{
+"autosize": true,
+"symbol": "OANDA:XAUUSD",
+"interval": "30",
+"timezone": "Etc/UTC",
+"theme": "dark",
+"style": "1",
+"locale": "fr",
+"backgroundColor": "rgba(13, 17, 23, 1)",
+"hide_top_toolbar": false,
+"allow_symbol_change": false,
+"support_host": "https://www.tradingview.com"
+}
+</script></div></div>"""
+
+
 def rendre(d: dict) -> str:
     gen = datetime.fromisoformat(d["genere_le"]).astimezone()
     cartes = "".join(_carte(r) for r in d["timeframes"])
@@ -331,6 +396,9 @@ def rendre(d: dict) -> str:
 <div><h3>Macro — moteurs de fond de l'or</h3>{lignes_macro}</div>
 </div>"""
 
+    boule = _boule(d.get("consensus"))
+    widget = WIDGET_TV
+
     u = d.get("usage") or {}
     if u.get("limite"):
         quota_txt = f"{u['restant']} / {u['limite']} requêtes restantes"
@@ -360,6 +428,7 @@ def rendre(d: dict) -> str:
 Les niveaux découlent des paramètres de la règle : support confirmé = entrée, −1&nbsp;ATR = stop,
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement
 mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuve derrière lui.</div>
+<div class="haut-page">{boule}{widget}</div>
 {bloc_news}
 <div class="grille">{cartes}</div>
 <footer>
@@ -415,6 +484,7 @@ async function rafraichir(manuel) {{
     if (d.erreur) throw new Error(d.erreur);
 
     document.querySelector(".grille").innerHTML = d.html;
+    if (d.boule) document.querySelector(".boule").outerHTML = d.boule;
     document.querySelector(".prix").textContent = d.prix ?? "—";
     document.getElementById("compte").textContent = d.nb_setups;
     document.getElementById("horodatage").textContent =
@@ -630,6 +700,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     ],
                     "html": "".join(_carte(r) for r in d["timeframes"]),
                     "news": d.get("news"),
+                    "boule": _boule(d.get("consensus")),
                     "quota": ds.COMPTEUR["twelvedata"],
                     "rotation": ds.etat_rotation(),
                     "quote": d.get("quote"),
