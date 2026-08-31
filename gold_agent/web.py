@@ -141,31 +141,72 @@ button:hover{background:#30363d}
 
 PAGE_CONNEXION = """<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connexion — Or</title><style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;color:#e6edf3;font:15px/1.5 -apple-system,sans-serif;
-display:flex;align-items:center;justify-content:center;min-height:100vh}
-form{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;width:340px}
-h1{font-size:19px;margin-bottom:6px}
-p{color:#8b949e;font-size:13px;margin-bottom:20px}
-label{display:block;font-size:12.5px;color:#8b949e;margin:12px 0 5px}
-input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:6px;
-color:#e6edf3;padding:9px 12px;font-size:14px}
-input:focus{outline:none;border-color:#2f81f7}
-button{width:100%;margin-top:20px;background:#238636;color:#fff;border:none;
-border-radius:6px;padding:10px;font-size:14px;font-weight:600;cursor:pointer}
-button:hover{background:#2ea043}
-.err{background:#3d1d1d;border:1px solid #b62324;color:#ffa198;border-radius:6px;
-padding:9px 12px;font-size:13px;margin-bottom:14px}
-.note{margin-top:16px;font-size:11.5px;color:#6e7681;line-height:1.5}
-</style></head><body><form method="POST" action="/connexion">
-<h1>Or — Tableau de bord</h1><p>XAU/USD · analyse multi-timeframe</p>
+<title>Or — Connexion</title><style>*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(ellipse at top,#141b26 0%,#0d1117 55%);color:#e6edf3;
+font:15px/1.5 -apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.carte{background:#161b22;border:1px solid #30363d;border-radius:14px;padding:36px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.rond{width:40px;height:40px;border-radius:50%;background:conic-gradient(#3fb950 0 62%,#f85149 62% 100%);
+display:flex;align-items:center;justify-content:center;font-weight:800;color:#0d1117;font-size:13px}
+h1{font-size:20px}
+.sous{color:#e3b341;font-size:12.5px;letter-spacing:.4px;margin-bottom:22px}
+label{display:block;font-size:12.5px;color:#8b949e;margin:13px 0 5px}
+input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;padding:10px 12px;font-size:14px}
+input:focus{outline:none;border-color:#e3b341}
+button{width:100%;margin-top:22px;background:#e3b341;color:#1c1c1c;border:none;border-radius:7px;
+padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+button:hover{background:#f0c65a}
+.err{background:#3d1d1d;border:1px solid #b62324;color:#ffa198;border-radius:7px;padding:9px 12px;font-size:13px;margin-bottom:14px}
+.note{margin-top:18px;font-size:11.5px;color:#6e7681;line-height:1.6}
+.alerte{margin-top:14px;background:#3a2e12;border-left:3px solid #d29922;border-radius:6px;padding:9px 12px;font-size:12px;color:#e3b341;line-height:1.5}</style></head><body>
+<form class="carte" method="POST" action="/connexion">
+<div class="logo"><div class="rond">OR</div><h1>Tableau de bord Or</h1></div>
+<div class="sous">XAU/USD · analyse multi-timeframe · signaux mesurés</div>
 {erreur}
-<label>Identifiant</label><input name="nom" autocomplete="username" autofocus required>
-<label>Mot de passe</label><input name="motdepasse" type="password" autocomplete="current-password" required>
+<label>Adresse e-mail</label>
+<input name="nom" type="email" autocomplete="username" placeholder="toi@gmail.com" autofocus required>
+<label>Mot de passe</label>
+<input name="motdepasse" type="password" autocomplete="current-password" required>
 <button>Se connecter</button>
-<div class="note">Comptes geres en local :<br>
-<code>python3 -m gold_agent.auth ajouter &lt;nom&gt;</code></div>
+<div class="note">Session privée sur cette machine (127.0.0.1). Mot de passe stocké
+uniquement en condensé scrypt salé — jamais en clair. 5 échecs = blocage temporaire.</div>
+</form></body></html>"""
+
+
+PAGE_CREATION = """<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Or — Créer le compte</title><style>*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(ellipse at top,#141b26 0%,#0d1117 55%);color:#e6edf3;
+font:15px/1.5 -apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.carte{background:#161b22;border:1px solid #30363d;border-radius:14px;padding:36px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.rond{width:40px;height:40px;border-radius:50%;background:conic-gradient(#3fb950 0 62%,#f85149 62% 100%);
+display:flex;align-items:center;justify-content:center;font-weight:800;color:#0d1117;font-size:13px}
+h1{font-size:20px}
+.sous{color:#e3b341;font-size:12.5px;letter-spacing:.4px;margin-bottom:22px}
+label{display:block;font-size:12.5px;color:#8b949e;margin:13px 0 5px}
+input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;padding:10px 12px;font-size:14px}
+input:focus{outline:none;border-color:#e3b341}
+button{width:100%;margin-top:22px;background:#e3b341;color:#1c1c1c;border:none;border-radius:7px;
+padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+button:hover{background:#f0c65a}
+.err{background:#3d1d1d;border:1px solid #b62324;color:#ffa198;border-radius:7px;padding:9px 12px;font-size:13px;margin-bottom:14px}
+.note{margin-top:18px;font-size:11.5px;color:#6e7681;line-height:1.6}
+.alerte{margin-top:14px;background:#3a2e12;border-left:3px solid #d29922;border-radius:6px;padding:9px 12px;font-size:12px;color:#e3b341;line-height:1.5}</style></head><body>
+<form class="carte" method="POST" action="/creer">
+<div class="logo"><div class="rond">OR</div><h1>Bienvenue</h1></div>
+<div class="sous">Première utilisation — crée le compte administrateur</div>
+{erreur}
+<label>Adresse e-mail (ton identifiant)</label>
+<input name="nom" type="email" autocomplete="username" placeholder="toi@gmail.com" autofocus required>
+<label>Mot de passe (10 caractères minimum)</label>
+<input name="motdepasse" type="password" autocomplete="new-password" minlength="10" required>
+<label>Confirme le mot de passe</label>
+<input name="motdepasse2" type="password" autocomplete="new-password" minlength="10" required>
+<button>Créer le compte et protéger le site</button>
+<div class="alerte">N'utilise JAMAIS ton vrai mot de passe Google ici. Choisis un mot
+de passe dédié à ce site — ton adresse Gmail ne sert que d'identifiant.</div>
+<div class="note">Dès la création, tout accès au site exigera cette connexion.</div>
 </form></body></html>"""
 
 
@@ -1011,14 +1052,47 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(corps)
 
     def do_POST(self):
-        if self.path != "/connexion":
+        if self.path not in ("/connexion", "/creer"):
             self._repondre(b"introuvable", "text/plain", code=404)
             return
         import urllib.parse
         taille = min(int(self.headers.get("Content-Length", 0) or 0), 4096)
         champs = urllib.parse.parse_qs(self.rfile.read(taille).decode("utf-8", "replace"))
-        nom = (champs.get("nom") or [""])[0].strip()
+        nom = (champs.get("nom") or [""])[0].strip().lower()
         mdp = (champs.get("motdepasse") or [""])[0]
+
+        if self.path == "/creer":
+            # Uniquement tant qu'AUCUN compte n'existe : sinon n'importe qui
+            # sur la machine pourrait s'ajouter un acces.
+            if auth.comptes_existent():
+                self._repondre(b"interdit", "text/plain", code=403)
+                return
+            mdp2 = (champs.get("motdepasse2") or [""])[0]
+            erreur = None
+            if "@" not in nom or "." not in nom.split("@")[-1]:
+                erreur = "Adresse e-mail invalide."
+            elif len(mdp) < 10:
+                erreur = "Mot de passe trop court : 10 caractères minimum."
+            elif mdp != mdp2:
+                erreur = "Les deux mots de passe ne correspondent pas."
+            if erreur:
+                page = PAGE_CREATION.replace("{erreur}", f'<div class="err">{erreur}</div>')
+                self._repondre(page.encode(), "text/html; charset=utf-8", code=400)
+                return
+            auth.creer(nom, mdp)
+            jeton = auth.ouvrir_session(nom)
+            self._repondre(b"", "text/plain", code=303, entetes=[
+                ("Location", "/"),
+                ("Set-Cookie", f"session={jeton}; HttpOnly; SameSite=Strict; Path=/"),
+            ])
+            return
+
+        attente = auth.attente_requise(nom)
+        if attente:
+            page = PAGE_CONNEXION.replace("{erreur}",
+                f'<div class="err">Trop d&#39;échecs — réessaie dans {attente} s.</div>')
+            self._repondre(page.encode(), "text/html; charset=utf-8", code=429)
+            return
         if nom and auth.verifier(nom, mdp):
             jeton = auth.ouvrir_session(nom)
             # HttpOnly : inaccessible au JavaScript de la page. SameSite=Strict :
@@ -1029,7 +1103,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             ])
         else:
             page = PAGE_CONNEXION.replace("{erreur}",
-                '<div class="err">Identifiant ou mot de passe incorrect.</div>')
+                '<div class="err">Adresse ou mot de passe incorrect.</div>')
             self._repondre(page.encode(), "text/html; charset=utf-8", code=401)
 
     def do_GET(self):
@@ -1044,6 +1118,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         # Tant qu'aucun compte n'existe, pas d'ecran de connexion : exiger un
         # mot de passe inexistant reviendrait a verrouiller l'utilisateur dehors.
+        if not auth.comptes_existent() and self.path == "/":
+            self._repondre(PAGE_CREATION.replace("{erreur}", "").encode(),
+                           "text/html; charset=utf-8")
+            return
+
         if auth.comptes_existent() and not auth.session_valide(self._jeton()):
             if self.path.startswith("/json"):
                 self._repondre(b'{"erreur":"non authentifie"}',

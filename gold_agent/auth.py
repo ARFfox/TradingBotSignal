@@ -125,6 +125,20 @@ def fermer_session(jeton: str | None) -> None:
             _SESSIONS.pop(jeton, None)
 
 
+def attente_requise(nom: str) -> int:
+    """Secondes avant le prochain essai permis — 0 si l'essai est libre.
+
+    S'appuie sur le mecanisme deja present dans verifier() : MAX_ECHECS
+    dans une fenetre glissante de FENETRE_ECHECS secondes.
+    """
+    maintenant = time.time()
+    with _VERROU:
+        essais = [t for t in _ECHECS.get(nom, []) if maintenant - t < FENETRE_ECHECS]
+    if len(essais) < MAX_ECHECS:
+        return 0
+    return max(1, int(FENETRE_ECHECS - (maintenant - min(essais))))
+
+
 def comptes_existent() -> bool:
     return bool(_charger())
 
