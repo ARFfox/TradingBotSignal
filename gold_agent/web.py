@@ -113,6 +113,18 @@ footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b94
 .strats th{text-align:left;color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;border-bottom:1px solid #30363d}
 .strats td{padding:7px 10px;border-bottom:1px solid #21262d;color:#c9d1d9;font-variant-numeric:tabular-nums}
 .strats .ok{color:#3fb950}.strats .ko{color:#f85149}
+.jauge-tf{position:relative;width:44px;height:44px;flex-shrink:0}
+.jauge-tf svg{transform:rotate(-90deg)}
+.jauge-tf span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.ict-ligne{font-size:12px;color:#8b949e;padding:6px 0;border-top:1px solid #21262d;margin-top:8px}
+.ict-ligne b{color:#c9d1d9}
+.cerveau{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.ag{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px}
+.ag h4{font-size:13.5px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.ag .pt{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ag .pt.ok{background:#3fb950}.ag .pt.ko{background:#f85149}
+.ag p{font-size:12px;color:#8b949e;margin-top:4px}
+.superviseur{grid-column:1/-1;background:#161b22;border:1px solid #30363d;border-left:3px solid #1f6feb;border-radius:10px;padding:14px;font-size:13px;color:#c9d1d9}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .var.hausse{color:#3fb950}.var.baisse{color:#f85149}
 .direct{font-size:11.5px;color:#6e7681}
@@ -225,9 +237,19 @@ def _carte(r: dict) -> str:
     cls = {"mesuré": "b-mesure", "indicatif": "b-indicatif"}.get(niveau, "b-nonmesure")
     actif = " actif" if s.get("setup") else ""
 
+    pct = r.get("pct_haussier", 50)
+    circ = 2 * 3.14159 * 18
+    coul = "#3fb950" if pct >= 55 else ("#f85149" if pct <= 45 else "#d29922")
+    jauge = (f'<div class="jauge-tf"><svg width="44" height="44">'
+             f'<circle cx="22" cy="22" r="18" fill="none" stroke="#21262d" stroke-width="5"/>'
+             f'<circle cx="22" cy="22" r="18" fill="none" stroke="{coul}" stroke-width="5" '
+             f'stroke-dasharray="{circ*pct/100:.1f} {circ:.1f}"/></svg>'
+             f'<span style="color:{coul}">{pct}%</span></div>')
+
     h = [f'<div class="carte{actif}">',
-         f'<div class="tete"><div><div class="tf">{r["nom"]}</div>'
-         f'<div class="role">{r["role"]}</div></div>'
+         f'<div class="tete"><div style="display:flex;gap:10px;align-items:center">{jauge}'
+         f'<div><div class="tf">{r["nom"]}</div>'
+         f'<div class="role">{r["role"]}</div></div></div>'
          f'<span class="badge {cls}">{niveau} · {fi.get("note","")}</span></div>',
          '<div class="corps">']
 
@@ -272,6 +294,16 @@ def _carte(r: dict) -> str:
         for cl, txt in alertes:
             h.append(f'<div class="al {cl}">{txt}</div>')
         h.append("</div>")
+
+    ic = r.get("ict") or {}
+    pd_ = ic.get("premium_discount") or {}
+    amd = ic.get("amd") or {}
+    if pd_.get("zone"):
+        kz = ic.get("killzone")
+        h.append(f'<div class="ict-ligne">ICT : <b>{pd_["zone"]}</b> '
+                 f'({pd_["position_pct"]}% du range) · AMD : <b>{amd.get("phase","—")}</b>'
+                 + (f' · killzone <b>{kz}</b>' if kz else "")
+                 + '</div>')
 
     age = r.get("age_secondes")
     if age is not None:
@@ -433,6 +465,45 @@ def rendre(d: dict) -> str:
 <tr><td>Côté vendeur</td><td>5 trades, espérance négative</td><td class="ko">non validé</td></tr>
 </table></div>"""
 
+    hi = d.get("historique") or {}
+    lignes_h = ""
+    for x in hi.get("derniers", []):
+        st = x["statut"]
+        cls_h = {"gagnant": "ok", "perdant": "ko"}.get(st, "")
+        r_txt = f'{x["r_obtenu"]:+.2f}R' if x.get("r_obtenu") is not None else "—"
+        lignes_h += (f'<tr><td>{x["cree_le"][:16].replace("T"," ")}</td><td>{x["tf"]}</td>'
+                     f'<td>{x["sens"]}</td><td>{x["entree"]}</td><td>{x["stop"]}</td>'
+                     f'<td>{x["objectif"]}</td><td>{x["fiabilite"]}</td>'
+                     f'<td class="{cls_h}">{st}</td><td>{r_txt}</td></tr>')
+    if not lignes_h:
+        lignes_h = '<tr><td colspan="9">aucun signal enregistré pour l&#39;instant — le journal se remplit à mesure que la règle émet</td></tr>'
+    taux = hi.get("taux_reussite_pct")
+    resume_h = (f'{hi.get("total_emis",0)} signaux émis · {hi.get("resolus",0)} résolus '
+                f'({hi.get("gagnants",0)} gagnants / {hi.get("perdants",0)} perdants'
+                + (f' · taux {taux}%' if taux is not None else "")
+                + f') · cumul {hi.get("cumul_R",0):+.2f}R · '
+                f'{hi.get("en_attente",0)} en attente · {hi.get("ouverts",0)} ouverts · '
+                f'{hi.get("non_executes",0)} jamais exécutés')
+    bloc_histo = f"""<div class="strats">
+<div style="font-size:13.5px;color:#e6edf3;margin-bottom:10px"><b>Résultat global :</b> {resume_h}</div>
+<table><tr><th>Émis le (UTC)</th><th>TF</th><th>Sens</th><th>Entrée</th><th>Stop</th><th>TP</th><th>Fiabilité</th><th>Statut</th><th>R</th></tr>
+{lignes_h}</table>
+<div style="font-size:11.5px;color:#6e7681;margin-top:8px">Résolution aux mêmes règles que le
+backtest : bougie touchant stop ET objectif = perte. Une entrée limite jamais touchée sous 48 h
+est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
+
+    sa = d.get("sante") or {}
+    ags = ""
+    for a in sa.get("agents", []):
+        pt = "ok" if a["ok"] else "ko"
+        ags += (f'<div class="ag"><h4><span class="pt {pt}"></span>{a["nom"]}</h4>'
+                f'<p>{a["role"]}</p><p>Source : {a["source"]}</p><p>{a["detail"]}</p></div>')
+    probs = sa.get("problemes", [])
+    diag = ("<b>Superviseur — problèmes détectés :</b><br>" + "<br>".join(f"• {x}" for x in probs))         if probs else "<b>Superviseur :</b> tous les agents répondent, aucun problème détecté."
+    bloc_cerveau = (f'<div class="cerveau">{ags}'
+                    f'<div class="superviseur">{diag}<br><br>'
+                    f'<span style="color:#8b949e;font-size:12px">{sa.get("note","")}</span></div></div>')
+
     u = d.get("usage") or {}
     if u.get("limite"):
         quota_txt = f"{u['restant']} / {u['limite']} requêtes restantes"
@@ -467,10 +538,14 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <button class="onglet actif" data-p="p-risque">Risque événementiel</button>
 <button class="onglet" data-p="p-graph">Analyse graphique</button>
 <button class="onglet" data-p="p-strats">Stratégies</button>
+<button class="onglet" data-p="p-histo">Historique</button>
+<button class="onglet" data-p="p-cerveau">Cerveau</button>
 </div>
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
 <div id="p-graph" class="panneau">{bloc_graph}</div>
 <div id="p-strats" class="panneau">{bloc_strats}</div>
+<div id="p-histo" class="panneau">{bloc_histo}</div>
+<div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
 <div class="grille">{cartes}</div>
 <footer>
 <span id="etat-cles"></span>Données Twelve Data · filtres : RSI max 70 à l'achat,

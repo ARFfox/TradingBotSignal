@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import datasource as ds, indicators as ind, regime as rg, strategy as sg
+from . import datasource as ds, ict, indicators as ind, journal, regime as rg, strategy as sg
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -192,6 +192,74 @@ def _consensus(resultats: list, macro: dict, minieres: dict, cot: dict) -> dict:
             "contributions": contributions[:14]}
 
 
+def _sante(resultats: list, usage, quote) -> dict:
+    """État de chaque « agent » (module) : le Cerveau du site.
+
+    Chaque ligne dit ce que fait le module, d'où viennent ses données et
+    s'il répond — avec le diagnostic du superviseur : la liste des
+    problèmes détectés maintenant.
+    """
+    from . import news as _news
+    agents, problemes = [], []
+
+    def agent(nom, role, source, ok, detail):
+        agents.append({"nom": nom, "role": role, "source": source,
+                       "ok": bool(ok), "detail": detail})
+        if not ok:
+            problemes.append(f"{nom} : {detail}")
+
+    donnees_ok = sum(1 for r in resultats if not r.get("erreur"))
+    agent("Prix & bougies", "cotations et historique 5 timeframes",
+          "Twelve Data (5 clés en rotation)", donnees_ok == len(resultats),
+          f"{donnees_ok}/{len(resultats)} timeframes servis")
+    q_ok = bool(quote) and quote.get("age", 999) < 120
+    agent("Prix direct", "dernier prix traité (15 s)", "Twelve Data /quote",
+          q_ok, f"âge {quote.get('age','?')} s" if quote else "indisponible")
+    if usage and usage.get("limite"):
+        restant = usage["restant"]
+        agent("Quota API", "suivi de la consommation réelle", "Twelve Data /api_usage",
+              restant > 200, f"{restant}/{usage['limite']} restantes")
+    try:
+        r = _news.risque_evenementiel()
+        agent("News & calendrier", "veto avant publication à fort impact",
+              "ForexFactory (cache disque)", r.get("etat") != "inconnu", r.get("detail", ""))
+    except Exception as e:
+        agent("News & calendrier", "veto événementiel", "ForexFactory", False, str(e)[:60])
+    try:
+        m = _news.macro()
+        agent("Macro", "taux réels + dollar (moteurs de fond)", "FRED",
+              m.get("disponible"), m.get("erreur") or "séries à jour")
+    except Exception as e:
+        agent("Macro", "taux réels + dollar", "FRED", False, str(e)[:60])
+    try:
+        c = _news.positionnement()
+        agent("Positionnement", "positions des fonds spéculatifs", "CFTC (COT)",
+              c.get("disponible"), c.get("erreur") or f"rapport du {c.get('date')}")
+    except Exception as e:
+        agent("Positionnement", "COT", "CFTC", False, str(e)[:60])
+    try:
+        mi = _news.minieres()
+        agent("Minières", "divergence de confirmation (AEM)", "Twelve Data",
+              mi.get("disponible"), mi.get("erreur") or "corrélation suivie")
+    except Exception as e:
+        agent("Minières", "AEM", "Twelve Data", False, str(e)[:60])
+    from . import notify as _notify
+    can = _notify.etat_canaux()
+    agent("Notifications", "système + push téléphone", "osascript / ntfy.sh",
+          can["systeme"] or can["telephone"],
+          f"système {'oui' if can['systeme'] else 'non'}, "
+          f"téléphone {'oui' if can['telephone'] else 'non'}")
+    agent("Stratégie & journal", "règle mécanique, garde-fou, historique",
+          "interne (backtesté)", True, "voir onglets Stratégies et Historique")
+
+    return {"agents": agents, "problemes": problemes,
+            "note": ("Les prix affichés viennent de Twelve Data (agrégat institutionnel). "
+                     "Ton courtier Pepperstone cote avec son propre spread : ajuste les "
+                     "niveaux de quelques dixièmes de point. Le superviseur liste les "
+                     "problèmes détectés ; les corrections sont appliquées sur demande, "
+                     "jamais silencieusement.")}
+
+
 def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     resultats = []
     prix_actuel = None
@@ -229,6 +297,25 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             entree["extension"] = rg.score_extension(c[-1], entree["ema_fast"], entree["rsi"])
             entree["volatilite"] = rg.regime_volatilite(h, l, c)
             entree["renversement"] = rg.renversement(o, h, l, c)
+            try:
+                entree["ict"] = ict.analyse_ict(bars, entree["atr"])
+            except Exception:
+                entree["ict"] = None
+
+            # Pourcentage haussier de CE timeframe (jauge de la carte)
+            b_pts = s_pts = 0.0
+            if entree["ema_fast"] and entree["ema_slow"]:
+                (b_pts, s_pts) = (b_pts + 1.5, s_pts) if entree["ema_fast"] > entree["ema_slow"]                     else (b_pts, s_pts + 1.5)
+                if c[-1] > entree["ema_slow"]:
+                    b_pts += 1.0
+                else:
+                    s_pts += 1.0
+            if entree["rsi"] is not None:
+                if entree["rsi"] >= 55: b_pts += 0.5
+                elif entree["rsi"] <= 45: s_pts += 0.5
+            tot = b_pts + s_pts
+            entree["pct_haussier"] = round(b_pts / tot * 100) if tot else 50
+
             entree["bougies"] = [
                 {"t": b["time"], "o": b["open"], "h": b["high"],
                  "l": b["low"], "c": b["close"]} for b in bars[-120:]
@@ -285,6 +372,24 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     except Exception:
         cot = {"disponible": False}
 
+    # Journal : chaque signal emis est memorise puis suivi jusqu'a son
+    # denouement, avec les bougies deja en cache (zero requete en plus).
+    bars_par_tf = {}
+    for r in resultats:
+        if r.get("bougies"):
+            bars_par_tf[r["nom"]] = [
+                {"time": b["t"], "high": b["h"], "low": b["l"], "close": b["c"]}
+                for b in r["bougies"]]
+        st = r.get("setup") or {}
+        if st.get("setup"):
+            journal.enregistrer(r["nom"], st, prix_actuel or 0,
+                                (r.get("fiabilite") or {}).get("niveau", "?"))
+    try:
+        journal.resoudre(bars_par_tf)
+    except Exception:
+        pass
+    historique = journal.statistiques()
+
     consensus = _consensus(resultats, macro, minieres, cot)
 
     return {
@@ -296,6 +401,8 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "usage": usage,
         "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
                  "minieres": minieres, "cot": cot},
+        "historique": historique,
+        "sante": _sante(resultats, usage, quote),
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }
