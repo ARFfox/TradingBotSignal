@@ -84,9 +84,13 @@ def _bars_caches(symbole: str, tf: str, bougies: int) -> tuple:
     return bars, 0, False
 
 TIMEFRAMES = [
-    {"tf": "240", "nom": "H4", "role": "Structure", "mtf": 6,
+    # k_stop par timeframe — mesure du 01/09/2026 sur deux fenetres
+    # (historique complet ET 60 derniers jours, guerre comprise) :
+    # H4 k1,5 : +0,76R -> +1,12R · H1 k1,5 : +0,09R -> +0,58R (et la fenetre
+    # recente repasse positive) · M30 : k1,0 reste meilleur (+0,74R).
+    {"tf": "240", "nom": "H4", "role": "Structure", "mtf": 6, "k_stop": 1.5,
      "params": dict(ema_fast=50, ema_slow=200, pivot_span=3, delai_max=40)},
-    {"tf": "60", "nom": "H1", "role": "Tendance", "mtf": 4,
+    {"tf": "60", "nom": "H1", "role": "Tendance", "mtf": 4, "k_stop": 1.5,
      "params": dict(ema_fast=20, ema_slow=50, pivot_span=3, delai_max=40)},
     {"tf": "30", "nom": "M30", "role": "Timing", "mtf": 2,
      "params": dict(ema_fast=20, ema_slow=50, pivot_span=3, delai_max=40)},
@@ -99,10 +103,10 @@ TIMEFRAMES = [
 # Fiabilité mesurée par backtest — affichée à côté de chaque signal pour que
 # la confiance accordée soit proportionnée aux preuves.
 FIABILITE = {
-    "H4": {"trades": 64, "esperance": 0.762, "pf": 2.65, "creux": -3.10,
-           "note": "3 ans de données", "niveau": "mesuré"},
-    "H1": {"trades": 22, "esperance": 0.757, "pf": 2.60, "creux": -3.05,
-           "note": "échantillon faible", "niveau": "indicatif"},
+    "H4": {"trades": 19, "esperance": 1.117, "pf": None, "creux": None,
+           "note": "3 ans, stop 1,5 ATR : +1,12R", "niveau": "mesuré"},
+    "H1": {"trades": 10, "esperance": 0.583, "pf": None, "creux": None,
+           "note": "stop 1,5 ATR : +0,58R, échantillon faible", "niveau": "indicatif"},
     "M30": {"trades": 25, "esperance": 0.626, "pf": 2.38, "creux": -3.13,
             "note": "104 j, +0,63R", "niveau": "indicatif"},
     "M15": {"trades": 28, "esperance": 0.058, "pf": 1.09, "creux": -11.37,
@@ -372,7 +376,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             l = [b["low"] for b in bars]
             c = [b["close"] for b in bars]
             o = [b["open"] for b in bars]
-            p = sg.Params(k_stop=1.0, rr_min=1.5, cout_pts=0.3,
+            p = sg.Params(k_stop=spec.get("k_stop", 1.0), rr_min=1.5, cout_pts=0.3,
                           facteur_superieur=spec["mtf"], **spec["params"])
             entree["setup"] = sg.setup_actuel(bars, p)
             entree["prix"] = round(c[-1], 2)

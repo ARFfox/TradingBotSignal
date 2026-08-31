@@ -303,10 +303,14 @@ def _carte(r: dict) -> str:
              f'stroke-dasharray="{circ*pct/100:.1f} {circ:.1f}"/></svg>'
              f'<span style="color:{coul}">{pct}%</span></div>')
 
+    em = r.get("emission")
+    tag_em = "" if em is None else (
+        ' <span style="font-size:10px;color:#3fb950">émission ON</span>' if em
+        else ' <span style="font-size:10px;color:#f85149">émission OFF</span>')
     h = [f'<div class="carte{actif}">',
          f'<div class="tete"><div style="display:flex;gap:10px;align-items:center">{jauge}'
          f'<div><div class="tf">{r["nom"]}</div>'
-         f'<div class="role">{r["role"]}</div></div></div>'
+         f'<div class="role">{r["role"]}{tag_em}</div></div></div>'
          f'<span class="badge {cls}">{niveau} · {fi.get("note","")}</span></div>',
          '<div class="corps">']
 
