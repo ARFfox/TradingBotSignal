@@ -383,8 +383,13 @@ URL_ACTUS = ("https://news.google.com/rss/search?"
              "q=gold+price+iran+OR+war+OR+strike+OR+attack+OR+conflict+when:2d"
              "&hl=en-US&gl=US&ceid=US:en")
 FICHIER_ACTUS = pathlib.Path.home() / ".gold_agent_actus.json"
-MOTS_CHAUDS = ("war", "strike", "strikes", "attack", "missile", "escalat",
-               "conflict", "iran", "military", "retaliat", "sanctions")
+# Rouge : action militaire directe — a lire imperativement.
+# Jaune : facteur de risque a surveiller. Gris : bruit de fond.
+MOTS_ROUGES = ("war", "strike", "strikes", "attack", "missile", "escalat",
+               "military", "retaliat", "bomb", "invasion", "crisis")
+MOTS_JAUNES = ("iran", "conflict", "sanctions", "fed", "rate hike", "tension",
+               "geopolit", "emergency", "opec")
+MOTS_CHAUDS = MOTS_ROUGES + ("conflict", "iran", "sanctions")
 
 _ACTUS = {"valeur": None, "t": 0.0, "verrou": threading.Lock()}
 TTL_ACTUS = 900     # 15 min
@@ -417,9 +422,17 @@ def actualites(ttl: int = TTL_ACTUS) -> dict:
         for t, d in items[:25]:
             t = (t.replace("&amp;", "&").replace("&#39;", "'")
                  .replace("&quot;", '"').strip())
-            touche = any(m in t.lower() for m in MOTS_CHAUDS)
+            bas = t.lower()
+            if any(m in bas for m in MOTS_ROUGES):
+                gravite = "rouge"
+            elif any(m in bas for m in MOTS_JAUNES):
+                gravite = "jaune"
+            else:
+                gravite = "gris"
+            touche = gravite == "rouge"
             chauds += touche
-            titres.append({"titre": t[:140], "date": d[5:16], "geopolitique": touche})
+            titres.append({"titre": t[:140], "date": d[5:16],
+                           "geopolitique": touche, "gravite": gravite})
         part = chauds / len(titres)
         niveau = "eleve" if part >= 0.4 else ("modere" if part >= 0.15 else "calme")
         out = {"disponible": True, "titres": titres[:12], "niveau": niveau,

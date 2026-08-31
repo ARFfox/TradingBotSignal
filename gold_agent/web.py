@@ -310,6 +310,9 @@ def _carte(r: dict) -> str:
          f'<span class="badge {cls}">{niveau} · {fi.get("note","")}</span></div>',
          '<div class="corps">']
 
+    if s.get("setup") and s.get("suspendu"):
+        h.append(f'<div class="al chaud" style="margin-bottom:8px">&#9940; SUSPENDU par le '
+                 f'superviseur : {s["suspendu"]} — non journalisé, non notifié</div>')
     if s.get("setup"):
         sens = "ACHAT" if s["setup"] == "achat" else "VENTE"
         etat = "déclenché" if s.get("declenche") else f"à {s['distance_a_entree']} pts"
@@ -603,9 +606,12 @@ def rendre(d: dict) -> str:
                     f'évoquent un conflit. Stops techniques peu fiables ; le backtest ne couvre '
                     f'pas ce régime.</div>')
     lignes_actus = ""
-    for x in (act.get("titres") or [])[:7]:
-        pt = '<span style="color:#f85149">●</span> ' if x.get("geopolitique") else '<span style="color:#6e7681">○</span> '
-        lignes_actus += (f'<div class="evt"><span class="t">{pt}{x["titre"][:95]}</span>'
+    for x in (act.get("titres") or [])[:8]:
+        g = x.get("gravite") or ("rouge" if x.get("geopolitique") else "gris")
+        coul = {"rouge": "#f85149", "jaune": "#d29922"}.get(g, "#6e7681")
+        gras = ' style="color:#ffa198;font-weight:600"' if g == "rouge" else ""
+        lignes_actus += (f'<div class="evt" style="border-left:3px solid {coul};padding-left:8px">'
+                         f'<span class="t"{gras}>{x["titre"][:95]}</span>'
                          f'<span class="q">{x["date"]}</span></div>')
     if lignes_actus:
         lignes_actus = f'<h3 style="margin-top:14px">Actualités (Google News)</h3>{lignes_actus}'
@@ -682,7 +688,10 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
     ags = ""
     for a in sa.get("agents", []):
         pt = "ok" if a["ok"] else "ko"
-        ags += (f'<div class="ag"><h4><span class="pt {pt}"></span>{a["nom"]}</h4>'
+        clic = (f''' onclick="allerOnglet('{a["cible"]}')" style="cursor:pointer"'''
+                if a.get("cible") else "")
+        emo = a.get("emoji", "")
+        ags += (f'<div class="ag"{clic}><h4><span class="pt {pt}"></span>{emo} {a["nom"]}</h4>'
                 f'<p>{a["role"]}</p><p>Source : {a["source"]}</p><p>{a["detail"]}</p></div>')
     probs = sa.get("problemes", [])
     diag = ("<b>Superviseur — problèmes détectés :</b><br>" + "<br>".join(f"• {x}" for x in probs))         if probs else "<b>Superviseur :</b> tous les agents répondent, aucun problème détecté."
@@ -744,6 +753,9 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
   <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
   <span class="point"></span></button>
   <span class="mini-lib" id="notif-etat">notifs</span></div>
+<div class="rondelle"><button class="btn-rond" onclick="allerOnglet('p-cerveau')"
+  title="Cerveau — agents, santé, superviseur" style="font-size:19px">&#129504;</button>
+  <span class="mini-lib">cerveau</span></div>
 <div class="rondelle"><a class="btn-rond" href="/deconnexion" title="Déconnexion">
   <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></a>
   <span class="mini-lib">sortie</span></div>
@@ -758,7 +770,6 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <button class="onglet" data-p="p-graph">Analyse graphique</button>
 <button class="onglet" data-p="p-strats">Stratégies</button>
 <button class="onglet" data-p="p-histo">Historique</button>
-<button class="onglet" data-p="p-cerveau">Cerveau</button>
 </div>
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
 <div id="p-graph" class="panneau">{bloc_graph}</div>
@@ -881,8 +892,14 @@ async function rafraichir(manuel) {{
 }}
 
 window.allerOnglet = id => {{
+  const p = document.getElementById(id);
+  if (!p) return;
+  document.querySelectorAll(".onglet").forEach(x => x.classList.remove("actif"));
+  document.querySelectorAll(".panneau").forEach(x => x.classList.remove("actif"));
+  p.classList.add("actif");
   const btn = document.querySelector(`.onglet[data-p="${{id}}"]`);
-  if (btn) {{ btn.click(); btn.scrollIntoView({{behavior:"smooth", block:"center"}}); }}
+  if (btn) btn.classList.add("actif");
+  p.scrollIntoView({{behavior:"smooth", block:"start"}});
 }};
 document.querySelectorAll(".onglet").forEach(b => b.onclick = () => {{
   document.querySelectorAll(".onglet").forEach(x => x.classList.remove("actif"));
@@ -951,7 +968,7 @@ def surveiller(intervalle: int, arret: threading.Event) -> None:
             actuels = set()
             for r in d["timeframes"]:
                 s = r.get("setup") or {}
-                if not s.get("setup"):
+                if not s.get("setup") or s.get("suspendu"):
                     continue
                 cle = _cle_signal(r)
                 actuels.add(cle)
@@ -1233,6 +1250,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "prix": d.get("prix"),
                     "genere_le": d["genere_le"],
                     "nb_setups": d["nb_setups"],
+                    "suspension": d.get("suspension"),
                     "signaux": [
                         {"tf": r["nom"],
                          "sens": (r.get("setup") or {}).get("setup"),
@@ -1242,7 +1260,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                          "rr": (r.get("setup") or {}).get("rr"),
                          "declenche": (r.get("setup") or {}).get("declenche"),
                          "fiabilite": (r.get("fiabilite") or {}).get("niveau")}
-                        for r in d["timeframes"] if (r.get("setup") or {}).get("setup")
+                        for r in d["timeframes"]
+                        if (r.get("setup") or {}).get("setup")
+                        and not (r.get("setup") or {}).get("suspendu")
                     ],
                     "html": "".join(_carte(r) for r in d["timeframes"]),
                     "news": d.get("news"),

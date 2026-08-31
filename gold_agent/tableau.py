@@ -306,6 +306,12 @@ def _sante(resultats: list, usage, quote) -> dict:
     except Exception:
         pass
 
+    # Rangement : Journal & historique dans la meme rangee que News & calendrier
+    noms = [a["nom"] for a in agents]
+    if "Journal & historique" in noms and "News & calendrier" in noms:
+        j = agents.pop(noms.index("Journal & historique"))
+        agents.insert([a["nom"] for a in agents].index("News & calendrier") + 1, j)
+
     return {"agents": agents, "problemes": problemes,
             "recommandations": recommandations,
             "note": ("Les prix affichés viennent de Twelve Data (agrégat institutionnel). "
@@ -438,6 +444,18 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
 
     # Journal : chaque signal emis est memorise puis suivi jusqu'a son
     # denouement, avec les bougies deja en cache (zero requete en plus).
+    # SUSPENSION D'EMISSION — le superviseur applique sa propre discipline :
+    # en regime geopolitique eleve ou en serie perdante averee, les setups
+    # restent AFFICHES (marques) mais ne sont ni journalises ni notifies.
+    # Mesure du 01/09 : la regle H4 tient sur 60 jours (+0,7R) mais les
+    # timeframes non backtestes ont produit 14 pertes pendant le choc.
+    suspension = None
+    if actus.get("niveau") == "eleve":
+        suspension = ("régime géopolitique élevé — non couvert par le backtest")
+    _h = journal.statistiques()
+    if _h.get("resolus", 0) >= 5 and             _h.get("perdants", 0) / max(_h.get("resolus", 1), 1) >= 0.8:
+        suspension = (suspension + " · " if suspension else "") +             f"série perdante ({_h['perdants']}/{_h['resolus']})"
+
     bars_par_tf = {}
     for r in resultats:
         if r.get("bougies"):
@@ -446,8 +464,11 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                 for b in r["bougies"]]
         st = r.get("setup") or {}
         if st.get("setup"):
-            journal.enregistrer(r["nom"], st, prix_actuel or 0,
-                                (r.get("fiabilite") or {}).get("niveau", "?"))
+            if suspension:
+                st["suspendu"] = suspension
+            else:
+                journal.enregistrer(r["nom"], st, prix_actuel or 0,
+                                    (r.get("fiabilite") or {}).get("niveau", "?"))
     try:
         journal.resoudre(bars_par_tf)
     except Exception:
@@ -466,6 +487,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
                  "minieres": minieres, "cot": cot, "actus": actus},
         "historique": historique,
+        "suspension": suspension,
         "sante": _sante(resultats, usage, quote),
         "timeframes": resultats,
         "nb_setups": len(actifs),
