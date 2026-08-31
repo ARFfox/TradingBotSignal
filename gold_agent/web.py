@@ -703,7 +703,7 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
     if reps:
         boutons = "".join(
             f'<button class="tf-btn" style="margin:4px 6px 0 0" '
-            f'onclick="reparer(\'{r["action"]}\', this)" '
+            f'onclick="reparer(&#39;{r["action"]}&#39;, this)" '
             f'title="{r["contexte"]}">&#128295; {r["libelle"]}</button>'
             for r in reps)
         diag += f'<br><br><b>Corrections disponibles</b> (liste blanche, un clic) :<br>{boutons}'
@@ -918,7 +918,7 @@ window.reparer = async (action, btn) => {{
     const d = await r.json();
     btn.textContent = d.ok ? "\u2713 " + d.message.slice(0, 60) : "\u2717 " + d.message;
     btn.style.borderColor = d.ok ? "#238636" : "#b62324";
-    if (d.ok) setTimeout(() => rafraichir(true), 1200);
+    if (d.ok) setTimeout(() => location.reload(), 1200);
   }} catch (e) {{ btn.textContent = "\u2717 erreur reseau"; btn.disabled = false; }}
 }};
 window.allerOnglet = id => {{

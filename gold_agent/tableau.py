@@ -494,6 +494,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             bars_par_tf[r["nom"]] = [
                 {"time": b["t"], "high": b["h"], "low": b["l"], "close": b["c"]}
                 for b in r["bougies"]]
+        r["emission"] = r["nom"] in tf_autorises
         st = r.get("setup") or {}
         if st.get("setup"):
             if r["nom"] not in tf_autorises:
