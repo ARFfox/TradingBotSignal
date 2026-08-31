@@ -72,6 +72,22 @@ footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b94
 @keyframes clign{50%{opacity:.3}}
 .compteur{font-size:12.5px;color:#8b949e;font-variant-numeric:tabular-nums}
 #notif-etat{font-size:12px;color:#8b949e}
+.rondelle{display:flex;flex-direction:column;align-items:center;gap:3px}
+.btn-rond{width:42px;height:42px;border-radius:50%;background:#21262d;border:1px solid #30363d;
+color:#c9d1d9;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+transition:background .15s,transform .1s;position:relative}
+.btn-rond:hover{background:#30363d;transform:scale(1.06)}
+.btn-rond svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;
+stroke-linecap:round;stroke-linejoin:round}
+.btn-rond.on{border-color:#238636;color:#3fb950}
+.btn-rond .point{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;
+background:#3fb950;border:2px solid #161b22;display:none}
+.btn-rond.on .point{display:block}
+.mini-lib{font-size:10px;color:#6e7681;letter-spacing:.2px;font-variant-numeric:tabular-nums}
+.anneau{position:relative;width:54px;height:54px}
+.anneau svg{transform:rotate(-90deg)}
+.anneau .pctq{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .on{color:#3fb950}
 .flash{animation:flash 1.4s ease-out}
 .news{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin:0 0 18px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -670,12 +686,13 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
 
     u = d.get("usage") or {}
     if u.get("limite"):
-        quota_txt = f"{u['restant']} / {u['limite']} requêtes restantes"
-        pct = u.get("part_pct") or 0
-        jauge_cls = "haut" if pct > 85 else ("moyen" if pct > 60 else "")
-        jauge_w = min(pct, 100)
+        pct_rest = max(0.0, 100.0 - (u.get("part_pct") or 0))
+        anneau_coul = "#3fb950" if pct_rest > 40 else ("#d29922" if pct_rest > 15 else "#f85149")
+        anneau_arc = 144.5 * pct_rest / 100          # circonference r=23
+        quota_pct_txt = f"{pct_rest:.0f}%"
+        quota_detail = f"{u['restant']} / {u['limite']}"
     else:
-        quota_txt, jauge_cls, jauge_w = "quota —", "", 0
+        anneau_coul, anneau_arc, quota_pct_txt, quota_detail = "#8b949e", 0.0, "—", "quota inconnu"
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Or — Tableau de bord</title><style>{CSS}</style></head><body><div class="wrap">
@@ -685,13 +702,27 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
  · <span id="compte">{d['nb_setups']}</span> signal(aux) actif(s)
  · <span class="direct" id="fraicheur">{frais}</span></div>
 <div class="barre">
-<div class="quota" id="quota" title="quota Twelve Data restant aujourd'hui">
-  <span id="quota-txt">{quota_txt}</span><span class="jauge"><span id="jauge" class="{jauge_cls}" style="width:{jauge_w}%"></span></span></div>
-<span class="compteur">prochain contrôle dans <span id="compteur">10</span>s</span>
-<button id="btn-notif">Activer les notifications</button>
-<span id="notif-etat"></span>
-<button onclick="rafraichir(true)">Actualiser</button>
-<a href="/deconnexion" style="color:#8b949e;font-size:12.5px">Déconnexion</a>
+<div class="rondelle" id="quota" title="quota Twelve Data restant aujourd'hui">
+  <div class="anneau">
+    <svg width="54" height="54" viewBox="0 0 54 54">
+      <circle cx="27" cy="27" r="23" fill="none" stroke="#21262d" stroke-width="5"/>
+      <circle id="anneau-quota" cx="27" cy="27" r="23" fill="none" stroke="{anneau_coul}"
+        stroke-width="5" stroke-linecap="round" stroke-dasharray="{anneau_arc:.1f} 144.5"/>
+    </svg>
+    <span class="pctq" id="quota-pct" style="color:{anneau_coul}">{quota_pct_txt}</span>
+  </div>
+  <span class="mini-lib" id="quota-detail">{quota_detail}</span>
+</div>
+<div class="rondelle"><button class="btn-rond" onclick="rafraichir(true)" title="Actualiser maintenant">
+  <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg></button>
+  <span class="mini-lib">dans <span id="compteur">10</span>s</span></div>
+<div class="rondelle"><button class="btn-rond" id="btn-notif" title="Notifications du navigateur">
+  <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+  <span class="point"></span></button>
+  <span class="mini-lib" id="notif-etat">notifs</span></div>
+<div class="rondelle"><a class="btn-rond" href="/deconnexion" title="Déconnexion">
+  <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></a>
+  <span class="mini-lib">sortie</span></div>
 </div></header>
 <div class="bandeau"><b>Sortie mécanique d'une règle, pas une recommandation.</b>
 Les niveaux découlent des paramètres de la règle : support confirmé = entrée, −1&nbsp;ATR = stop,
@@ -782,14 +813,17 @@ async function rafraichir(manuel) {{
         : `prix il y a ${{age}}s`;
     }}
 
-    // Quota restant
+    // Quota restant : anneau circulaire, pourcentage au centre
     if (d.usage && d.usage.limite) {{
-      const u = d.usage, pct = u.part_pct ?? 0;
-      document.getElementById("quota-txt").textContent =
-        `${{u.restant}} / ${{u.limite}} requêtes restantes`;
-      const j = document.getElementById("jauge");
-      j.style.width = Math.min(pct, 100) + "%";
-      j.className = pct > 85 ? "haut" : (pct > 60 ? "moyen" : "");
+      const u = d.usage, pctRest = Math.max(0, 100 - (u.part_pct ?? 0));
+      const coul = pctRest > 40 ? "#3fb950" : (pctRest > 15 ? "#d29922" : "#f85149");
+      const an = document.getElementById("anneau-quota");
+      an.setAttribute("stroke-dasharray", (144.5 * pctRest / 100).toFixed(1) + " 144.5");
+      an.setAttribute("stroke", coul);
+      const pc = document.getElementById("quota-pct");
+      pc.textContent = pctRest.toFixed(0) + "%";
+      pc.style.color = coul;
+      document.getElementById("quota-detail").textContent = `${{u.restant}} / ${{u.limite}}`;
       document.getElementById("quota").title =
         u.detail.map(c => c.erreur ? `clé ${{c.cle}} : ${{c.erreur}}`
           : `clé ${{c.cle}} : ${{c.restant}} restantes (minute ${{c.par_minute}})`).join(" | ");
@@ -849,9 +883,9 @@ document.getElementById("btn-notif").onclick = async () => {{
 function majEtatNotif(p) {{
   const el = document.getElementById("notif-etat");
   const btn = document.getElementById("btn-notif");
-  if (p === "granted") {{ el.innerHTML = '<span class="on">notifications actives</span>'; btn.style.display = "none"; }}
-  else if (p === "denied") {{ el.textContent = "refusées — à réactiver dans les réglages du navigateur"; btn.style.display = "none"; }}
-  else el.textContent = "";
+  if (p === "granted") {{ btn.classList.add("on"); el.textContent = "notifs actives"; el.style.color = "#3fb950"; }}
+  else if (p === "denied") {{ el.textContent = "refusées"; el.style.color = "#f85149"; btn.disabled = true; }}
+  else el.textContent = "activer";
 }}
 
 setInterval(() => {{
