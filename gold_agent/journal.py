@@ -41,8 +41,11 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
     k = cle_signal(tf, s)
     with _VERROU:
         signaux = _charger()
-        if any(x["cle"] == k and x["statut"] in ("en_attente", "ouvert")
-               for x in signaux):
+        # Deduplication sur la cle QUEL QUE SOIT le statut : un signal deja
+        # tranche (perdant/gagnant) qui reste affiche par la regle n'est pas
+        # une nouvelle configuration — le recompter gonflerait l'historique
+        # du meme trade repete toutes les 10 secondes.
+        if any(x["cle"] == k for x in signaux):
             return False
         signaux.append({
             "cle": k, "tf": tf, "sens": s["setup"],
