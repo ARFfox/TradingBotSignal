@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import datasource as ds, ict, indicators as ind, journal, patterns as pat, regime as rg, strategy as sg
+from . import config, datasource as ds, ict, indicators as ind, journal, patterns as pat, regime as rg, strategy as sg
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -103,12 +103,12 @@ FIABILITE = {
            "note": "3 ans de données", "niveau": "mesuré"},
     "H1": {"trades": 22, "esperance": 0.757, "pf": 2.60, "creux": -3.05,
            "note": "échantillon faible", "niveau": "indicatif"},
-    "M30": {"trades": None, "esperance": None, "pf": None, "creux": None,
-            "note": "jamais backtesté", "niveau": "non mesuré"},
-    "M15": {"trades": None, "esperance": None, "pf": None, "creux": None,
-            "note": "jamais backtesté", "niveau": "non mesuré"},
-    "M5": {"trades": 32, "esperance": 0.194, "pf": 1.29, "creux": -6.03,
-           "note": "17 j de données, spread sensible", "niveau": "indicatif"},
+    "M30": {"trades": 25, "esperance": 0.626, "pf": 2.38, "creux": -3.13,
+            "note": "104 j, +0,63R", "niveau": "indicatif"},
+    "M15": {"trades": 28, "esperance": 0.058, "pf": 1.09, "creux": -11.37,
+            "note": "espérance ~0, creux −11R", "niveau": "déconseillé"},
+    "M5": {"trades": 21, "esperance": 0.340, "pf": 1.60, "creux": -4.33,
+           "note": "17 j seulement", "niveau": "non mesuré"},
 }
 
 
@@ -306,14 +306,41 @@ def _sante(resultats: list, usage, quote) -> dict:
     except Exception:
         pass
 
+    # Detection par timeframe : quel TF perd, et proposition de correction
+    reparations = []
+    autorises = config.tf_emission()
+    for tf_nom, dd in (hist.get("par_tf") or {}).items():
+        res_tf = dd["gagnants"] + dd["perdants"]
+        if res_tf >= 3 and dd["perdants"] / res_tf >= 0.8:
+            msg = f"{tf_nom} : {dd['perdants']}/{res_tf} perdants au journal"
+            if tf_nom in autorises:
+                problemes.append(msg + " — émission encore active sur ce timeframe")
+                reparations.append({"action": f"tf_off:{tf_nom}",
+                                    "libelle": f"Couper l'émission {tf_nom}",
+                                    "contexte": msg})
+            else:
+                pass  # deja coupe, rien a reparer
+    doublons = hist.get("total_emis", 0) - len({x.get("cle") for x in hist.get("derniers", [])} )
+    if emis_24h > 15:
+        reparations.append({"action": "nettoyer_journal",
+                            "libelle": "Nettoyer les doublons du journal",
+                            "contexte": f"{emis_24h} signaux en 24 h"})
+    fige = [r for r in resultats if r.get("perime")]
+    if fige:
+        reparations.append({"action": "vider_caches",
+                            "libelle": "Vider les caches de données",
+                            "contexte": f"{len(fige)} timeframe(s) sur données figées"})
+
     # Rangement : Journal & historique dans la meme rangee que News & calendrier
     noms = [a["nom"] for a in agents]
     if "Journal & historique" in noms and "News & calendrier" in noms:
-        j = agents.pop(noms.index("Journal & historique"))
-        agents.insert([a["nom"] for a in agents].index("News & calendrier") + 1, j)
+        j2 = agents.pop(noms.index("Journal & historique"))
+        agents.insert([a["nom"] for a in agents].index("News & calendrier") + 1, j2)
 
     return {"agents": agents, "problemes": problemes,
             "recommandations": recommandations,
+            "reparations": reparations,
+            "tf_emission": autorises,
             "note": ("Les prix affichés viennent de Twelve Data (agrégat institutionnel). "
                      "Ton courtier Pepperstone cote avec son propre spread : ajuste les "
                      "niveaux de quelques dixièmes de point. Le superviseur liste les "
@@ -449,6 +476,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     # restent AFFICHES (marques) mais ne sont ni journalises ni notifies.
     # Mesure du 01/09 : la regle H4 tient sur 60 jours (+0,7R) mais les
     # timeframes non backtestes ont produit 14 pertes pendant le choc.
+    tf_autorises = config.tf_emission()
     suspension = None
     if actus.get("niveau") == "eleve":
         suspension = ("régime géopolitique élevé — non couvert par le backtest")
@@ -464,7 +492,10 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                 for b in r["bougies"]]
         st = r.get("setup") or {}
         if st.get("setup"):
-            if suspension:
+            if r["nom"] not in tf_autorises:
+                st["suspendu"] = (f"émission désactivée pour {r['nom']} "
+                                  f"(backtest insuffisant ou négatif)")
+            elif suspension:
                 st["suspendu"] = suspension
             else:
                 journal.enregistrer(r["nom"], st, prix_actuel or 0,
@@ -488,6 +519,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                  "minieres": minieres, "cot": cot, "actus": actus},
         "historique": historique,
         "suspension": suspension,
+        "tf_emission": tf_autorises,
         "sante": _sante(resultats, usage, quote),
         "timeframes": resultats,
         "nb_setups": len(actifs),

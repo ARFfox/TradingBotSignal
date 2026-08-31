@@ -18,7 +18,7 @@ import time
 import webbrowser
 from datetime import datetime, timezone
 
-from . import auth, datasource as ds, indicators as _ind, notify, patterns as _pat, structure as _st, tableau
+from . import auth, config as _cfg, datasource as ds, indicators as _ind, notify, patterns as _pat, structure as _st, tableau
 
 PORT = 8787
 
@@ -695,6 +695,20 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
                 f'<p>{a["role"]}</p><p>Source : {a["source"]}</p><p>{a["detail"]}</p></div>')
     probs = sa.get("problemes", [])
     diag = ("<b>Superviseur — problèmes détectés :</b><br>" + "<br>".join(f"• {x}" for x in probs))         if probs else "<b>Superviseur :</b> tous les agents répondent, aucun problème détecté."
+    reps = sa.get("reparations") or []
+    if reps:
+        boutons = "".join(
+            f'<button class="tf-btn" style="margin:4px 6px 0 0" '
+            f'onclick="reparer(\'{r["action"]}\', this)" '
+            f'title="{r["contexte"]}">&#128295; {r["libelle"]}</button>'
+            for r in reps)
+        diag += f'<br><br><b>Corrections disponibles</b> (liste blanche, un clic) :<br>{boutons}'
+    tfs_on = ", ".join(sa.get("tf_emission") or []) or "aucun"
+    diag += (f'<br><br><span style="color:#8b949e;font-size:12px">Timeframes émetteurs : '
+             f'<b style="color:#c9d1d9">{tfs_on}</b> — fondé sur les backtests '
+             f'(H4 +0,76R · H1 +0,52R · M30 +0,63R ; M15 ~0R et creux −11R : coupé ; '
+             f'M5 : 17 j de données, coupé)</span>')
+
     recos = sa.get("recommandations") or []
     if recos:
         diag += ('<br><br><b>Recommandations</b> (à mesurer avant application — le système '
@@ -891,6 +905,18 @@ async function rafraichir(manuel) {{
   }}
 }}
 
+window.reparer = async (action, btn) => {{
+  btn.disabled = true; btn.textContent = "...";
+  try {{
+    const r = await fetch("/reparer", {{ method: "POST",
+      headers: {{ "Content-Type": "application/x-www-form-urlencoded" }},
+      body: "action=" + encodeURIComponent(action) }});
+    const d = await r.json();
+    btn.textContent = d.ok ? "\u2713 " + d.message.slice(0, 60) : "\u2717 " + d.message;
+    btn.style.borderColor = d.ok ? "#238636" : "#b62324";
+    if (d.ok) setTimeout(() => rafraichir(true), 1200);
+  }} catch (e) {{ btn.textContent = "\u2717 erreur reseau"; btn.disabled = false; }}
+}};
 window.allerOnglet = id => {{
   const p = document.getElementById(id);
   if (!p) return;
@@ -1152,6 +1178,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(corps)
 
     def do_POST(self):
+        if self.path == "/reparer":
+            if auth.comptes_existent() and not auth.session_valide(self._jeton()):
+                self._repondre(b'{"erreur":"non authentifie"}',
+                               "application/json; charset=utf-8", code=401)
+                return
+            import urllib.parse as _up
+            taille = min(int(self.headers.get("Content-Length", 0) or 0), 1024)
+            champs = _up.parse_qs(self.rfile.read(taille).decode("utf-8", "replace"))
+            action = (champs.get("action") or [""])[0]
+            try:
+                message = _cfg.appliquer(action)
+                corps = json.dumps({"ok": True, "message": message}, ensure_ascii=False)
+            except Exception as e:
+                corps = json.dumps({"ok": False, "message": str(e)[:150]}, ensure_ascii=False)
+            self._repondre(corps.encode(), "application/json; charset=utf-8")
+            return
         if self.path not in ("/connexion", "/creer"):
             self._repondre(b"introuvable", "text/plain", code=404)
             return
