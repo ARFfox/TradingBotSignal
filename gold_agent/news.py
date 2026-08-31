@@ -367,3 +367,74 @@ def positionnement(ttl: int = TTL_COT) -> dict:
     with _COT["verrou"]:
         _COT["valeur"], _COT["t"] = out, time.time()
     return out
+
+
+# --------------------------------------------------------------------------
+# Actualites geopolitiques (Google News RSS, sans cle)
+#
+# Le calendrier economique ne voit que les evenements PROGRAMMES : un conflit
+# arme n'y figure pas. Le 31/08/2026, le systeme a vendu dans un marche
+# secoue par des frappes americaines sur l'Iran sans le savoir — 10 stops
+# fauches. Cette couche scanne les titres recents et degrade la confiance
+# du systeme quand le regime devient geopolitique.
+# --------------------------------------------------------------------------
+
+URL_ACTUS = ("https://news.google.com/rss/search?"
+             "q=gold+price+iran+OR+war+OR+strike+OR+attack+OR+conflict+when:2d"
+             "&hl=en-US&gl=US&ceid=US:en")
+FICHIER_ACTUS = pathlib.Path.home() / ".gold_agent_actus.json"
+MOTS_CHAUDS = ("war", "strike", "strikes", "attack", "missile", "escalat",
+               "conflict", "iran", "military", "retaliat", "sanctions")
+
+_ACTUS = {"valeur": None, "t": 0.0, "verrou": threading.Lock()}
+TTL_ACTUS = 900     # 15 min
+
+
+def actualites(ttl: int = TTL_ACTUS) -> dict:
+    """Titres récents liés à l'or + niveau de risque géopolitique.
+
+    Le niveau est un COMPTAGE de mots-clés dans des titres de presse — un
+    thermomètre grossier mais suffisant pour dire « le régime n'est plus
+    technique ». Il ne prédit aucune direction : le 31/08, l'or a BAISSÉ
+    sur les frappes (anticipations de hausse des taux), à rebours du
+    réflexe « valeur refuge ».
+    """
+    import re
+    with _ACTUS["verrou"]:
+        if _ACTUS["valeur"] is not None and (time.time() - _ACTUS["t"]) < ttl:
+            return _ACTUS["valeur"]
+
+    out = {"disponible": False, "titres": [], "niveau": "inconnu"}
+    try:
+        p = subprocess.run(["curl", "-s", "-m", "25", URL_ACTUS],
+                           capture_output=True, text=True, timeout=35)
+        items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<pubDate>(.*?)</pubDate>",
+                           p.stdout, re.S)
+        if not items:
+            raise RuntimeError("flux vide")
+        titres = []
+        chauds = 0
+        for t, d in items[:25]:
+            t = (t.replace("&amp;", "&").replace("&#39;", "'")
+                 .replace("&quot;", '"').strip())
+            touche = any(m in t.lower() for m in MOTS_CHAUDS)
+            chauds += touche
+            titres.append({"titre": t[:140], "date": d[5:16], "geopolitique": touche})
+        part = chauds / len(titres)
+        niveau = "eleve" if part >= 0.4 else ("modere" if part >= 0.15 else "calme")
+        out = {"disponible": True, "titres": titres[:12], "niveau": niveau,
+               "part_geopolitique_pct": round(part * 100),
+               "note": ("regime geopolitique : les stops techniques sont peu fiables, "
+                        "la direction ne suit pas forcement le reflexe valeur refuge")
+               if niveau == "eleve" else None}
+        FICHIER_ACTUS.write_text(json.dumps(out, ensure_ascii=False))
+    except Exception as e:
+        if FICHIER_ACTUS.exists():
+            out = json.loads(FICHIER_ACTUS.read_text())
+            out["age_note"] = f"flux indisponible ({str(e)[:50]}) — derniere version connue"
+        else:
+            out["erreur"] = str(e)[:100]
+
+    with _ACTUS["verrou"]:
+        _ACTUS["valeur"], _ACTUS["t"] = out, time.time()
+    return out

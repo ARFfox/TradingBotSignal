@@ -249,8 +249,39 @@ def _sante(resultats: list, usage, quote) -> dict:
           can["systeme"] or can["telephone"],
           f"système {'oui' if can['systeme'] else 'non'}, "
           f"téléphone {'oui' if can['telephone'] else 'non'}")
+    # --- Le superviseur regarde aussi les RESULTATS, pas que la tuyauterie ---
+    import time as _t
+    hist = journal.statistiques()
+    resolus = hist.get("resolus", 0)
+    perdants = hist.get("perdants", 0)
+    journal_ok = True
+    detail_j = f"{resolus} resolu(s), cumul {hist.get('cumul_R', 0):+.1f}R"
+    if resolus >= 5 and perdants / max(resolus, 1) >= 0.8:
+        journal_ok = False
+        detail_j = (f"{perdants}/{resolus} perdants (cumul {hist.get('cumul_R',0):+.1f}R) — "
+                    f"les signaux recents ne fonctionnent pas dans ce regime de marche")
     agent("Stratégie & journal", "règle mécanique, garde-fou, historique",
-          "interne (backtesté)", True, "voir onglets Stratégies et Historique")
+          "interne (backtesté)", journal_ok, detail_j)
+
+    emis_24h = sum(1 for x in hist.get("derniers", [])
+                   if _t.time() - x.get("cree_ts", 0) < 86400)
+    if emis_24h > 15:
+        problemes.append(f"Cadence d'emission anormale : {emis_24h} signaux en 24 h — "
+                         f"doublons ou marche disloque, verifier avant de suivre quoi que ce soit")
+
+    try:
+        act = _news.actualites()
+        if act.get("niveau") == "eleve":
+            problemes.append(
+                f"REGIME GEOPOLITIQUE ({act.get('part_geopolitique_pct','?')}% des titres) : "
+                f"conflit en cours dans l'actualite — stops techniques peu fiables, "
+                f"le backtest ne couvre pas ce regime")
+        agent("Actualités géopolitiques", "détection de régime hors calendrier",
+              "Google News RSS", act.get("disponible", False),
+              f"niveau {act.get('niveau','?')}")
+    except Exception as e:
+        agent("Actualités géopolitiques", "détection de régime", "Google News RSS",
+              False, str(e)[:60])
 
     return {"agents": agents, "problemes": problemes,
             "note": ("Les prix affichés viennent de Twelve Data (agrégat institutionnel). "
@@ -376,6 +407,10 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         cot = _news.positionnement()
     except Exception:
         cot = {"disponible": False}
+    try:
+        actus = _news.actualites()
+    except Exception:
+        actus = {"disponible": False, "niveau": "inconnu", "titres": []}
 
     # Journal : chaque signal emis est memorise puis suivi jusqu'a son
     # denouement, avec les bougies deja en cache (zero requete en plus).
@@ -405,7 +440,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "quote": quote,
         "usage": usage,
         "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
-                 "minieres": minieres, "cot": cot},
+                 "minieres": minieres, "cot": cot, "actus": actus},
         "historique": historique,
         "sante": _sante(resultats, usage, quote),
         "timeframes": resultats,

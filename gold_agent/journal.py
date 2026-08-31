@@ -33,7 +33,14 @@ def _sauver(signaux: list[dict]) -> None:
 
 
 def cle_signal(tf: str, s: dict) -> str:
-    return f"{tf}|{s['setup']}|{s['entree']}|{s['stop']}|{s['objectif']}"
+    """Cle SANS le stop ni l'objectif : ils sont derives de l'ATR et bougent
+    de quelques centimes a chaque cycle — les inclure transformait une seule
+    configuration en dizaines de « signaux » (167 entrees pour 10 trades
+    reels le 31/08). L'entree est arrondie au point entier."""
+    return f"{tf}|{s['setup']}|{round(s['entree'])}"
+
+
+FENETRE_ANTIRAFALE_H = 12   # pas deux enregistrements du meme groupe sous 12 h
 
 
 def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
@@ -45,8 +52,10 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
         # tranche (perdant/gagnant) qui reste affiche par la regle n'est pas
         # une nouvelle configuration — le recompter gonflerait l'historique
         # du meme trade repete toutes les 10 secondes.
-        if any(x["cle"] == k for x in signaux):
-            return False
+        maintenant_ts = int(dt.datetime.now(dt.timezone.utc).timestamp())
+        for x in signaux:
+            if x["cle"] == k and                     maintenant_ts - x["cree_ts"] < FENETRE_ANTIRAFALE_H * 3600:
+                return False
         signaux.append({
             "cle": k, "tf": tf, "sens": s["setup"],
             "entree": s["entree"], "stop": s["stop"], "objectif": s["objectif"],

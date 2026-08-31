@@ -595,10 +595,25 @@ def rendre(d: dict) -> str:
             f'<b>{mi["aem"]["variation_pct"]:+.1f}%</b> vs or '
             f'<b>{mi["or"]["variation_pct"]:+.1f}%</b> — {etat_mi}</div>')
 
+    act = n.get("actus") or {}
+    bloc_geo = ""
+    if act.get("niveau") == "eleve":
+        bloc_geo = (f'<div class="risque veto" style="margin-bottom:10px">'
+                    f'RÉGIME GÉOPOLITIQUE — {act.get("part_geopolitique_pct","?")}% des titres '
+                    f'évoquent un conflit. Stops techniques peu fiables ; le backtest ne couvre '
+                    f'pas ce régime.</div>')
+    lignes_actus = ""
+    for x in (act.get("titres") or [])[:7]:
+        pt = '<span style="color:#f85149">●</span> ' if x.get("geopolitique") else '<span style="color:#6e7681">○</span> '
+        lignes_actus += (f'<div class="evt"><span class="t">{pt}{x["titre"][:95]}</span>'
+                         f'<span class="q">{x["date"]}</span></div>')
+    if lignes_actus:
+        lignes_actus = f'<h3 style="margin-top:14px">Actualités (Google News)</h3>{lignes_actus}'
+
     bloc_news = f"""<div class="news">
-<div><h3>Risque événementiel</h3>
+<div><h3>Risque événementiel</h3>{bloc_geo}
 <div class="risque {et}">{risque.get("detail", "?")}</div>
-{lignes_agenda}</div>
+{lignes_agenda}{lignes_actus}</div>
 <div><h3>Macro — moteurs de fond de l'or</h3>{lignes_macro}</div>
 </div>"""
 
