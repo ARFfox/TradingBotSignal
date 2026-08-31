@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import datasource as ds, ict, indicators as ind, journal, regime as rg, strategy as sg
+from . import datasource as ds, ict, indicators as ind, journal, patterns as pat, regime as rg, strategy as sg
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -301,6 +301,11 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                 entree["ict"] = ict.analyse_ict(bars, entree["atr"])
             except Exception:
                 entree["ict"] = None
+            try:
+                zz = pat.zigzag(h, l, seuil=(entree["atr"] or 1) * 2)
+                entree["abc"] = pat.correction_abc(zz, entree["atr"])
+            except Exception:
+                entree["abc"] = {"scenario": None}
 
             # Pourcentage haussier de CE timeframe (jauge de la carte)
             b_pts = s_pts = 0.0

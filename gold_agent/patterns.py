@@ -304,3 +304,60 @@ def sessions(bars: list[dict], jours: int = 2) -> list[dict]:
                 "debut": bs[0]["time"], "fin": bs[-1]["time"],
             })
     return out
+
+
+def correction_abc(points: list[dict], atr: float) -> dict:
+    """Scénario de correction A-B-C après une jambe impulsive.
+
+    Lecture classique (celle des analystes Elliott) : après une chute
+    impulsive A, un rebond partiel B (30 à 85 % de A), puis une jambe C
+    qui projette environ la longueur de A depuis le sommet de B —
+    le « mouvement mesuré ». Symétrique pour une correction haussière.
+
+    Renvoie le stade du scénario et la cible projetée de C. C'est un
+    SCÉNARIO, pas une prédiction : il est invalidé si B dépasse l'origine
+    de A, et la cible est une zone (±0,5 ATR), pas un prix exact.
+    """
+    lgs = jambes(points)
+    if len(lgs) < 2 or not atr:
+        return {"scenario": None}
+
+    def zone(v):
+        return [round(v - atr * 0.5, 2), round(v + atr * 0.5, 2)]
+
+    # Cas 1 : A vient de se terminer, B pas encore forme
+    a = lgs[-1]
+    if a["amplitude"] >= atr * 3 and not a["en_cours"]:
+        pass  # traite via cas 2 quand B demarre
+
+    # Cas 2 : A puis B en cours ou termine
+    if len(lgs) >= 2:
+        a, b = lgs[-2], lgs[-1]
+        if a["amplitude"] >= atr * 3 and b["sens"] != a["sens"]:
+            retrace = b["amplitude"] / a["amplitude"]
+            if 0.25 <= retrace <= 0.90:
+                cible_c = (b["vers"] - a["amplitude"]) if a["sens"] == "baisse" \
+                    else (b["vers"] + a["amplitude"])
+                return {"scenario": "correction ABC",
+                        "stade": "B en cours" if b["en_cours"] else "B formee, C attendue",
+                        "sens_correction": a["sens"],
+                        "A": [a["de"], a["vers"]], "B_retrace_pct": round(retrace * 100),
+                        "cible_C": round(cible_c, 2), "zone_C": zone(cible_c),
+                        "invalidation": round(a["de"], 2),
+                        "note": "scenario invalide si B depasse l'origine de A"}
+
+    # Cas 3 : C en cours (A, B, puis C dans le sens de A)
+    if len(lgs) >= 3:
+        a, b, cj = lgs[-3], lgs[-2], lgs[-1]
+        if a["amplitude"] >= atr * 3 and b["sens"] != a["sens"] \
+                and cj["sens"] == a["sens"] and 0.25 <= b["amplitude"] / a["amplitude"] <= 0.90:
+            cible_c = (b["vers"] - a["amplitude"]) if a["sens"] == "baisse" \
+                else (b["vers"] + a["amplitude"])
+            fait = cj["amplitude"] / a["amplitude"] * 100
+            return {"scenario": "correction ABC", "stade": f"C en cours ({fait:.0f}% de A parcouru)",
+                    "sens_correction": a["sens"],
+                    "cible_C": round(cible_c, 2), "zone_C": zone(cible_c),
+                    "invalidation": round(a["de"], 2),
+                    "note": "scenario invalide si B depasse l'origine de A"}
+
+    return {"scenario": None}

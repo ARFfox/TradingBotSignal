@@ -305,6 +305,12 @@ def _carte(r: dict) -> str:
                  + (f' · killzone <b>{kz}</b>' if kz else "")
                  + '</div>')
 
+    abc = r.get("abc") or {}
+    if abc.get("scenario"):
+        h.append(f'<div class="ict-ligne">Vagues : <b>{abc["scenario"]}</b> — {abc["stade"]} · '
+                 f'cible C <b>{abc["cible_C"]}</b> (zone {abc["zone_C"][0]}–{abc["zone_C"][1]}) · '
+                 f'invalidé au-delà de {abc["invalidation"]}</div>')
+
     age = r.get("age_secondes")
     if age is not None:
         perime = " perime" if r.get("perime") else ""
