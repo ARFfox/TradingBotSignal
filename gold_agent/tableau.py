@@ -202,53 +202,54 @@ def _sante(resultats: list, usage, quote) -> dict:
     from . import news as _news
     agents, problemes = [], []
 
-    def agent(nom, role, source, ok, detail):
+    def agent(nom, role, source, ok, detail, emoji="🤖", cible=None):
         agents.append({"nom": nom, "role": role, "source": source,
-                       "ok": bool(ok), "detail": detail})
+                       "ok": bool(ok), "detail": detail,
+                       "emoji": emoji, "cible": cible})
         if not ok:
             problemes.append(f"{nom} : {detail}")
 
     donnees_ok = sum(1 for r in resultats if not r.get("erreur"))
     agent("Prix & bougies", "cotations et historique 5 timeframes",
           "Twelve Data (5 clés en rotation)", donnees_ok == len(resultats),
-          f"{donnees_ok}/{len(resultats)} timeframes servis")
+          f"{donnees_ok}/{len(resultats)} timeframes servis", "📊", "p-graph")
     q_ok = bool(quote) and quote.get("age", 999) < 120
     agent("Prix direct", "dernier prix traité (15 s)", "Twelve Data /quote",
-          q_ok, f"âge {quote.get('age','?')} s" if quote else "indisponible")
+          q_ok, f"âge {quote.get('age','?')} s" if quote else "indisponible", "💹", "p-graph")
     if usage and usage.get("limite"):
         restant = usage["restant"]
         agent("Quota API", "suivi de la consommation réelle", "Twelve Data /api_usage",
-              restant > 200, f"{restant}/{usage['limite']} restantes")
+              restant > 200, f"{restant}/{usage['limite']} restantes", "🔋", "p-cerveau")
     try:
         r = _news.risque_evenementiel()
         agent("News & calendrier", "veto avant publication à fort impact",
-              "ForexFactory (cache disque)", r.get("etat") != "inconnu", r.get("detail", ""))
+              "ForexFactory (cache disque)", r.get("etat") != "inconnu", r.get("detail", ""), "📅", "p-risque")
     except Exception as e:
-        agent("News & calendrier", "veto événementiel", "ForexFactory", False, str(e)[:60])
+        agent("News & calendrier", "veto événementiel", "ForexFactory", False, str(e)[:60], "📅", "p-risque")
     try:
         m = _news.macro()
         agent("Macro", "taux réels + dollar (moteurs de fond)", "FRED",
-              m.get("disponible"), m.get("erreur") or "séries à jour")
+              m.get("disponible"), m.get("erreur") or "séries à jour", "🏦", "p-risque")
     except Exception as e:
-        agent("Macro", "taux réels + dollar", "FRED", False, str(e)[:60])
+        agent("Macro", "taux réels + dollar", "FRED", False, str(e)[:60], "🏦", "p-risque")
     try:
         c = _news.positionnement()
         agent("Positionnement", "positions des fonds spéculatifs", "CFTC (COT)",
-              c.get("disponible"), c.get("erreur") or f"rapport du {c.get('date')}")
+              c.get("disponible"), c.get("erreur") or f"rapport du {c.get('date')}", "🐋", "p-risque")
     except Exception as e:
-        agent("Positionnement", "COT", "CFTC", False, str(e)[:60])
+        agent("Positionnement", "COT", "CFTC", False, str(e)[:60], "🐋", "p-risque")
     try:
         mi = _news.minieres()
         agent("Minières", "divergence de confirmation (AEM)", "Twelve Data",
-              mi.get("disponible"), mi.get("erreur") or "corrélation suivie")
+              mi.get("disponible"), mi.get("erreur") or "corrélation suivie", "⛏️", "p-risque")
     except Exception as e:
-        agent("Minières", "AEM", "Twelve Data", False, str(e)[:60])
+        agent("Minières", "AEM", "Twelve Data", False, str(e)[:60], "⛏️", "p-risque")
     from . import notify as _notify
     can = _notify.etat_canaux()
     agent("Notifications", "système + push téléphone", "osascript / ntfy.sh",
           can["systeme"] or can["telephone"],
           f"système {'oui' if can['systeme'] else 'non'}, "
-          f"téléphone {'oui' if can['telephone'] else 'non'}")
+          f"téléphone {'oui' if can['telephone'] else 'non'}", "🔔", None)
     # --- Le superviseur regarde aussi les RESULTATS, pas que la tuyauterie ---
     import time as _t
     hist = journal.statistiques()
@@ -260,8 +261,21 @@ def _sante(resultats: list, usage, quote) -> dict:
         journal_ok = False
         detail_j = (f"{perdants}/{resolus} perdants (cumul {hist.get('cumul_R',0):+.1f}R) — "
                     f"les signaux recents ne fonctionnent pas dans ce regime de marche")
-    agent("Stratégie & journal", "règle mécanique, garde-fou, historique",
-          "interne (backtesté)", journal_ok, detail_j)
+    agent("Stratégie", "règle mécanique, filtres, garde-fou",
+          "interne (backtesté : +0,76R H4/3 ans)", True,
+          "voir l'onglet Stratégies", "♟️", "p-strats")
+    agent("Journal & historique", "suivi de chaque signal jusqu'au dénouement",
+          "interne", journal_ok, detail_j, "📜", "p-histo")
+
+    # Recommandations du superviseur : des pistes a MESURER, jamais des
+    # modifications appliquees seul — le systeme ne se reecrit pas lui-meme.
+    recommandations = []
+    if not journal_ok:
+        recommandations.append(
+            "Ne pas suivre de nouveaux signaux tant que la série perdure ; "
+            "re-tester la règle sur les 30 derniers jours "
+            "(python3 -m gold_agent.backtest --source twelvedata --tf 240) "
+            "et MESURER un élargissement du stop (--k-stop 1.5 ou 2) avant tout changement.")
 
     emis_24h = sum(1 for x in hist.get("derniers", [])
                    if _t.time() - x.get("cree_ts", 0) < 86400)
@@ -278,12 +292,22 @@ def _sante(resultats: list, usage, quote) -> dict:
                 f"le backtest ne couvre pas ce regime")
         agent("Actualités géopolitiques", "détection de régime hors calendrier",
               "Google News RSS", act.get("disponible", False),
-              f"niveau {act.get('niveau','?')}")
+              f"niveau {act.get('niveau','?')}", "🌍", "p-risque")
     except Exception as e:
         agent("Actualités géopolitiques", "détection de régime", "Google News RSS",
-              False, str(e)[:60])
+              False, str(e)[:60], "🌍", "p-risque")
+
+    try:
+        act2 = _news.actualites()
+        if act2.get("niveau") == "eleve":
+            recommandations.append(
+                "Régime géopolitique élevé : privilégier l'abstention ; si position, "
+                "réduire la taille — la volatilité rend les stops backtestés trop serrés.")
+    except Exception:
+        pass
 
     return {"agents": agents, "problemes": problemes,
+            "recommandations": recommandations,
             "note": ("Les prix affichés viennent de Twelve Data (agrégat institutionnel). "
                      "Ton courtier Pepperstone cote avec son propre spread : ajuste les "
                      "niveaux de quelques dixièmes de point. Le superviseur liste les "

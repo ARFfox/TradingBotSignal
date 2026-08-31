@@ -686,12 +686,21 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
                 f'<p>{a["role"]}</p><p>Source : {a["source"]}</p><p>{a["detail"]}</p></div>')
     probs = sa.get("problemes", [])
     diag = ("<b>Superviseur — problèmes détectés :</b><br>" + "<br>".join(f"• {x}" for x in probs))         if probs else "<b>Superviseur :</b> tous les agents répondent, aucun problème détecté."
+    recos = sa.get("recommandations") or []
+    if recos:
+        diag += ('<br><br><b>Recommandations</b> (à mesurer avant application — le système '
+                 'ne se modifie jamais seul) :<br>' + "<br>".join(f"→ {x}" for x in recos))
     import json as _json
     donnees_cerveau = _json.dumps({"agents": [
-        {"nom": a["nom"], "ok": a["ok"], "detail": a["detail"]}
+        {"nom": a["nom"], "ok": a["ok"], "detail": a["detail"],
+         "emoji": a.get("emoji", "🤖"), "cible": a.get("cible")}
         for a in sa.get("agents", [])]}, ensure_ascii=False)
     canvas = (f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;'
-              f'margin-bottom:14px;overflow:hidden">'
+              f'margin-bottom:14px;overflow:hidden;position:relative">'
+              f'<button id="btn-rotation" class="tf-btn" '
+              f'style="position:absolute;top:10px;right:10px;z-index:2">&#9208; figer</button>'
+              f'<div style="position:absolute;top:12px;left:14px;font-size:11.5px;color:#6e7681">'
+              f'clique un agent pour ouvrir sa page</div>'
               f'<canvas id="cerveau3d" style="width:100%;height:440px;display:block"></canvas></div>'
               f'<script id="donnees-cerveau" type="application/json">{donnees_cerveau}</script>'
               f'<script src="/cerveau.js" defer></script>')
@@ -871,6 +880,10 @@ async function rafraichir(manuel) {{
   }}
 }}
 
+window.allerOnglet = id => {{
+  const btn = document.querySelector(`.onglet[data-p="${{id}}"]`);
+  if (btn) {{ btn.click(); btn.scrollIntoView({{behavior:"smooth", block:"center"}}); }}
+}};
 document.querySelectorAll(".onglet").forEach(b => b.onclick = () => {{
   document.querySelectorAll(".onglet").forEach(x => x.classList.remove("actif"));
   document.querySelectorAll(".panneau").forEach(x => x.classList.remove("actif"));
@@ -973,18 +986,19 @@ CERVEAU_JS = r"""
 
   // Disposition : superviseur au centre, sources de donnees sur l'anneau
   // exterieur, analyse a mi-distance, sorties (site, telephone) en dessous.
-  const noeuds = [{id:'sup', nom:'Superviseur', x:0, y:0, z:0, r:26, type:'centre', ok:true}];
+  const noeuds = [{id:'sup', nom:'Superviseur', emoji:'\u{1F9E0}', x:0, y:0, z:0, r:26, type:'centre', ok:true}];
   const sorties = [
-    {id:'site', nom:'Site 8787', x:0, y:170, z:60, r:18, type:'sortie', ok:true},
-    {id:'tel', nom:'Téléphone (ntfy)', x:150, y:150, z:-40, r:14, type:'sortie', ok:true},
-    {id:'toi', nom:'TOI — décision', x:-150, y:150, z:-40, r:16, type:'humain', ok:true},
+    {id:'site', nom:'Site 8787', emoji:'\u{1F5A5}', x:0, y:170, z:60, r:18, type:'sortie', ok:true},
+    {id:'tel', nom:'Téléphone (ntfy)', emoji:'\u{1F4F1}', x:150, y:150, z:-40, r:14, type:'sortie', ok:true},
+    {id:'toi', nom:'TOI — décision', emoji:'\u{1F464}', x:-150, y:150, z:-40, r:16, type:'humain', ok:true},
   ];
   const ags = donnees.agents || [];
   const n = ags.length;
   ags.forEach((a,i)=>{
     const ang = i/n*Math.PI*2, ray = 200;
     noeuds.push({id:'a'+i, nom:a.nom, ok:a.ok, detail:a.detail, type:'agent',
-      x:Math.cos(ang)*ray, y:-40+Math.sin(ang*2)*38, z:Math.sin(ang)*ray, r:15});
+      emoji:a.emoji||'\u{1F916}', cible:a.cible,
+      x:Math.cos(ang)*ray, y:-40+Math.sin(ang*2)*38, z:Math.sin(ang)*ray, r:16});
   });
   noeuds.push(...sorties);
 
@@ -995,14 +1009,30 @@ CERVEAU_JS = r"""
   const parts = liens.map(()=>Math.random());   // particules de flux
   const idx = Object.fromEntries(noeuds.map((nd,i)=>[nd.id,i]));
 
-  let ang = 0, survol = -1;
+  let ang = 0, survol = -1, tourne = true;
+  const btnRot = document.getElementById('btn-rotation');
+  if (btnRot) btnRot.onclick = () => {
+    tourne = !tourne;
+    btnRot.textContent = tourne ? '\u23F8 figer' : '\u25B6 animer';
+  };
   cv.addEventListener('mousemove', e=>{
     const rc = cv.getBoundingClientRect();
     const mx = e.clientX-rc.left, my = e.clientY-rc.top;
     survol = -1;
     for (let i=0;i<noeuds.length;i++){
       const pn = noeuds[i]._p;
-      if (pn && Math.hypot(mx-pn[0],my-pn[1]) < pn[2]+6) { survol=i; break; }
+      if (pn && Math.hypot(mx-pn[0],my-pn[1]) < pn[2]+8) { survol=i; break; }
+    }
+    cv.style.cursor = (survol>=0 && (noeuds[survol].cible || noeuds[survol].id==='sup'))
+      ? 'pointer' : 'default';
+  });
+  cv.addEventListener('click', ()=>{
+    if (survol < 0) return;
+    const nd = noeuds[survol];
+    if (nd.id === 'sup') {
+      document.querySelector('.superviseur')?.scrollIntoView({behavior:'smooth'});
+    } else if (nd.cible && window.allerOnglet) {
+      window.allerOnglet(nd.cible);
     }
   });
 
@@ -1018,7 +1048,7 @@ CERVEAU_JS = r"""
     // que l'onglet devient visible ou que la fenetre change.
     if (W !== cv.clientWidth || H !== cv.clientHeight) dim();
     if (!W || !H) { requestAnimationFrame(boucle); return; }
-    ang += 0.0035;
+    if (tourne) ang += 0.0035;
     ctx.clearRect(0,0,W,H);
     noeuds.forEach(nd=>nd._p = proj(nd, nd.type==='sortie'||nd.type==='humain' ? 0 : ang));
 
@@ -1045,12 +1075,16 @@ CERVEAU_JS = r"""
       const halo = ctx.createRadialGradient(x,y,0,x,y,r*2.4);
       halo.addColorStop(0, coul+'55'); halo.addColorStop(1,'transparent');
       ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(x,y,r*2.4,0,7); ctx.fill();
-      ctx.fillStyle=coul; ctx.beginPath(); ctx.arc(x,y,r*0.42,0,7); ctx.fill();
-      ctx.strokeStyle=coul; ctx.lineWidth=1.2;
-      ctx.beginPath(); ctx.arc(x,y,r*0.75,0,7); ctx.stroke();
+      ctx.fillStyle='#161b22'; ctx.beginPath(); ctx.arc(x,y,r*0.95,0,7); ctx.fill();
+      ctx.strokeStyle=coul; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(x,y,r*0.95,0,7); ctx.stroke();
+      ctx.font = Math.max(12, r*1.05) + 'px serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(nd.emoji || '\u{1F916}', x, y+1);
+      ctx.textBaseline='alphabetic';
       ctx.fillStyle='#c9d1d9'; ctx.font='11px -apple-system,sans-serif';
       ctx.textAlign='center';
-      ctx.fillText(nd.nom, x, y + r*0.75 + 13);
+      ctx.fillText(nd.nom, x, y + r*0.95 + 14);
     });
 
     // Infobulle de survol
