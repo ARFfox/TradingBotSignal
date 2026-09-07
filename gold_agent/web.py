@@ -593,7 +593,8 @@ def _panneau_agents(d: dict) -> str:
     if not ags:
         return ""
     EMOJIS = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
-              "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠"}
+              "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠",
+              "AG-09": "🌌", "AG-10": "🪞"}
     cartes = ""
     for a in ags:
         lignes = "".join(
@@ -664,6 +665,86 @@ def _grille(d: dict) -> str:
         nav_tf += f'<button class="tfb" data-tf="{r["nom"]}">{r["nom"]}{bip}</button>'
     return (f'<div class="tf-nav">{nav_tf}</div>'
             + "".join(_carte(r) for r in d["timeframes"]))
+
+
+def _bloc_constellation(d: dict) -> str:
+    """Onglet Constellation — INTEGRATION_AG09.md étape 5 (affichage).
+
+    Les clusters sont encadrés avec la mention « une seule voix » : c'est ce
+    qui rend le score compréhensible quand 13 lignes produisent une base de
+    2,28. TRANSITION s'affiche avec sa flèche — changement de régime, pas
+    du bruit.
+    """
+    c = d.get("constellation") or {}
+    if not c:
+        return ('<div class="strats">Constellation en cours d&#39;initialisation — '
+                'le cache des 37 actifs se construit en tâche de fond.</div>')
+
+    sc = c.get("score") or {}
+    biais = c.get("biais") or {}
+
+    h = ['<div class="strats">']
+    for r_ in c.get("ruptures", []):
+        h.append(f'<div class="risque veto" style="margin-bottom:8px">RUPTURE DE RÉGIME — '
+                 f'{r_["actif"]} : corrélation {r_["avant"]:+.2f} → {r_["apres"]:+.2f}</div>')
+
+    verd = ("BLOQUÉ" if sc.get("bloque") else
+            ("fiable" if sc.get("fiable") else "base trop mince"))
+    coul_v = "#f85149" if sc.get("bloque") else ("#3fb950" if sc.get("fiable") else "#d29922")
+    h.append(f'<div style="font-size:14px;margin-bottom:12px">Verdict du Miroir — sens testé '
+             f'<b>{c.get("sens_teste","?")}</b> : score <b style="color:{coul_v}">'
+             f'{sc.get("score",0):+.2f}</b> sur base {sc.get("base",0):.2f} ({verd}) · '
+             f'{len(sc.get("confirment",[]))} confirment · '
+             f'{len(sc.get("contredisent",[]))} contredisent · '
+             f'confiance ×{sc.get("facteur_confiance",1):.2f}'
+             + (f'<br><span style="color:#8b949e;font-size:12px">{str(sc.get("motif",""))[:160]}'
+                f'</span>' if sc.get("motif") else "") + '</div>')
+
+    def table(membres, titre, coul):
+        conf = set(sc.get("confirment", []))
+        contre = set(sc.get("contredisent", []))
+        lignes = ""
+        for m in membres:
+            fleche = {"TRANSITION ^": " ↑", "TRANSITION v": " ↓"}.get(m["tendance"], "")
+            trans = (f'<span style="color:#d29922">TRANSITION{fleche}</span>'
+                     if str(m["tendance"]).startswith("TRANSITION") else m["tendance"])
+            etat = ("✅" if m["ticker"] in conf else
+                    ("❌" if m["ticker"] in contre else "·"))
+            lignes += (f'<tr><td>{etat}</td><td><b>{m["ticker"]}</b></td>'
+                       f'<td>{m["corr"]:+.2f}</td><td>{m["poids"]:.2f}</td>'
+                       f'<td>{biais.get(m["ticker"], "?")}</td><td>{trans}</td></tr>')
+        return (f'<div style="margin-bottom:14px"><div style="color:{coul};font-weight:700;'
+                f'margin-bottom:6px">{titre}</div><table>'
+                f'<tr><th></th><th>actif</th><th>corr</th><th>poids</th>'
+                f'<th>biais</th><th>régime</th></tr>{lignes}</table></div>')
+
+    h.append(table(c.get("satellites", []), f'🟢 Satellites ({len(c.get("satellites",[]))}) '
+             f'— bougent avec l&#39;or', "#3fb950"))
+    h.append(table(c.get("miroirs", []), f'🔴 Miroirs ({len(c.get("miroirs",[]))}) '
+             f'— bougent à l&#39;inverse', "#f85149"))
+
+    cl = c.get("clusters") or []
+    if cl:
+        boites = "".join(
+            f'<span style="border:1px solid #a371f7;border-radius:6px;padding:4px 10px;'
+            f'margin:0 6px 6px 0;display:inline-block;font-size:12px">'
+            f'{" + ".join(g)}</span>' for g in cl)
+        h.append(f'<div style="margin-bottom:12px"><div style="color:#a371f7;font-weight:700">'
+                 f'Clusters — chaque groupe encadré compte pour UNE seule voix</div>'
+                 f'<div style="margin-top:6px">{boites}</div></div>')
+
+    h.append(f'<details><summary style="cursor:pointer;color:#8b949e">'
+             f'⚪ {c.get("n_decouples",0)} actifs découplés (aucune relation exploitable '
+             f'avec l&#39;or en ce moment) — cliquer pour la liste</summary>'
+             f'<div style="color:#6e7681;font-size:12px;margin-top:6px">'
+             + ", ".join(sorted(set(biais.keys())
+                 - {m["ticker"] for m in c.get("satellites",[]) + c.get("miroirs",[])}))
+             + '</div></details>')
+    h.append('<div style="color:#6e7681;font-size:11.5px;margin-top:10px">37 actifs · '
+             'fenêtres 30/90/250 j · recalcul 6 h · source yfinance (cache disque) · '
+             'les relations viennent des DONNÉES, jamais d&#39;idées reçues</div>')
+    h.append("</div>")
+    return "".join(h)
 
 
 def rendre(d: dict) -> str:
@@ -867,7 +948,8 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
                  'ne se modifie jamais seul) :<br>' + "<br>".join(f"→ {x}" for x in recos))
     import json as _json
     EMO = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
-           "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠"}
+           "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠",
+           "AG-09": "🌌", "AG-10": "🪞"}
     donnees_cerveau = _json.dumps({"agents": [
         {"nom": a["nom"], "ok": True, "detail": a["activites"][0][:80],
          "emoji": EMO.get(a["code"], "🤖"), "cible": None, "coul": a["coul"]}
@@ -942,11 +1024,13 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <button class="onglet" data-p="p-graph">Analyse graphique</button>
 <button class="onglet" data-p="p-strats">Stratégies</button>
 <button class="onglet" data-p="p-histo">Historique</button>
+<button class="onglet" data-p="p-constel">Constellation</button>
 </div>
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
 <div id="p-graph" class="panneau">{bloc_graph}</div>
 <div id="p-strats" class="panneau">{bloc_strats}</div>
 <div id="p-histo" class="panneau">{bloc_histo}</div>
+<div id="p-constel" class="panneau">{bloc_constel}</div>
 <div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
 <div class="grille">{cartes}</div>
 <footer>

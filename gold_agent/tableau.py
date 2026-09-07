@@ -627,6 +627,58 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }
+    # --- constellation (AG-09/AG-10) — INTEGRATION_AG09.md etape 2 --------
+    # try/except large EXPRES : une constellation indisponible ne doit
+    # jamais empecher le reste du tableau de s'afficher.
+    d0 = _tps.perf_counter()
+    paquet["constellation"] = None
+    sens_courant = "achat" if paquet["consensus"]["pct_haussier"] >= 50 else "vente"
+    memo = globals().setdefault("_MEMO_CONSTELLATION", {})
+    if memo.get("paquet") is not None and             _tps.time() - memo.get("t", 0) < 600 and memo.get("sens") == sens_courant:
+        paquet["constellation"] = memo["paquet"]
+        chrono["constellation"] = chrono.get("constellation", 0.0)
+        paquet["chrono"]["constellation"] = 0.0
+        paquet["agents"] = agents_live(paquet)
+        return paquet
+    try:
+        from . import constellation_source
+        import sys as _sys
+        _racine = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
+        if _racine not in _sys.path:
+            _sys.path.insert(0, _racine)
+        from constellation_agent import Constellation, Miroir, biais_provisoire
+
+        px = constellation_source.prix()
+        if px is not None and "GC=F" in px.columns:
+            ag = Constellation(px)
+            biais = biais_provisoire(px)
+            mi = Miroir(ag)
+            g = ag.groupes("GC=F")
+
+            # Le sens teste est celui du consensus courant, pas une hypothese.
+            sens = "achat" if paquet["consensus"]["pct_haussier"] >= 50 else "vente"
+            score = mi.evaluer("GC=F", sens, biais)
+
+            paquet["constellation"] = {
+                "sens_teste": sens,
+                "satellites": [vars(m) for m in g["satellites"]],
+                "miroirs": [vars(m) for m in g["miroirs"]],
+                "n_decouples": len(g["decouples"]),
+                "clusters": ag.clusters("GC=F"),
+                "score": vars(score),
+                "biais": biais,
+                "ruptures": ag.ruptures(),
+                "perime": getattr(px, "attrs", {}).get("perime", False),
+            }
+            ag.sauver()
+        memo["paquet"] = paquet["constellation"]
+        memo["t"] = _tps.time()
+        memo["sens"] = sens_courant
+    except Exception as e:
+        _evt("Constellation", f"indisponible : {str(e)[:90]}", "alerte")
+    chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
+    paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
+
     paquet["agents"] = agents_live(paquet)
     return paquet
 
@@ -722,6 +774,59 @@ def agents_live(d: dict) -> list:
                    "conviction": int(cot.get("percentile", 50)) if cot.get("disponible") else 50,
                    "metriques": "corrélation AEM +0,80 — lead-lag nul : confirmation",
                    "charge": charge("minieres")})
+
+    # ---- AG-09 Constellation (INTEGRATION_AG09.md etape 3) ----
+    c = d.get("constellation") or {}
+    sat, mir = c.get("satellites", []), c.get("miroirs", [])
+    if c:
+        forts = [m for m in sat + mir if m["poids"] >= 0.60]
+        trans = [m for m in sat + mir if str(m.get("tendance", "")).startswith("TRANSITION")]
+        lignes = [f"{len(sat)} satellites · {len(mir)} miroirs · "
+                  f"{c['n_decouples']} découplés",
+                  "confirmations solides : " +
+                  (", ".join(f"{m['ticker']} {m['poids']:.2f}" for m in forts[:3])
+                   or "aucune")]
+        if trans:
+            lignes.append(f"{len(trans)} corrélation(s) en transition de régime")
+        for r_ in c.get("ruptures", [])[:2]:
+            lignes.append(f"RUPTURE {r_['actif']} : {r_['avant']:+.2f} → {r_['apres']:+.2f}")
+        conviction_c = round(min(1.0, sum(m["poids"] for m in forts) / 2.0) * 100)
+        statut_c = "PERIME" if c.get("perime") else "STREAMING"
+    else:
+        lignes = ["cache en cours de construction"]
+        conviction_c, statut_c = 0, "INITIALISATION"
+    agents.append({"code": "AG-09", "nom": "Constellation",
+                   "role": "Corrélations — satellites · miroirs · clusters",
+                   "coul": "#a371f7", "statut": statut_c, "activites": lignes,
+                   "conviction": conviction_c,
+                   "metriques": f"{len(c.get('clusters', []))} clusters · "
+                                f"fenêtres 30/90/250 j · recalcul 6 h",
+                   "charge": charge("constellation")})
+
+    # ---- AG-10 Miroir ----
+    sc = c.get("score") or {}
+    if sc:
+        lignes = [f"sens testé : {c['sens_teste']} · score {sc['score']:+.2f}",
+                  f"base {sc['base']:.2f}" + ("" if sc["fiable"] else " — TROP MINCE"),
+                  f"{len(sc['confirment'])} confirment · "
+                  f"{len(sc['contredisent'])} contredisent"]
+        if sc["bloque"]:
+            lignes.append("SIGNAL BLOQUÉ — " + str(sc["motif"])[:60])
+        elif sc.get("motif"):
+            lignes.append(str(sc["motif"])[:70])
+        # Base trop mince -> 50, ni 0 ni 100 : une information insuffisante
+        # n'est ni un avis positif ni un avis negatif.
+        conviction_m = round((sc["score"] + 1) / 2 * 100) if sc["fiable"] else 50
+        statut_m = "BLOCAGE" if sc["bloque"] else ("ACTIVE" if sc["fiable"] else "VEILLE")
+    else:
+        lignes = ["en attente de la constellation"]
+        conviction_m, statut_m = 50, "INITIALISATION"
+    agents.append({"code": "AG-10", "nom": "Miroir",
+                   "role": "Confirmation croisée intermarché",
+                   "coul": "#f778ba", "statut": statut_m, "activites": lignes,
+                   "conviction": conviction_m,
+                   "metriques": f"×{sc.get('facteur_confiance', 1.0):.2f} sur la confiance",
+                   "charge": charge("constellation")})
 
     lignes = [f"{nt} : espérance mesurée {fia[nt]['esperance']:+.2f}R "
               f"({fia[nt].get('trades','?')} trades) — {fia[nt].get('niveau','?')}"
