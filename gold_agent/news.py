@@ -445,8 +445,14 @@ def actualites(ttl: int = TTL_ACTUS) -> dict:
                     # Frontieres de mots : sans elles, "war" matchait "Warsh"
                     # (le president de la Fed) et classait rouge un titre de
                     # politique monetaire.
+                    RACINES = {"escalat", "retaliat", "geopolit"}
                     def _touche(mots):
-                        return any(re.search(r"\b" + re.escape(m), bas) for m in mots)
+                        # Mots complets bornes des deux cotes ("war" ne doit
+                        # pas matcher "Warsh") ; les racines tronquees gardent
+                        # une fin ouverte (escalation, escalating...).
+                        return any(
+                            re.search(r"\b" + re.escape(m) + ("" if m in RACINES else r"\b"), bas)
+                            for m in mots)
                     if _touche(MOTS_ROUGES):
                         gravite = "rouge"
                     elif _touche(MOTS_JAUNES):
