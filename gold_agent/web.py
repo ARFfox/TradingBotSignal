@@ -917,6 +917,8 @@ def rendre(d: dict) -> str:
 backtest : bougie touchant stop ET objectif = perte. Une entrée limite jamais touchée sous 48 h
 est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
 
+    bloc_constel = _bloc_constellation(d)
+
     sa = d.get("sante") or {}
     ags = ""
     for a in sa.get("agents", []):
