@@ -12,7 +12,7 @@ import subprocess
 
 from . import datasource as ds
 
-VALEUR_POINT_PAR_LOT = 100.0   # 1 lot XAUUSD = 100 onces
+from . import instruments as _instr
 
 
 def _conf(nom: str, defaut: str = "") -> str:
@@ -20,7 +20,8 @@ def _conf(nom: str, defaut: str = "") -> str:
     return os.environ.get(nom) or ds._charger_env().get(nom, defaut)
 
 
-def taille_position(entree: float, stop: float) -> dict | None:
+def taille_position(entree: float, stop: float,
+                    instrument: "_instr.Instrument | None" = None) -> dict | None:
     """Lots correspondant au risque configuré. Sans capital renseigné, rien."""
     try:
         capital = float(_conf("CAPITAL", "") or 0)
@@ -33,7 +34,8 @@ def taille_position(entree: float, stop: float) -> dict | None:
     if distance <= 0:
         return None
     montant = capital * risque_pct / 100.0
-    lots = montant / (distance * VALEUR_POINT_PAR_LOT)
+    instrument = instrument or _instr.par_defaut()
+    lots = montant / (distance * instrument.point_par_lot)
     return {"lots": round(lots, 2), "lots_precis": round(lots, 4),
             "risque_montant": round(montant, 2), "capital": capital,
             "risque_pct": risque_pct, "distance_pts": round(distance, 2)}

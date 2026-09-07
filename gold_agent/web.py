@@ -647,8 +647,13 @@ issues des métriques réelles · 🧠 = part du temps de calcul mesuré</div></
 <div class="console"><h5>PROCESSUS — ÉVÉNEMENTS RÉELS</h5>{lignes_console}</div></div></div>"""
 
 
-def rendre(d: dict) -> str:
-    gen = datetime.fromisoformat(d["genere_le"]).astimezone()
+def _grille(d: dict) -> str:
+    """Barre de boutons TF (avec pastilles de signal) + cartes cachées.
+
+    Utilisée par la page ET par /json : le premier rafraîchissement
+    remplaçait la grille par les cartes seules — la barre disparaissait
+    et l'utilisateur restait bloqué sur H4.
+    """
     nav_tf = ""
     for r in d["timeframes"]:
         st_ = r.get("setup") or {}
@@ -657,8 +662,13 @@ def rendre(d: dict) -> str:
             bip = ('<span class="bip">⛔</span>' if st_.get("suspendu")
                    else '<span class="bip ok">●</span>')
         nav_tf += f'<button class="tfb" data-tf="{r["nom"]}">{r["nom"]}{bip}</button>'
-    cartes = (f'<div class="tf-nav">{nav_tf}</div>'
-              + "".join(_carte(r) for r in d["timeframes"]))
+    return (f'<div class="tf-nav">{nav_tf}</div>'
+            + "".join(_carte(r) for r in d["timeframes"]))
+
+
+def rendre(d: dict) -> str:
+    gen = datetime.fromisoformat(d["genere_le"]).astimezone()
+    cartes = _grille(d)
 
     # Valeurs rendues cote serveur : sans cela, variation et quota restent
     # vides jusqu'au premier sondage, 30 s apres l'ouverture de la page.
@@ -1496,7 +1506,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         if (r.get("setup") or {}).get("setup")
                         and not (r.get("setup") or {}).get("suspendu")
                     ],
-                    "html": "".join(_carte(r) for r in d["timeframes"]),
+                    "html": _grille(d),
                     "news": d.get("news"),
                     "boule": _boule(d.get("consensus")),
                     "sante": d.get("sante"),

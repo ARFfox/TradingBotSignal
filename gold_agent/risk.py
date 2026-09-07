@@ -13,8 +13,7 @@ from pathlib import Path
 
 DERNIER = Path.home() / ".gold_agent_last.json"
 
-# 1 lot standard XAUUSD = 100 onces, donc 1 point de mouvement = 100 $ par lot.
-VALEUR_POINT_PAR_LOT = 100.0
+from . import instruments as _instr
 
 
 def charger_niveaux() -> tuple[list[dict], dict]:
@@ -60,7 +59,8 @@ def charger_niveaux() -> tuple[list[dict], dict]:
 
 
 def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0,
-             tp: float | None = None) -> dict:
+             tp: float | None = None,
+             instrument: "_instr.Instrument | None" = None) -> dict:
     """Arithmétique de position. Aucune recommandation."""
     if entree == stop:
         raise ValueError("L'entrée et le stop ne peuvent pas être au même prix.")
@@ -68,7 +68,8 @@ def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0
     sens = "achat" if stop < entree else "vente"
     distance = abs(entree - stop)
     risque_eur = capital * risque_pct / 100.0
-    lots = risque_eur / (distance * VALEUR_POINT_PAR_LOT)
+    instrument = instrument or _instr.par_defaut()
+    lots = risque_eur / (distance * instrument.point_par_lot)
 
     niveaux, rep = charger_niveaux()
 
@@ -80,7 +81,7 @@ def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0
             continue
         cibles.append({**n, "gain_pts": round(gain, 2),
                        "rr": round(gain / distance, 2),
-                       "gain_eur": round(gain * VALEUR_POINT_PAR_LOT * lots, 2)})
+                       "gain_eur": round(gain * instrument.point_par_lot * lots, 2)})
     cibles.sort(key=lambda x: x["gain_pts"])
 
     # Contexte de volatilité
@@ -95,7 +96,7 @@ def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0
         "risque_montant": round(risque_eur, 2),
         "taille_lots": round(lots, 4),
         "taille_onces": round(lots * 100, 1),
-        "valeur_point": round(lots * VALEUR_POINT_PAR_LOT, 2),
+        "valeur_point": round(lots * instrument.point_par_lot, 2),
         "stop_en_atr": stop_en_atr,
         "cibles_structurelles": cibles,
         "garde_fou": (rep.get("garde_fou") or {}).get("decision"),
@@ -107,7 +108,7 @@ def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0
         resultat["tp_fourni"] = {
             "prix": tp, "gain_pts": round(gain, 2),
             "rr": round(gain / distance, 2) if distance else None,
-            "gain_eur": round(gain * VALEUR_POINT_PAR_LOT * lots, 2),
+            "gain_eur": round(gain * instrument.point_par_lot * lots, 2),
             "coherent": gain > 0,
         }
     return resultat
