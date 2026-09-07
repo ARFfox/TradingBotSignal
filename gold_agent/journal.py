@@ -124,8 +124,16 @@ def resoudre(bars_par_tf: dict) -> int:
     return modifies
 
 
-def statistiques() -> dict:
+def statistiques(fenetre_jours: int | None = None) -> dict:
+    """Stats du journal. `fenetre_jours` restreint aux signaux recents —
+    indispensable pour les criteres de suspension : sans fenetre, une
+    vieille serie perdante verrouillait l'emission pour toujours (les
+    nouveaux trades etant bloques, le ratio ne pouvait plus bouger)."""
     signaux = _charger()
+    if fenetre_jours:
+        import time as _t
+        seuil = _t.time() - fenetre_jours * 86400
+        signaux = [x for x in signaux if x.get("cree_ts", 0) >= seuil]
     resolus = [s for s in signaux if s["statut"] in ("gagnant", "perdant")]
     gagnants = [s for s in resolus if s["statut"] == "gagnant"]
     rs = [s["r_obtenu"] for s in resolus if s.get("r_obtenu") is not None]

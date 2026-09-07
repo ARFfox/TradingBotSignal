@@ -258,14 +258,17 @@ def _sante(resultats: list, usage, quote) -> dict:
     # --- Le superviseur regarde aussi les RESULTATS, pas que la tuyauterie ---
     import time as _t
     hist = journal.statistiques()
-    resolus = hist.get("resolus", 0)
-    perdants = hist.get("perdants", 0)
+    hist7 = journal.statistiques(fenetre_jours=7)
+    resolus = hist7.get("resolus", 0)
+    perdants = hist7.get("perdants", 0)
     journal_ok = True
-    detail_j = f"{resolus} resolu(s), cumul {hist.get('cumul_R', 0):+.1f}R"
+    detail_j = (f"{hist.get('resolus',0)} resolu(s) au total, "
+                f"cumul {hist.get('cumul_R', 0):+.1f}R")
     if resolus >= 5 and perdants / max(resolus, 1) >= 0.8:
         journal_ok = False
-        detail_j = (f"{perdants}/{resolus} perdants (cumul {hist.get('cumul_R',0):+.1f}R) — "
-                    f"les signaux recents ne fonctionnent pas dans ce regime de marche")
+        detail_j = (f"{perdants}/{resolus} perdants sur 7 j "
+                    f"(cumul global {hist.get('cumul_R',0):+.1f}R) — "
+                    f"les signaux recents ne fonctionnent pas dans ce regime")
     agent("Stratégie", "règle mécanique, filtres, garde-fou",
           "interne (backtesté : +0,76R H4/3 ans)", True,
           "voir l'onglet Stratégies", "♟️", "p-strats")
@@ -489,9 +492,12 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     suspension = None
     if actus.get("niveau") == "eleve":
         suspension = ("régime géopolitique élevé — non couvert par le backtest")
-    _h = journal.statistiques()
-    if _h.get("resolus", 0) >= 5 and             _h.get("perdants", 0) / max(_h.get("resolus", 1), 1) >= 0.8:
-        suspension = (suspension + " · " if suspension else "") +             f"série perdante ({_h['perdants']}/{_h['resolus']})"
+    # Fenetre 7 jours : les vieilles pertes expirent, sinon la suspension
+    # serait un verrou definitif (les nouveaux trades etant bloques, le
+    # ratio ne pourrait jamais s'ameliorer).
+    _h = journal.statistiques(fenetre_jours=7)
+    if _h.get("resolus", 0) >= 5 and _h.get("perdants", 0) / max(_h.get("resolus", 1), 1) >= 0.8:
+        suspension = (suspension + " · " if suspension else "") + f"série perdante récente ({_h['perdants']}/{_h['resolus']} sur 7 j)"
 
     bars_par_tf = {}
     for r in resultats:
