@@ -490,3 +490,67 @@ def actualites(ttl: int = TTL_ACTUS) -> dict:
     with _ACTUS["verrou"]:
         _ACTUS["valeur"], _ACTUS["t"] = out, time.time()
     return out
+
+
+# --------------------------------------------------------------------------
+# Saisonnalite (idee retenue du reel "Seasonax" du 07/09) : mesuree sur nos
+# propres donnees plutot qu'un service payant. 18 ans de daily Twelve Data.
+# Poids volontairement FAIBLE : une moyenne mensuelle est un vent de fond,
+# pas un signal — janvier +3,3%/68% mais l'ecart-type reste enorme.
+# --------------------------------------------------------------------------
+
+FICHIER_SAISON = pathlib.Path.home() / ".gold_agent_saison.json"
+_SAISON = {"valeur": None, "t": 0.0, "verrou": threading.Lock()}
+TTL_SAISON = 24 * 3600
+NOMS_MOIS = ["", "janvier", "février", "mars", "avril", "mai", "juin",
+             "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+
+
+def saisonnalite(ttl: int = TTL_SAISON) -> dict:
+    with _SAISON["verrou"]:
+        if _SAISON["valeur"] is not None and (time.time() - _SAISON["t"]) < ttl:
+            return _SAISON["valeur"]
+
+    out = {"disponible": False, "arguments": []}
+    try:
+        if FICHIER_SAISON.exists() and time.time() - FICHIER_SAISON.stat().st_mtime < ttl:
+            out = json.loads(FICHIER_SAISON.read_text())
+        else:
+            from collections import defaultdict
+            bars = ds.twelvedata_bars("XAU/USD", "D", 5000)
+            debut, fin = {}, {}
+            for b in bars:
+                d = dt.datetime.fromtimestamp(b["time"], dt.timezone.utc)
+                cle = (d.year, d.month)
+                debut.setdefault(cle, b["close"])
+                fin[cle] = b["close"]
+            rend = defaultdict(list)
+            for cle in debut:
+                if debut[cle]:
+                    rend[cle[1]].append((fin[cle] / debut[cle] - 1) * 100)
+            mois = dt.datetime.now(dt.timezone.utc).month
+            r = rend[mois]
+            moyen = sum(r) / len(r)
+            taux = sum(1 for x in r if x > 0) / len(r) * 100
+            out = {"disponible": True, "mois": NOMS_MOIS[mois],
+                   "annees": len(r), "moyen_pct": round(moyen, 2),
+                   "taux_positif_pct": round(taux),
+                   "tableau": {NOMS_MOIS[m]: {"moyen": round(sum(v)/len(v), 2),
+                                              "positif": round(sum(1 for x in v if x > 0)/len(v)*100)}
+                               for m, v in sorted(rend.items())},
+                   "arguments": []}
+            if moyen >= 1.0 and taux >= 60:
+                out["arguments"].append(("haussier", 1.0,
+                    f"saisonnalité : {NOMS_MOIS[mois]} historiquement favorable à l'or "
+                    f"({moyen:+.1f}% en moyenne, {taux:.0f}% de mois positifs sur {len(r)} ans)"))
+            elif moyen <= -0.3 and taux <= 45:
+                out["arguments"].append(("baissier", 1.0,
+                    f"saisonnalité : {NOMS_MOIS[mois]} historiquement défavorable à l'or "
+                    f"({moyen:+.1f}%, {taux:.0f}% de mois positifs sur {len(r)} ans)"))
+            FICHIER_SAISON.write_text(json.dumps(out, ensure_ascii=False))
+    except Exception as e:
+        out["erreur"] = str(e)[:100]
+
+    with _SAISON["verrou"]:
+        _SAISON["valeur"], _SAISON["t"] = out, time.time()
+    return out

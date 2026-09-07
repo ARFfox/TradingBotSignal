@@ -592,6 +592,12 @@ def rendre(d: dict) -> str:
             f'<b>{cot["net"]:+,}</b> contrats — {cot["percentile"]:.0f}e percentile, '
             f'{cot["variation_4s"]:+,} en 4 sem.</div>')
 
+    sn = n.get("saison") or {}
+    if sn.get("disponible"):
+        lignes_macro += (
+            f'<div class="macrol">Saisonnalité ({sn["annees"]} ans) : {sn["mois"]} '
+            f'<b>{sn["moyen_pct"]:+.1f}%</b> en moyenne, {sn["taux_positif_pct"]}% de mois positifs</div>')
+
     mi = n.get("minieres") or {}
     if mi.get("disponible"):
         div = mi.get("divergence")
@@ -1006,7 +1012,11 @@ def surveiller(intervalle: int, arret: threading.Event) -> None:
                 if premier or cle in connus:
                     continue
                 fi = (r.get("fiabilite") or {}).get("niveau", "?")
-                envoye = notify.diffuser(r["nom"], s, d.get("prix"), fi)
+                try:
+                    svg = _grand_graphique(r)
+                except Exception:
+                    svg = None
+                envoye = notify.diffuser(r["nom"], s, d.get("prix"), fi, svg=svg)
                 canaux = ", ".join(k for k, v in envoye.items() if v) or "aucun canal"
                 print(f"[{datetime.now():%H:%M:%S}] signal {r['nom']} {s['setup']} "
                       f"entree {s['entree']} (fiabilite: {fi}) -> {canaux}", flush=True)

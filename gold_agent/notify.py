@@ -71,7 +71,28 @@ def ticket(tf: str, s: dict, prix: float, fiabilite: str) -> str:
     return "\n".join(l)
 
 
-def pousser_telephone(titre: str, corps: str, urgent: bool = False) -> bool:
+def svg_vers_png(svg: str) -> str | None:
+    """Convertit un SVG en PNG via qlmanage (outil systeme macOS).
+
+    Idee retenue d'un reel du 07/09 : un signal accompagne de son graphique
+    se juge d'un coup d'oeil sur le telephone, sans ouvrir le site.
+    """
+    import tempfile, os
+    try:
+        d = tempfile.mkdtemp(prefix="gold_notif_")
+        chemin_svg = os.path.join(d, "signal.svg")
+        with open(chemin_svg, "w") as f:
+            f.write(svg)
+        subprocess.run(["qlmanage", "-t", "-s", "900", "-o", d, chemin_svg],
+                       capture_output=True, timeout=30)
+        png = chemin_svg + ".png"
+        return png if os.path.exists(png) else None
+    except Exception:
+        return None
+
+
+def pousser_telephone(titre: str, corps: str, urgent: bool = False,
+                      image: str | None = None) -> bool:
     """Push via ntfy.sh vers le sujet configure."""
     sujet = _conf("NTFY_TOPIC")
     if not sujet:
@@ -83,9 +104,23 @@ def pousser_telephone(titre: str, corps: str, urgent: bool = False) -> bool:
         "-H", "Tags: chart_with_upwards_trend,coin",
     ]
     try:
-        p = subprocess.run(["curl", "-s", "-m", "15", "-X", "POST",
-                            f"{serveur}/{sujet}", *entetes, "-d", corps],
-                           capture_output=True, text=True, timeout=25)
+        if image:
+            # Piece jointe : le fichier part en PUT, le texte passe en en-tetes.
+            # Les en-tetes HTTP refusent les retours a la ligne : legende
+            # compactee sur une ligne (le ticket complet part par la
+            # notification systeme).
+            legende = " · ".join(l.strip() for l in corps.splitlines() if l.strip())[:500]
+            p = subprocess.run(["curl", "-s", "-m", "30", "-T", image,
+                                f"{serveur}/{sujet}",
+                                "-H", f"X-Title: {titre}",
+                                "-H", f"X-Message: {legende}",
+                                "-H", f"X-Priority: {'urgent' if urgent else 'high'}",
+                                "-H", "X-Filename: signal.png"],
+                               capture_output=True, text=True, timeout=40)
+        else:
+            p = subprocess.run(["curl", "-s", "-m", "15", "-X", "POST",
+                                f"{serveur}/{sujet}", *entetes, "-d", corps],
+                               capture_output=True, text=True, timeout=25)
         return p.returncode == 0 and '"id"' in p.stdout
     except Exception:
         return False
@@ -109,15 +144,19 @@ def notifier_systeme(titre: str, sous_titre: str, corps: str) -> bool:
         return False
 
 
-def diffuser(tf: str, s: dict, prix: float, fiabilite: str) -> dict:
+def diffuser(tf: str, s: dict, prix: float, fiabilite: str,
+             svg: str | None = None) -> dict:
     """Envoie sur tous les canaux configures. Renvoie ce qui a abouti."""
     sens = s["setup"].upper()
     etat = "DECLENCHE" if s.get("declenche") else "en attente"
     titre = f"{sens} {tf} — {etat}"
     corps = ticket(tf, s, prix, fiabilite)
+    image = svg_vers_png(svg) if svg else None
     return {
         "systeme": notifier_systeme(titre, f"XAU/USD {prix} · {fiabilite}", corps),
-        "telephone": pousser_telephone(titre, corps, urgent=bool(s.get("declenche"))),
+        "telephone": pousser_telephone(titre, corps,
+                                       urgent=bool(s.get("declenche")), image=image),
+        "image_jointe": bool(image),
     }
 
 

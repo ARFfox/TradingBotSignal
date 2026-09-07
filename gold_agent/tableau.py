@@ -141,7 +141,8 @@ def _avec_prix_direct(bars: list[dict], prix: float) -> list[dict]:
 POIDS_TF = {"H4": 3.0, "H1": 2.0, "M30": 1.0, "M15": 0.5, "M5": 0.25}
 
 
-def _consensus(resultats: list, macro: dict, minieres: dict, cot: dict) -> dict:
+def _consensus(resultats: list, macro: dict, minieres: dict, cot: dict,
+               saison: dict | None = None) -> dict:
     """Agrège toutes les couches en une répartition haussier/baissier.
 
     Même logique que le débat contradictoire : chaque élément vote avec un
@@ -174,7 +175,7 @@ def _consensus(resultats: list, macro: dict, minieres: dict, cot: dict) -> dict:
             voter("haussier" if setup["setup"] == "achat" else "baissier",
                   w * 1.0, f"{r['nom']} : signal {setup['setup']} actif")
 
-    for src in (macro, minieres, cot):
+    for src in (macro, minieres, cot, saison):
         for camp, poids, txt in (src or {}).get("arguments", []):
             voter(camp, poids, txt.split(" — ")[0][:60])
 
@@ -472,6 +473,10 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         actus = _news.actualites()
     except Exception:
         actus = {"disponible": False, "niveau": "inconnu", "titres": []}
+    try:
+        saison = _news.saisonnalite()
+    except Exception:
+        saison = {"disponible": False, "arguments": []}
 
     # Journal : chaque signal emis est memorise puis suivi jusqu'a son
     # denouement, avec les bougies deja en cache (zero requete en plus).
@@ -511,7 +516,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         pass
     historique = journal.statistiques()
 
-    consensus = _consensus(resultats, macro, minieres, cot)
+    consensus = _consensus(resultats, macro, minieres, cot, saison)
 
     return {
         "consensus": consensus,
@@ -521,7 +526,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "quote": quote,
         "usage": usage,
         "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
-                 "minieres": minieres, "cot": cot, "actus": actus},
+                 "minieres": minieres, "cot": cot, "actus": actus, "saison": saison},
         "historique": historique,
         "suspension": suspension,
         "tf_emission": tf_autorises,
