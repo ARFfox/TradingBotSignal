@@ -602,6 +602,19 @@ def _panneau_agents(d: dict) -> str:
 <span class="mini-conv" title="charge cerveau mesurée (temps CPU réel)">🧠 {a['charge']}%</span></div>
 </div>"""
 
+    reps = (d.get("sante") or {}).get("reparations") or []
+    if reps:
+        boutons = "".join(
+            f'<button class="tf-btn" style="margin:3px 6px 0 0;font-size:11px" '
+            f'onclick="reparer(&#39;{r["action"]}&#39;, this)" title="{r["contexte"]}">'
+            f'&#128295; {r["libelle"]}</button>' for r in reps)
+        cartes += (f'<div class="agc" style="color:#1f6feb;grid-column:1/-1">'
+                   f'<h4><span class="ico">🧠</span><span style="color:#e6edf3">Corrections '
+                   f'proposées par le Superviseur</span>'
+                   f'<span class="chip">EN ATTENTE DE TON CLIC</span></h4>'
+                   f'<div class="rl">notification envoyée — rien ne s&#39;applique sans ta validation</div>'
+                   f'{boutons}</div>')
+
     lignes_console = "".join(
         f'<div class="cl {e.get("niveau","")}">[{e["t"]}] <b>[{e["agent"]}]</b> {e["texte"]}</div>'
         for e in (d.get("evenements") or [])[-40:])
@@ -731,9 +744,20 @@ def rendre(d: dict) -> str:
         s_ = r.get("setup") or {}
         etat = (f'{s_["setup"].upper()} — entrée {s_["entree"]} · stop {s_["stop"]} · '
                 f'TP {s_["objectif"]} · R:R {s_["rr"]}') if s_.get("setup")                else f'aucun signal — {s_.get("raison", "")}'
+        abc_ = r.get("abc") or {}
+        chips = ['<span style="color:#3fb950">📈 Structure : EMA + S/R + zigzag</span>',
+                 '<span style="color:#a371f7">✏️ Traceur : Fibonacci 38/50/62</span>']
+        if abc_.get("scenario"):
+            chips.append(f'<span style="color:#a371f7">✏️ Traceur : ABC cible {abc_["cible_C"]}</span>')
+        if s_.get("setup"):
+            chips.append('<span style="color:#e3b341">♟️ Stratège : zones entrée/SL/TP</span>')
+            chips.append(f'<span style="color:#1f6feb">🧠 Superviseur : '
+                         f'{"SUSPENDU" if s_.get("suspendu") else "validé"}</span>')
+        barre = ('<div style="font-size:11px;margin:2px 0 8px;display:flex;gap:14px;flex-wrap:wrap">'
+                 + " ".join(chips) + '</div>')
         charts += (f'<div id="gc-{r["nom"]}" class="grand-chart{actif}">'
-                   f'<div style="font-size:13px;color:#c9d1d9;margin-bottom:8px">'
-                   f'<b>{r["nom"]}</b> · {etat}</div>{svg}</div>')
+                   f'<div style="font-size:13px;color:#c9d1d9;margin-bottom:2px">'
+                   f'<b>{r["nom"]}</b> · {etat}</div>{barre}{svg}</div>')
     bloc_graph = f'<div class="tf-btns">{btns}</div>{charts}'
 
     # Onglet strategies : ce qui a ete mesure, y compris ce qui a ete rejete.
@@ -809,10 +833,12 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
         diag += ('<br><br><b>Recommandations</b> (à mesurer avant application — le système '
                  'ne se modifie jamais seul) :<br>' + "<br>".join(f"→ {x}" for x in recos))
     import json as _json
+    EMO = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
+           "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠"}
     donnees_cerveau = _json.dumps({"agents": [
-        {"nom": a["nom"], "ok": a["ok"], "detail": a["detail"],
-         "emoji": a.get("emoji", "🤖"), "cible": a.get("cible")}
-        for a in sa.get("agents", [])]}, ensure_ascii=False)
+        {"nom": a["nom"], "ok": True, "detail": a["activites"][0][:80],
+         "emoji": EMO.get(a["code"], "🤖"), "cible": None, "coul": a["coul"]}
+        for a in (d.get("agents") or []) if a["code"] != "AG-00"]}, ensure_ascii=False)
     canvas = (f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;'
               f'margin-bottom:14px;overflow:hidden;position:relative">'
               f'<button id="btn-rotation" class="tf-btn" '
@@ -823,9 +849,12 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
               f'<script id="donnees-cerveau" type="application/json">{donnees_cerveau}</script>'
               f'<script src="/cerveau.js" defer></script>')
     panneau = _panneau_agents(d)
-    bloc_cerveau = (f'{panneau}{canvas}<div class="cerveau">{ags}'
-                    f'<div class="superviseur">{diag}<br><br>'
-                    f'<span style="color:#8b949e;font-size:12px">{sa.get("note","")}</span></div></div>')
+    # Anciennes cartes + bloc superviseur retires : les agents live couvrent
+    # tout, et le superviseur notifie ses corrections.
+    bloc_cerveau = (f'{panneau}'
+                    f'<div style="font-size:11px;color:#6e7681;margin:4px 0 6px">'
+                    f'Démonstration — les agents et leurs liaisons en 3D :</div>'
+                    f'{canvas}')
 
     u = d.get("usage") or {}
     if u.get("limite"):
@@ -1157,7 +1186,7 @@ CERVEAU_JS = r"""
   ags.forEach((a,i)=>{
     const ang = i/n*Math.PI*2, ray = 200;
     noeuds.push({id:'a'+i, nom:a.nom, ok:a.ok, detail:a.detail, type:'agent',
-      emoji:a.emoji||'\u{1F916}', cible:a.cible,
+      emoji:a.emoji||'\u{1F916}', cible:a.cible, coul:a.coul,
       x:Math.cos(ang)*ray, y:-40+Math.sin(ang*2)*38, z:Math.sin(ang)*ray, r:16});
   });
   noeuds.push(...sorties);
@@ -1231,7 +1260,7 @@ CERVEAU_JS = r"""
       const coul = nd.type==='centre' ? '#1f6feb'
                  : nd.type==='humain' ? '#a371f7'
                  : nd.type==='sortie' ? '#e3b341'
-                 : (nd.ok ? '#3fb950' : '#f85149');
+                 : (nd.coul || (nd.ok ? '#3fb950' : '#f85149'));
       const halo = ctx.createRadialGradient(x,y,0,x,y,r*2.4);
       halo.addColorStop(0, coul+'55'); halo.addColorStop(1,'transparent');
       ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(x,y,r*2.4,0,7); ctx.fill();
