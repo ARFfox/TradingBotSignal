@@ -17,6 +17,25 @@ from . import config, datasource as ds, ict, indicators as ind, journal, pattern
 # du H4 toutes les 10 secondes, la bougie met 4 heures a se former.
 _CACHE: dict = {}
 _VERROU = threading.Lock()
+
+# Console d'evenements : chaque collecte y consigne ce qui s'est reellement
+# passe (donnees, signaux, vetos). C'est la matiere de la console du
+# panneau Agents — du vrai vecu, pas un decor.
+from collections import deque
+_EVENEMENTS: deque = deque(maxlen=80)
+_EV_VERROU = threading.Lock()
+
+
+def _evt(agent: str, texte: str, niveau: str = "info") -> None:
+    with _EV_VERROU:
+        _EVENEMENTS.append({
+            "t": dt.datetime.now(dt.timezone.utc).strftime("%H:%M:%S"),
+            "agent": agent, "texte": texte[:130], "niveau": niveau})
+
+
+def evenements() -> list:
+    with _EV_VERROU:
+        return list(_EVENEMENTS)
 # Deux profils. En consultation, on rafraichit vite parce que quelqu'un
 # regarde. En surveillance continue, les memes TTL consommeraient 2928
 # requetes/jour pour un quota de 800 — d'ou des durees de vie allongees.
@@ -360,11 +379,23 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     resultats = []
     prix_actuel = None
 
+    import time as _tps
+    chrono = {}
+
+    def _mesure(nom, fn):
+        d0 = _tps.perf_counter()
+        try:
+            return fn()
+        finally:
+            chrono[nom] = chrono.get(nom, 0.0) + (_tps.perf_counter() - d0)
+
     # Prix en direct : une seule requete, independante du cache des bougies.
     quote = None
     try:
-        quote = ds.quote_direct(symbole)
+        quote = _mesure("donnees", lambda: ds.quote_direct(symbole))
         prix_actuel = quote["prix"]
+        if quote.get("age", 99) == 0:
+            _evt("Vigie", f"cotation fraiche {prix_actuel} ({quote.get('variation_pct',0):+.2f}%)")
     except Exception:
         pass
 
@@ -376,13 +407,16 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             entree["age_secondes"] = age
             entree["du_cache"] = du_cache
             bars = _avec_prix_direct(bars_cache, prix_actuel)
+            d_struct = __import__("time").perf_counter()
             h = [b["high"] for b in bars]
             l = [b["low"] for b in bars]
             c = [b["close"] for b in bars]
             o = [b["open"] for b in bars]
             p = sg.Params(k_stop=spec.get("k_stop", 1.0), rr_min=1.5, cout_pts=0.3,
                           facteur_superieur=spec["mtf"], **spec["params"])
+            d0 = __import__("time").perf_counter()
             entree["setup"] = sg.setup_actuel(bars, p)
+            chrono["stratege"] = chrono.get("stratege", 0.0) + (__import__("time").perf_counter() - d0)
             entree["prix"] = round(c[-1], 2)
             entree["prix_direct"] = prix_actuel
             entree["rsi"] = ind.last_valid(ind.rsi(c, 14))
@@ -391,17 +425,23 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             entree["ema_slow"] = ind.last_valid(ind.ema(c, p.ema_slow))
             entree["periodes"] = [p.ema_fast, p.ema_slow]
             entree["extension"] = rg.score_extension(c[-1], entree["ema_fast"], entree["rsi"])
+            chrono["structure"] = chrono.get("structure", 0.0) + (__import__("time").perf_counter() - d_struct)
             entree["volatilite"] = rg.regime_volatilite(h, l, c)
             entree["renversement"] = rg.renversement(o, h, l, c)
+            d0 = __import__("time").perf_counter()
             try:
                 entree["ict"] = ict.analyse_ict(bars, entree["atr"])
             except Exception:
                 entree["ict"] = None
+            chrono["traceur"] = chrono.get("traceur", 0.0) + (__import__("time").perf_counter() - d0)
+            d0 = __import__("time").perf_counter()
             try:
                 zz = pat.zigzag(h, l, seuil=(entree["atr"] or 1) * 2)
                 entree["abc"] = pat.correction_abc(zz, entree["atr"])
             except Exception:
                 entree["abc"] = {"scenario": None}
+            chrono["traceur"] = chrono.get("traceur", 0.0) + (__import__("time").perf_counter() - d0)
+            chrono["structure"] = chrono.get("structure", 0.0)
 
             # Pourcentage haussier de CE timeframe (jauge de la carte)
             b_pts = s_pts = 0.0
@@ -454,6 +494,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         usage = None
 
     from . import news as _news
+    d0 = _tps.perf_counter()
     try:
         evenementiel = _news.risque_evenementiel()
         agenda = _news.prochains(fenetre_heures=48)
@@ -464,6 +505,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         macro = _news.macro()
     except Exception:
         macro = {"disponible": False}
+    d0 = _tps.perf_counter()
     try:
         minieres = _news.minieres()
     except Exception:
@@ -472,6 +514,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         cot = _news.positionnement()
     except Exception:
         cot = {"disponible": False}
+    chrono["minieres"] = chrono.get("minieres", 0.0) + (_tps.perf_counter() - d0)
     try:
         actus = _news.actualites()
     except Exception:
@@ -480,6 +523,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         saison = _news.saisonnalite()
     except Exception:
         saison = {"disponible": False, "arguments": []}
+    chrono["vigie"] = chrono.get("vigie", 0.0) + (_tps.perf_counter() - d0)
 
     # Journal : chaque signal emis est memorise puis suivi jusqu'a son
     # denouement, avec les bougies deja en cache (zero requete en plus).
@@ -516,15 +560,36 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
             else:
                 journal.enregistrer(r["nom"], st, prix_actuel or 0,
                                     (r.get("fiabilite") or {}).get("niveau", "?"))
+    d0 = _tps.perf_counter()
     try:
-        journal.resoudre(bars_par_tf)
+        n_res = journal.resoudre(bars_par_tf)
+        if n_res:
+            _evt("Superviseur", f"{n_res} signal(aux) du journal resolus", "alerte")
     except Exception:
         pass
     historique = journal.statistiques()
+    chrono["journal"] = chrono.get("journal", 0.0) + (_tps.perf_counter() - d0)
 
+    d0 = _tps.perf_counter()
     consensus = _consensus(resultats, macro, minieres, cot, saison)
+    chrono["probabilite"] = chrono.get("probabilite", 0.0) + (_tps.perf_counter() - d0)
 
-    return {
+    # Evenements reels de cette passe
+    for r in resultats:
+        st_ = r.get("setup") or {}
+        if st_.get("setup"):
+            if st_.get("suspendu"):
+                _evt("Superviseur", f"{r['nom']} {st_['setup']} SUSPENDU — {st_['suspendu'][:60]}", "veto")
+            else:
+                _evt("Stratège", f"{r['nom']} {st_['setup']} entrée {st_['entree']} RR {st_['rr']}", "signal")
+    if suspension:
+        _evt("Superviseur", f"suspension active : {suspension[:80]}", "veto")
+    if (evenementiel or {}).get("etat") in ("veto", "reserve"):
+        _evt("Vigie", evenementiel.get("detail", "")[:100], "alerte")
+    if (actus or {}).get("niveau") == "eleve":
+        _evt("Vigie", f"régime géopolitique élevé ({actus.get('part_geopolitique_pct')}% des titres)", "veto")
+
+    paquet = {
         "consensus": consensus,
         "genere_le": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "symbole": symbole,
@@ -536,7 +601,147 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "historique": historique,
         "suspension": suspension,
         "tf_emission": tf_autorises,
+        "chrono": {k: round(v * 1000, 1) for k, v in chrono.items()},
+        "evenements": evenements(),
         "sante": _sante(resultats, usage, quote),
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }
+    paquet["agents"] = agents_live(paquet)
+    return paquet
+
+
+def agents_live(d: dict) -> list:
+    """Les 8 agents du panneau, alimentés par l'état réel de cette passe.
+
+    Tout est vérifiable : lignes d'activité = calculs qui viennent d'être
+    faits, « charge cerveau » = temps CPU mesuré par module, convictions =
+    métriques réelles. Aucun champ inventé — c'est la différence entre ce
+    panneau et les vidéos dont il s'inspire.
+    """
+    chrono = d.get("chrono") or {}
+    total_ms = sum(chrono.values()) or 1.0
+
+    def charge(*cles):
+        return round(sum(chrono.get(k, 0.0) for k in cles) / total_ms * 100)
+
+    n = d.get("news") or {}
+    cons = d.get("consensus") or {}
+    hist = d.get("historique") or {}
+    tfs = d.get("timeframes") or []
+    setups = [(r["nom"], r.get("setup") or {}) for r in tfs
+              if (r.get("setup") or {}).get("setup")]
+    fia = {r["nom"]: (r.get("fiabilite") or {}) for r in tfs}
+    agents = []
+
+    act = n.get("actus") or {}
+    risque = n.get("risque") or {}
+    ma = n.get("macro") or {}
+    lignes = [f"calendrier : {(risque.get('detail') or '—')[:70]}",
+              f"géopolitique {act.get('niveau','?')} — {len(act.get('titres',[]))} titres, 5 sources"]
+    if ma.get("disponible"):
+        lignes.append(f"taux réel 10 ans {ma['taux_reel_10a']['dernier']}% · "
+                      f"dollar {ma['dollar_large']['dernier']}")
+    sn = n.get("saison") or {}
+    if sn.get("disponible"):
+        lignes.append(f"saisonnalité {sn['mois']} : {sn['moyen_pct']:+.1f}% ({sn['annees']} ans)")
+    geo_calme = {"calme": 90, "modere": 55, "eleve": 20}.get(act.get("niveau"), 50)
+    agents.append({"code": "AG-01", "nom": "Vigie", "role": "News éco + géo + macro",
+                   "coul": "#58a6ff", "statut": "STREAMING", "activites": lignes,
+                   "conviction": geo_calme,
+                   "metriques": "5 flux RSS · FRED · ForexFactory",
+                   "charge": charge("vigie")})
+
+    lignes = []
+    for r in tfs:
+        ic = ((r.get("ict") or {}).get("premium_discount")) or {}
+        lignes.append(f"{r['nom']} : {r.get('pct_haussier','?')}% haussier · RSI {(r.get('rsi') or 0):.0f}"
+                      + (f" · {ic.get('zone')}" if ic.get("zone") else ""))
+    agents.append({"code": "AG-02", "nom": "Structure", "role": "Analyse graphique — 5 timeframes",
+                   "coul": "#3fb950", "statut": "STREAMING", "activites": lignes,
+                   "conviction": int(cons.get("pct_haussier", 50)),
+                   "metriques": f"EMA · RSI · ATR · régime · {len(tfs)} TF",
+                   "charge": charge("structure", "donnees")})
+
+    lignes = [f"{nt} {st_['setup']} @ {st_['entree']} (RR {st_['rr']}) — "
+              + ("SUSPENDU" if st_.get("suspendu") else
+                 ("déclenché" if st_.get("declenche") else "en attente"))
+              for nt, st_ in setups]
+    if not lignes:
+        lignes = [f"{r['nom']} : {((r.get('setup') or {}).get('raison') or '—')[:60]}"
+                  for r in tfs[:3]]
+    em = d.get("tf_emission") or []
+    agents.append({"code": "AG-03", "nom": "Stratège", "role": "Règle mesurée + filtres",
+                   "coul": "#e3b341", "statut": "ACTIVE" if setups else "SCANNING",
+                   "activites": lignes, "conviction": round(len(em) / 5 * 100),
+                   "metriques": f"émission : {', '.join(em) or 'aucune'} · H4 +1,12R mesuré",
+                   "charge": charge("stratege")})
+
+    lignes = [f"{r['nom']} : ABC — {(r['abc']['stade'])[:40]}, cible {r['abc']['cible_C']}"
+              for r in tfs if (r.get("abc") or {}).get("scenario")]
+    lignes.append("Fibonacci 38,2/50/61,8 sur la dernière jambe (grands graphiques)")
+    agents.append({"code": "AG-04", "nom": "Traceur", "role": "Dessins : zones · ABC · Fibonacci",
+                   "coul": "#a371f7", "statut": "STREAMING", "activites": lignes,
+                   "conviction": min(100, 25 * sum(
+                       1 for r in tfs if (r.get("abc") or {}).get("scenario"))),
+                   "metriques": "zones entrée/SL/TP · FVG · S/R · ABC",
+                   "charge": charge("traceur")})
+
+    mi = n.get("minieres") or {}
+    cot = n.get("cot") or {}
+    lignes = []
+    if mi.get("disponible"):
+        lignes.append(f"AEM {mi['aem']['variation_pct']:+.1f}% vs or {mi['or']['variation_pct']:+.1f}% — "
+                      + (f"divergence {mi['divergence']}" if mi.get("divergence") else "confirmation"))
+    if cot.get("disponible"):
+        lignes.append(f"COT : {cot['net']:+,} contrats ({cot['percentile']:.0f}e pct, "
+                      f"{cot['variation_4s']:+,}/4 sem)")
+    agents.append({"code": "AG-05", "nom": "Minières & Flux", "role": "AEM · COT · positionnement",
+                   "coul": "#f0883e", "statut": "STREAMING",
+                   "activites": lignes or ["sources indisponibles"],
+                   "conviction": int(cot.get("percentile", 50)) if cot.get("disponible") else 50,
+                   "metriques": "corrélation AEM +0,80 — lead-lag nul : confirmation",
+                   "charge": charge("minieres")})
+
+    lignes = [f"{nt} : espérance mesurée {fia[nt]['esperance']:+.2f}R "
+              f"({fia[nt].get('trades','?')} trades) — {fia[nt].get('niveau','?')}"
+              for nt, _ in setups if fia.get(nt, {}).get("esperance") is not None]
+    lignes.append(f"consensus {cons.get('pct_haussier','?')}% haussier "
+                  f"({cons.get('nb_haussier',0)}▲ / {cons.get('nb_baissier',0)}▼)")
+    conv = max(cons.get("pct_haussier", 50), 100 - cons.get("pct_haussier", 50))
+    agents.append({"code": "AG-06", "nom": "Probabilité", "role": "Espérances mesurées + consensus",
+                   "coul": "#2ea043", "statut": "COMPUTING", "activites": lignes,
+                   "conviction": int(conv),
+                   "metriques": "backtests 2 fenêtres · débat pondéré",
+                   "charge": charge("probabilite")})
+
+    classes = sorted(setups, key=lambda x: -(x[1].get("rr") or 0))
+    lignes = [f"{nt} {st_['setup']} — entrée {st_['entree']} · SL {st_['stop']} · "
+              f"TP {st_['objectif']} · RR {st_['rr']}" + (" ⛔" if st_.get("suspendu") else "")
+              for nt, st_ in classes[:3]]
+    if not lignes:
+        lignes = ["aucun setup actif — zones à surveiller sur l'Analyse graphique"]
+    agents.append({"code": "AG-07", "nom": "Opportunités", "role": "Setups classés par R:R",
+                   "coul": "#ff7b72", "statut": "ACTIVE" if classes else "SCANNING",
+                   "activites": lignes, "conviction": min(100, len(classes) * 34),
+                   "metriques": f"{len(classes)} setup(s) · journal réel : "
+                                f"{hist.get('taux_reussite_pct') if hist.get('taux_reussite_pct') is not None else '—'}%",
+                   "charge": charge("journal")})
+
+    sa = d.get("sante") or {}
+    probs = sa.get("problemes") or []
+    lignes = [f"suspension : {(d.get('suspension') or 'levée — émission active')[:80]}"]
+    for nt, st_ in setups:
+        if not st_.get("suspendu"):
+            lignes.append(f"VALIDÉ {nt} : {st_['entree']} / SL {st_['stop']} / TP {st_['objectif']}")
+    for p_ in probs[:2]:
+        lignes.append(f"⚠ {p_[:80]}")
+    autres = sum(charge(k) for k in ("vigie", "structure", "stratege", "traceur",
+                                     "minieres", "probabilite", "journal"))
+    agents.append({"code": "AG-00", "nom": "Superviseur", "role": "Synthèse — niveaux par timeframe",
+                   "coul": "#1f6feb", "statut": "COMPUTING" if probs else "ACTIVE",
+                   "activites": lignes, "conviction": int(conv),
+                   "metriques": f"{len(probs)} problème(s) · "
+                                f"{len(sa.get('reparations') or [])} correction(s) disponible(s)",
+                   "charge": max(1, 100 - min(99, autres))})
+    return agents

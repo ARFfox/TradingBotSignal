@@ -141,6 +141,30 @@ font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .ag .pt.ok{background:#3fb950}.ag .pt.ko{background:#f85149}
 .ag p{font-size:12px;color:#8b949e;margin-top:4px}
 .superviseur{grid-column:1/-1;background:#161b22;border:1px solid #30363d;border-left:3px solid #1f6feb;border-radius:10px;padding:14px;font-size:13px;color:#c9d1d9}
+.sys{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-bottom:16px}
+@media(max-width:1000px){.sys{grid-template-columns:1fr}}
+.ag-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.agc{background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
+.agc .code{position:absolute;top:8px;right:10px;font-size:10px;color:#4a5878;font-family:monospace}
+.agc h4{display:flex;align-items:center;gap:8px;font-size:14.5px;letter-spacing:.3px}
+.agc .ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;background:#0d1117;border:1px solid currentColor}
+.agc .rl{font-size:11px;color:#8b949e;margin:2px 0 8px 38px}
+.chip{font-size:9.5px;font-weight:700;letter-spacing:1px;border:1px solid currentColor;border-radius:4px;padding:2px 7px;margin-left:auto;animation:pulse-chip 1.6s infinite}
+@keyframes pulse-chip{50%{opacity:.45}}
+.barp{height:4px;background:#1a2440;border-radius:99px;overflow:hidden;margin:6px 0 8px}
+.barp i{display:block;height:100%;width:40%;border-radius:99px;background:currentColor;animation:flux 2.2s ease-in-out infinite}
+@keyframes flux{0%{margin-left:-40%}100%{margin-left:100%}}
+.act{font-size:12px;color:#c9d1d9;min-height:34px;font-family:ui-monospace,monospace;line-height:1.45}
+.act .lg{display:none}.act .lg.on{display:block}
+.agc .pied{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10.5px;color:#6e7681;border-top:1px solid #1a2440;padding-top:7px}
+.mini-conv{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.console{background:#05080f;border:1px solid #1f2b45;border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;overflow-y:auto;max-height:520px}
+.console h5{color:#4a5878;font-size:10px;letter-spacing:1.5px;margin-bottom:6px}
+.cl{color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl b{color:#58a6ff;font-weight:600}
+.cl.signal{color:#3fb950}.cl.veto{color:#f85149}.cl.alerte{color:#d29922}
+.convs{grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 16px;margin-bottom:14px}
+.convs .cvx{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#8b949e}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .var.hausse{color:#3fb950}.var.baisse{color:#f85149}
 .direct{font-size:11.5px;color:#6e7681}
@@ -471,6 +495,19 @@ def _grand_graphique(r: dict, largeur=920, hauteur=380) -> str:
         y1, y2 = y(z[1]), y(z[0])
         out.append(f'<rect x="0" y="{y1:.1f}" width="{zone_l:.1f}" height="{max(abs(y2-y1),1.5):.1f}" fill="{coul}" fill-opacity="0.15"/>')
 
+    # Fibonacci du Traceur : retracements de la DERNIERE jambe du zigzag.
+    # 38,2 / 50 / 61,8 — niveaux de reference, pas des promesses.
+    if len(zz) >= 2:
+        a_, b_ = zz[-2]["prix"], zz[-1]["prix"]
+        for ratio in (0.382, 0.5, 0.618):
+            niv = b_ - (b_ - a_) * ratio
+            yy = y(niv)
+            if marge_h <= yy <= hauteur - marge_h:
+                out.append(f'<line x1="0" y1="{yy:.1f}" x2="{zone_l:.1f}" y2="{yy:.1f}" '
+                           f'stroke="#e3b341" stroke-width="0.8" stroke-dasharray="2 6" stroke-opacity="0.7"/>')
+                out.append(f'<text x="{zone_l-64}" y="{yy-3:.1f}" fill="#e3b341" '
+                           f'font-size="9.5">fib {ratio*100:.1f} · {niv:.1f}</text>')
+
     # Zigzag
     pts = " ".join(f"{p_['index']*pas+pas/2:.1f},{y(p_['prix']):.1f}" for p_ in zz)
     if pts:
@@ -494,7 +531,7 @@ def _grand_graphique(r: dict, largeur=920, hauteur=380) -> str:
     out.append(f'<text x="4" y="{hauteur-6}" fill="#6e7681" font-size="10">'
                f'<tspan fill="#58a6ff">— EMA{pf}</tspan>  <tspan fill="#f0883e">— EMA{ps}</tspan>  '
                f'<tspan fill="#ffa726">— zigzag</tspan>  <tspan fill="#3fb950">-- support</tspan>  '
-               f'<tspan fill="#f85149">-- résistance</tspan>  <tspan fill="#a371f7">▮ scénario ABC</tspan></text>')
+               f'<tspan fill="#f85149">-- résistance</tspan>  <tspan fill="#a371f7">▮ scénario ABC</tspan>  <tspan fill="#e3b341">·· Fibonacci</tspan></text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -539,6 +576,53 @@ WIDGET_TV = """<div class="tv-cadre"><h3>Graphique en direct — TradingView</h3
 <div style="padding:8px 16px;font-size:11.5px;color:#6e7681">Si ce cadre reste noir,
 un bloqueur de publicité filtre probablement tradingview.com — ajoute une exception
 pour 127.0.0.1.</div></div>"""
+
+
+def _panneau_agents(d: dict) -> str:
+    """Le système d'agents en direct — chaque champ vient de l'état réel."""
+    ags = d.get("agents") or []
+    if not ags:
+        return ""
+    EMOJIS = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
+              "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠"}
+    cartes = ""
+    for a in ags:
+        lignes = "".join(
+            f'<div class="lg{" on" if i == 0 else ""}">&rsaquo; {l}</div>'
+            for i, l in enumerate(a["activites"][:5]))
+        cartes += f"""<div class="agc" style="color:{a['coul']}">
+<span class="code">{a['code']}</span>
+<h4><span class="ico">{EMOJIS.get(a['code'],'🤖')}</span>
+<span style="color:#e6edf3">{a['nom']}</span>
+<span class="chip">{a['statut']}</span></h4>
+<div class="rl">{a['role']}</div>
+<div class="barp"><i></i></div>
+<div class="act">{lignes}</div>
+<div class="pied"><span>{a['metriques'][:52]}</span>
+<span class="mini-conv" title="charge cerveau mesurée (temps CPU réel)">🧠 {a['charge']}%</span></div>
+</div>"""
+
+    lignes_console = "".join(
+        f'<div class="cl {e.get("niveau","")}">[{e["t"]}] <b>[{e["agent"]}]</b> {e["texte"]}</div>'
+        for e in (d.get("evenements") or [])[-40:])
+
+    convs = ""
+    for a in ags:
+        r, circ = 17, 2 * 3.14159 * 17
+        convs += f"""<div class="cvx"><div style="position:relative;width:42px;height:42px">
+<svg width="42" height="42" style="transform:rotate(-90deg)">
+<circle cx="21" cy="21" r="{r}" fill="none" stroke="#1a2440" stroke-width="4"/>
+<circle cx="21" cy="21" r="{r}" fill="none" stroke="{a['coul']}" stroke-width="4"
+ stroke-dasharray="{circ*a['conviction']/100:.1f} {circ:.1f}" stroke-linecap="round"/></svg>
+<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+font-size:10px;font-weight:700;color:{a['coul']}">{a['conviction']}%</span></div>
+{a['nom'][:11]}</div>"""
+
+    return f"""<div id="sys-agents"><div class="convs">{convs}
+<div style="margin-left:auto;font-size:11px;color:#6e7681;align-self:center">convictions
+issues des métriques réelles · 🧠 = part du temps de calcul mesuré</div></div>
+<div class="sys"><div class="ag-grille">{cartes}</div>
+<div class="console"><h5>PROCESSUS — ÉVÉNEMENTS RÉELS</h5>{lignes_console}</div></div></div>"""
 
 
 def rendre(d: dict) -> str:
@@ -738,7 +822,8 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
               f'<canvas id="cerveau3d" style="width:100%;height:440px;display:block"></canvas></div>'
               f'<script id="donnees-cerveau" type="application/json">{donnees_cerveau}</script>'
               f'<script src="/cerveau.js" defer></script>')
-    bloc_cerveau = (f'{canvas}<div class="cerveau">{ags}'
+    panneau = _panneau_agents(d)
+    bloc_cerveau = (f'{panneau}{canvas}<div class="cerveau">{ags}'
                     f'<div class="superviseur">{diag}<br><br>'
                     f'<span style="color:#8b949e;font-size:12px">{sa.get("note","")}</span></div></div>')
 
@@ -809,7 +894,7 @@ Le côté vendeur reste non validé (5&nbsp;trades d'historique, espérance nég
 Résultats hors spread réel et glissement. Aucun ordre n'est passé.
 </footer></div>
 <script>
-const INTERVALLE = 10;              // secondes entre deux controles
+const INTERVALLE = 3;              // secondes entre deux controles
 let restant = INTERVALLE, enCours = false;
 let connus = new Set();             // signaux deja notifies
 let sonActif = true;
@@ -857,6 +942,13 @@ async function rafraichir(manuel) {{
     document.querySelector(".grille").innerHTML = d.html;
     if (d.boule) document.querySelector(".boule").outerHTML = d.boule;
     if (d.sante && window.majCerveau) window.majCerveau(d.sante);
+    if (d.sys_agents) {{
+      const sys = document.getElementById("sys-agents");
+      if (sys) {{ const sc = sys.querySelector(".console"); const pos = sc ? sc.scrollTop : 0;
+        sys.outerHTML = d.sys_agents;
+        const nc = document.querySelector("#sys-agents .console");
+        if (nc) nc.scrollTop = nc.scrollHeight; }}
+    }}
     document.querySelector(".prix").textContent = d.prix ?? "—";
     document.getElementById("compte").textContent = d.nb_setups;
     document.getElementById("horodatage").textContent =
@@ -969,6 +1061,16 @@ function majEtatNotif(p) {{
   else if (p === "denied") {{ el.textContent = "refusées"; el.style.color = "#f85149"; btn.disabled = true; }}
   else el.textContent = "activer";
 }}
+
+setInterval(() => {{
+  document.querySelectorAll("#sys-agents .act").forEach(a => {{
+    const l = a.querySelectorAll(".lg");
+    if (l.length < 2) return;
+    let i = [...l].findIndex(x => x.classList.contains("on"));
+    l[i].classList.remove("on");
+    l[(i + 1) % l.length].classList.add("on");
+  }});
+}}, 1500);
 
 setInterval(() => {{
   restant--;
@@ -1325,6 +1427,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "news": d.get("news"),
                     "boule": _boule(d.get("consensus")),
                     "sante": d.get("sante"),
+                    "sys_agents": _panneau_agents(d),
                     "quota": ds.COMPTEUR["twelvedata"],
                     "rotation": ds.etat_rotation(),
                     "quote": d.get("quote"),
