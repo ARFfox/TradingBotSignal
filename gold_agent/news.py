@@ -382,6 +382,16 @@ def positionnement(ttl: int = TTL_COT) -> dict:
 URL_ACTUS = ("https://news.google.com/rss/search?"
              "q=gold+price+iran+OR+war+OR+strike+OR+attack+OR+conflict+when:2d"
              "&hl=en-US&gl=US&ceid=US:en")
+
+# Multi-sources : un seul flux rate des choses, et chaque redaction a ses
+# angles. Yahoo est specifiquement branche sur les contrats or (GC=F).
+SOURCES_ACTUS = [
+    ("Google News", URL_ACTUS),
+    ("Yahoo Finance", "https://feeds.finance.yahoo.com/rss/2.0/headline?s=GC=F&region=US&lang=en-US"),
+    ("CNBC monde", "https://www.cnbc.com/id/100727362/device/rss/rss.html"),
+    ("MarketWatch", "https://feeds.content.dowjones.io/public/rss/mw_topstories"),
+    ("FXStreet", "https://www.fxstreet.com/rss/news"),
+]
 FICHIER_ACTUS = pathlib.Path.home() / ".gold_agent_actus.json"
 # Rouge : action militaire directe — a lire imperativement.
 # Jaune : facteur de risque a surveiller. Gris : bruit de fond.
@@ -411,31 +421,54 @@ def actualites(ttl: int = TTL_ACTUS) -> dict:
 
     out = {"disponible": False, "titres": [], "niveau": "inconnu"}
     try:
-        p = subprocess.run(["curl", "-s", "-m", "25", URL_ACTUS],
-                           capture_output=True, text=True, timeout=35)
-        items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<pubDate>(.*?)</pubDate>",
-                           p.stdout, re.S)
-        if not items:
-            raise RuntimeError("flux vide")
-        titres = []
-        chauds = 0
-        for t, d in items[:25]:
-            t = (t.replace("&amp;", "&").replace("&#39;", "'")
-                 .replace("&quot;", '"').strip())
-            bas = t.lower()
-            if any(m in bas for m in MOTS_ROUGES):
-                gravite = "rouge"
-            elif any(m in bas for m in MOTS_JAUNES):
-                gravite = "jaune"
-            else:
-                gravite = "gris"
-            touche = gravite == "rouge"
-            chauds += touche
-            titres.append({"titre": t[:140], "date": d[5:16],
-                           "geopolitique": touche, "gravite": gravite})
+        titres, vus = [], set()
+        sources_ok = 0
+        for nom_src, url in SOURCES_ACTUS:
+            try:
+                p = subprocess.run(["curl", "-s", "-m", "20", "-A", "Mozilla/5.0", url],
+                                   capture_output=True, text=True, timeout=30)
+                items = re.findall(r"<item>.*?<title>(.*?)</title>.*?<pubDate>(.*?)</pubDate>",
+                                   p.stdout, re.S)
+                if not items:
+                    continue
+                sources_ok += 1
+                for t, d in items[:10]:
+                    t = re.sub(r"^<!\[CDATA\[|\]\]>$", "", t.strip())
+                    t = (t.replace("&amp;", "&").replace("&#39;", "'")
+                         .replace("&quot;", '"').strip())
+                    # Dedoublonnage inter-sources sur le debut normalise
+                    cle = re.sub(r"\W+", "", t.lower())[:60]
+                    if not t or cle in vus:
+                        continue
+                    vus.add(cle)
+                    bas = t.lower()
+                    # Frontieres de mots : sans elles, "war" matchait "Warsh"
+                    # (le president de la Fed) et classait rouge un titre de
+                    # politique monetaire.
+                    def _touche(mots):
+                        return any(re.search(r"\b" + re.escape(m), bas) for m in mots)
+                    if _touche(MOTS_ROUGES):
+                        gravite = "rouge"
+                    elif _touche(MOTS_JAUNES):
+                        gravite = "jaune"
+                    else:
+                        gravite = "gris"
+                    titres.append({"titre": t[:140], "date": d[5:16],
+                                   "source": nom_src,
+                                   "geopolitique": gravite == "rouge",
+                                   "gravite": gravite})
+            except Exception:
+                continue
+        if not titres:
+            raise RuntimeError("toutes les sources vides")
+        # Les rouges d'abord, puis jaunes — ce qui exige l'attention monte
+        rang = {"rouge": 0, "jaune": 1, "gris": 2}
+        titres.sort(key=lambda x: rang[x["gravite"]])
+        chauds = sum(1 for x in titres if x["gravite"] == "rouge")
         part = chauds / len(titres)
         niveau = "eleve" if part >= 0.4 else ("modere" if part >= 0.15 else "calme")
-        out = {"disponible": True, "titres": titres[:12], "niveau": niveau,
+        out = {"disponible": True, "titres": titres[:16], "niveau": niveau,
+               "sources": sources_ok,
                "part_geopolitique_pct": round(part * 100),
                "note": ("regime geopolitique : les stops techniques sont peu fiables, "
                         "la direction ne suit pas forcement le reflexe valeur refuge")

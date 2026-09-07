@@ -614,11 +614,12 @@ def rendre(d: dict) -> str:
         g = x.get("gravite") or ("rouge" if x.get("geopolitique") else "gris")
         coul = {"rouge": "#f85149", "jaune": "#d29922"}.get(g, "#6e7681")
         gras = ' style="color:#ffa198;font-weight:600"' if g == "rouge" else ""
+        src = x.get("source", "")
         lignes_actus += (f'<div class="evt" style="border-left:3px solid {coul};padding-left:8px">'
-                         f'<span class="t"{gras}>{x["titre"][:95]}</span>'
-                         f'<span class="q">{x["date"]}</span></div>')
+                         f'<span class="t"{gras}>{x["titre"][:92]}</span>'
+                         f'<span class="q">{src} · {x["date"]}</span></div>')
     if lignes_actus:
-        lignes_actus = f'<h3 style="margin-top:14px">Actualités (Google News)</h3>{lignes_actus}'
+        lignes_actus = f'<h3 style="margin-top:14px">Actualités — 5 sources (Google, Yahoo, CNBC, MarketWatch, FXStreet)</h3>{lignes_actus}'
 
     bloc_news = f"""<div class="news">
 <div><h3>Risque événementiel</h3>{bloc_geo}
