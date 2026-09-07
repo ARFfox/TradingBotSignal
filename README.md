@@ -580,6 +580,29 @@ serveur — sans suivi, on ne découvre le dépassement qu'au moment où tout ca
 En cas d'échec réseau, la dernière donnée connue est réutilisée et **signalée
 comme figée** — une carte datée mais annoncée vaut mieux qu'une carte vide.
 
+## Couches ajoutées depuis (résumé)
+
+| Couche | Rôle | Source |
+|---|---|---|
+| Authentification | e-mail + mot de passe (scrypt salé), frein anti-force-brute, sessions | interne |
+| Journal des signaux | chaque signal suivi jusqu'au dénouement, taux de réussite réel | interne |
+| Suspension d'émission | régime géopolitique élevé ou série perdante (fenêtre 7 j) → signaux marqués, ni journalisés ni notifiés | interne |
+| Politique par timeframe | seuls les TF au backtest positif émettent (H4, H1, M30) — modifiable d'un clic | mesures |
+| News multi-sources | Google, Yahoo (GC=F), CNBC, MarketWatch, FXStreet — gravité rouge/jaune/gris | RSS |
+| Calendrier économique | veto avant publication à fort impact | ForexFactory |
+| Macro | taux réels 10 ans, dollar pondéré | FRED |
+| Positionnement | contrats nets des fonds spéculatifs, percentile 3 ans | CFTC (COT) |
+| Minières (AEM) | divergence de confirmation (lead-lag mesuré nul) | Twelve Data |
+| Saisonnalité | rendements mensuels sur 18 ans, poids faible | mesures internes |
+| ICT | premium/discount, killzones, phase AMD — non backtesté, étiqueté | interne |
+| Scénario ABC | correction A-B-C, cible par mouvement mesuré, invalidation | interne |
+| Cerveau | réseau animé des agents, cliquable, santé en direct, boutons de correction (liste blanche) | interne |
+| Notifications | système + téléphone (ntfy) avec le graphique du signal en image | qlmanage |
+
+Chaque couche est passée par la même porte : mesurée quand c'est mesurable,
+étiquetée « non backtesté » sinon, rejetée quand les chiffres l'ont contredite
+(filtre Bollinger, AEM prédicteur, « war » matchant « Warsh »...).
+
 ## Limites connues
 
 - `indicator add` du pont ne fonctionne pas avec TradingView Desktop 3.3.0
