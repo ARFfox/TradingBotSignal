@@ -397,6 +397,12 @@ def _carte(r: dict) -> str:
         fiab_txt = "" if im.get("fiable") else " · base mince"
         h.append(f'<div class="ict-ligne">🪞 Miroir : confiance <b>×{im["facteur"]:.2f}</b> '
                  f'(score {im["score"]:+.2f}, base {im["base"]:.2f}{fiab_txt})</div>')
+    av = (r.get("setup") or {}).get("avocat")
+    if av and av.get("objections"):
+        for o in av["objections"][:2]:
+            etat = ("réfutée ✓" if o["refutee"]
+                    else f'à réfuter : {o["refutation"]}')
+            h.append(f'<div class="ict-ligne">😈 {o["quoi"]} — <i>{etat}</i></div>')
 
     ic = r.get("ict") or {}
     pd_ = ic.get("premium_discount") or {}

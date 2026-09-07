@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import config, datasource as ds, ict, indicators as ind, journal, patterns as pat, regime as rg, strategy as sg
+from . import avocat, config, datasource as ds, ict, indicators as ind, journal, patterns as pat, regime as rg, strategy as sg
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -685,6 +685,19 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     #     facteur et le score sont attaches au setup et au journal.
     cst = paquet.get("constellation") or {}
     sc_ = cst.get("score") or {}
+
+    # AG-16 Avocat du diable : ses donnees (journal + agenda), une seule fois.
+    d0 = _tps.perf_counter()
+    try:
+        _sig_journal = journal._charger()
+    except Exception:
+        _sig_journal = []
+    try:
+        from . import news as _news_av
+        _evts_agenda = _news_av.prochains(fenetre_heures=8.0, impact_min="High")
+    except Exception:
+        _evts_agenda = []
+
     for r in resultats:
         st = r.get("setup") or {}
         if not st.get("setup"):
@@ -700,9 +713,25 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                     "score": sc_.get("score"), "base": sc_.get("base"),
                     "fiable": sc_.get("fiable"),
                     "facteur": sc_.get("facteur_confiance", 1.0)}
+        # L'Avocat du diable examine tout setup encore vivant : une objection
+        # majeure non refutee bloque, les autres sont montrees sur la carte.
+        if not st.get("suspendu"):
+            try:
+                verdict = avocat.examiner(r, _sig_journal, _evts_agenda)
+            except Exception as e:
+                verdict = None
+                _evt("Avocat", f"examen impossible : {str(e)[:60]}", "warn")
+            if verdict:
+                st["avocat"] = verdict
+                if verdict["verdict"] == "non_refute":
+                    st["suspendu"] = ("avocat du diable : "
+                                      + str(verdict["motif_blocage"])[:110])
+                    _evt("Avocat", f"{r['nom']} {st['setup']} BLOQUÉ — "
+                         f"{verdict['motif_blocage'][:70]}", "veto")
         if not st.get("suspendu"):
             journal.enregistrer(r["nom"], st, prix_actuel or 0,
                                 (r.get("fiabilite") or {}).get("niveau", "?"))
+    paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
     paquet["agents"] = agents_live(paquet)
     return paquet
@@ -852,6 +881,40 @@ def agents_live(d: dict) -> list:
                    "conviction": conviction_m,
                    "metriques": f"×{sc.get('facteur_confiance', 1.0):.2f} sur la confiance",
                    "charge": charge("constellation")})
+
+    # ---- AG-16 Avocat du diable ----
+    lignes_av, n_maj, n_min, n_bloq = [], 0, 0, 0
+    for r in d.get("timeframes", []):
+        st_ = r.get("setup") or {}
+        v = st_.get("avocat")
+        susp = str(st_.get("suspendu") or "")
+        if susp.startswith("avocat du diable"):
+            n_bloq += 1
+            lignes_av.append(f"{r['nom']} {st_.get('setup', '')} BLOQUÉ — "
+                             + susp.split(": ", 1)[-1][:60])
+        elif v:
+            for o in v["objections"]:
+                if o["gravite"] == "majeure":
+                    n_maj += 1
+                else:
+                    n_min += 1
+            if v["objections"]:
+                o = v["objections"][0]
+                lignes_av.append(f"{r['nom']} : {o['quoi'][:64]}"
+                                 + (" — réfutée" if o["refutee"] else ""))
+    if not lignes_av:
+        lignes_av = ["aucun setup à contester pour l'instant",
+                     "je cherche des raisons d'échouer, pas de réussir"]
+    conviction_av = min(95, 25 + 35 * n_bloq + 15 * n_maj + 5 * n_min)
+    agents.append({"code": "AG-16", "nom": "Avocat du diable",
+                   "role": "Vote toujours CONTRE — doit être réfuté",
+                   "coul": "#f85149",
+                   "statut": "BLOCAGE" if n_bloq else ("OBJECTION" if n_maj + n_min else "VEILLE"),
+                   "activites": lignes_av[:4],
+                   "conviction": conviction_av,
+                   "metriques": f"{n_bloq} blocage(s) · {n_maj} majeure(s) · "
+                                f"{n_min} mineure(s)",
+                   "charge": charge("avocat")})
 
     lignes = [f"{nt} : espérance mesurée {fia[nt]['esperance']:+.2f}R "
               f"({fia[nt].get('trades','?')} trades) — {fia[nt].get('niveau','?')}"
