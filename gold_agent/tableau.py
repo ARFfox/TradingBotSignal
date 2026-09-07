@@ -375,6 +375,33 @@ def _sante(resultats: list, usage, quote) -> dict:
                      "jamais silencieusement.")}
 
 
+_REPARATIONS_NOTIFIEES: set = set()
+
+
+def _notifier_reparations(sa: dict) -> None:
+    """Le superviseur ne s'affiche plus en bloc sur la page : il NOTIFIE.
+
+    Chaque correction proposee part une seule fois en notification
+    (systeme + telephone) pour validation. L'application reste un clic
+    dans la carte AG-00 — jamais automatique : un systeme qui se modifie
+    sans validation est un systeme dont on perd le controle.
+    """
+    from . import notify as _notify
+    for r in (sa.get("reparations") or []):
+        if r["action"] in _REPARATIONS_NOTIFIEES:
+            continue
+        _REPARATIONS_NOTIFIEES.add(r["action"])
+        titre = "Superviseur — correction proposée"
+        corps = (f"{r['contexte']}\nProposition : {r['libelle']}\n"
+                 f"Valider : carte Superviseur (AG-00) de l'onglet Cerveau.")
+        try:
+            _notify.notifier_systeme(titre, r["libelle"], corps)
+            _notify.pousser_telephone(titre, corps)
+            _evt("Superviseur", f"correction proposée : {r['libelle']} — notification envoyée", "alerte")
+        except Exception:
+            pass
+
+
 def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
     resultats = []
     prix_actuel = None
@@ -603,7 +630,7 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         "tf_emission": tf_autorises,
         "chrono": {k: round(v * 1000, 1) for k, v in chrono.items()},
         "evenements": evenements(),
-        "sante": _sante(resultats, usage, quote),
+        "sante": (lambda sa: (_notifier_reparations(sa), sa)[1])(_sante(resultats, usage, quote)),
         "timeframes": resultats,
         "nb_setups": len(actifs),
     }
