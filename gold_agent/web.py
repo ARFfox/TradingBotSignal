@@ -163,6 +163,15 @@ font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .cl{color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl b{color:#58a6ff;font-weight:600}
 .cl.signal{color:#3fb950}.cl.veto{color:#f85149}.cl.alerte{color:#d29922}
+.tf-nav{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:8px;
+padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tfb.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tfb .bip{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:99px;
+background:#f85149;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;
+padding:0 4px;border:2px solid #0d1117;animation:pulse-chip 1.2s infinite}
+.tfb .bip.ok{background:#3fb950}
+.carte[data-tf]{display:none}.carte[data-tf].vue{display:flex}
 .convs{grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 16px;margin-bottom:14px}
 .convs .cvx{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#8b949e}
 .var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -331,7 +340,7 @@ def _carte(r: dict) -> str:
     tag_em = "" if em is None else (
         ' <span style="font-size:10px;color:#3fb950">émission ON</span>' if em
         else ' <span style="font-size:10px;color:#f85149">émission OFF</span>')
-    h = [f'<div class="carte{actif}">',
+    h = [f'<div class="carte{actif}" data-tf="{r["nom"]}">',
          f'<div class="tete"><div style="display:flex;gap:10px;align-items:center">{jauge}'
          f'<div><div class="tf">{r["nom"]}</div>'
          f'<div class="role">{r["role"]}{tag_em}</div></div></div>'
@@ -640,7 +649,16 @@ issues des métriques réelles · 🧠 = part du temps de calcul mesuré</div></
 
 def rendre(d: dict) -> str:
     gen = datetime.fromisoformat(d["genere_le"]).astimezone()
-    cartes = "".join(_carte(r) for r in d["timeframes"])
+    nav_tf = ""
+    for r in d["timeframes"]:
+        st_ = r.get("setup") or {}
+        bip = ""
+        if st_.get("setup"):
+            bip = ('<span class="bip">⛔</span>' if st_.get("suspendu")
+                   else '<span class="bip ok">●</span>')
+        nav_tf += f'<button class="tfb" data-tf="{r["nom"]}">{r["nom"]}{bip}</button>'
+    cartes = (f'<div class="tf-nav">{nav_tf}</div>'
+              + "".join(_carte(r) for r in d["timeframes"]))
 
     # Valeurs rendues cote serveur : sans cela, variation et quota restent
     # vides jusqu'au premier sondage, 30 s apres l'ouverture de la page.
@@ -778,8 +796,13 @@ def rendre(d: dict) -> str:
 
     hi = d.get("historique") or {}
     lignes_h = ""
+    # Seuls les denouements reels s'affichent : entree touchee puis stop
+    # (perdant) ou TP (gagnant). Les "jamais executes" et en-cours restent
+    # comptes dans le resume mais n'encombrent pas la table.
     for x in hi.get("derniers", []):
         st = x["statut"]
+        if st not in ("gagnant", "perdant"):
+            continue
         cls_h = {"gagnant": "ok", "perdant": "ko"}.get(st, "")
         r_txt = f'{x["r_obtenu"]:+.2f}R' if x.get("r_obtenu") is not None else "—"
         lignes_h += (f'<tr><td>{x["cree_le"][:16].replace("T"," ")}</td><td>{x["tf"]}</td>'
@@ -969,6 +992,7 @@ async function rafraichir(manuel) {{
     if (d.erreur) throw new Error(d.erreur);
 
     document.querySelector(".grille").innerHTML = d.html;
+    window.appliquerTf && window.appliquerTf();
     if (d.boule) document.querySelector(".boule").outerHTML = d.boule;
     if (d.sante && window.majCerveau) window.majCerveau(d.sante);
     if (d.sys_agents) {{
@@ -1090,6 +1114,26 @@ function majEtatNotif(p) {{
   else if (p === "denied") {{ el.textContent = "refusées"; el.style.color = "#f85149"; btn.disabled = true; }}
   else el.textContent = "activer";
 }}
+
+window.tfActif = window.tfActif || null;
+window.appliquerTf = () => {{
+  const cartes = document.querySelectorAll(".carte[data-tf]");
+  if (!cartes.length) return;
+  let choix = window.tfActif;
+  if (!choix || ![...cartes].some(c => c.dataset.tf === choix)) {{
+    // par defaut : premier TF avec signal actif, sinon H4
+    const avec = [...document.querySelectorAll(".tfb .bip.ok")];
+    choix = avec.length ? avec[0].parentElement.dataset.tf : "H4";
+  }}
+  cartes.forEach(c => c.classList.toggle("vue", c.dataset.tf === choix));
+  document.querySelectorAll(".tfb").forEach(b =>
+    b.classList.toggle("actif", b.dataset.tf === choix));
+}};
+document.addEventListener("click", e => {{
+  const b = e.target.closest(".tfb");
+  if (b) {{ window.tfActif = b.dataset.tf; window.appliquerTf(); }}
+}});
+window.appliquerTf();
 
 setInterval(() => {{
   document.querySelectorAll("#sys-agents .act").forEach(a => {{
@@ -1245,8 +1289,8 @@ CERVEAU_JS = r"""
     liens.forEach((ln,i)=>{
       const A = noeuds[idx[ln[0]]]._p, B = noeuds[idx[ln[1]]]._p;
       const g = ctx.createLinearGradient(A[0],A[1],B[0],B[1]);
-      g.addColorStop(0,'rgba(227,179,65,0.10)'); g.addColorStop(1,'rgba(227,179,65,0.32)');
-      ctx.strokeStyle=g; ctx.lineWidth=1;
+      g.addColorStop(0,'rgba(120,140,180,0.10)'); g.addColorStop(1,'rgba(120,140,180,0.28)');
+      ctx.strokeStyle=g; ctx.lineWidth=0.8;
       ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke();
       parts[i]=(parts[i]+0.006+Math.random()*0.002)%1;
       const t=parts[i], px=A[0]+(B[0]-A[0])*t, py=A[1]+(B[1]-A[1])*t;
@@ -1264,8 +1308,8 @@ CERVEAU_JS = r"""
       const halo = ctx.createRadialGradient(x,y,0,x,y,r*2.4);
       halo.addColorStop(0, coul+'55'); halo.addColorStop(1,'transparent');
       ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(x,y,r*2.4,0,7); ctx.fill();
-      ctx.fillStyle='#161b22'; ctx.beginPath(); ctx.arc(x,y,r*0.95,0,7); ctx.fill();
-      ctx.strokeStyle=coul; ctx.lineWidth=2;
+      ctx.fillStyle=coul+'22'; ctx.beginPath(); ctx.arc(x,y,r*0.95,0,7); ctx.fill();
+      ctx.strokeStyle=coul; ctx.lineWidth=1.6;
       ctx.beginPath(); ctx.arc(x,y,r*0.95,0,7); ctx.stroke();
       ctx.font = Math.max(12, r*1.05) + 'px serif';
       ctx.textAlign='center'; ctx.textBaseline='middle';

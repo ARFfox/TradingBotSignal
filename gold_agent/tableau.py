@@ -336,17 +336,10 @@ def _sante(resultats: list, usage, quote) -> dict:
     # Detection par timeframe : quel TF perd, et proposition de correction
     reparations = []
     autorises = config.tf_emission()
-    for tf_nom, dd in (hist.get("par_tf") or {}).items():
-        res_tf = dd["gagnants"] + dd["perdants"]
-        if res_tf >= 3 and dd["perdants"] / res_tf >= 0.8:
-            msg = f"{tf_nom} : {dd['perdants']}/{res_tf} perdants au journal"
-            if tf_nom in autorises:
-                problemes.append(msg + " — émission encore active sur ce timeframe")
-                reparations.append({"action": f"tf_off:{tf_nom}",
-                                    "libelle": f"Couper l'émission {tf_nom}",
-                                    "contexte": msg})
-            else:
-                pass  # deja coupe, rien a reparer
+    # Choix utilisateur (07/09) : le superviseur ne notifie que la SANTE des
+    # agents — pannes, erreurs, maintenance. La gestion fine des timeframes
+    # se fait par la suspension automatique (fenetre 7 j) et les badges
+    # emission ON/OFF, sans notifications dediees.
     doublons = hist.get("total_emis", 0) - len({x.get("cle") for x in hist.get("derniers", [])} )
     if emis_24h > 15:
         reparations.append({"action": "nettoyer_journal",
