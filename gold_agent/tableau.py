@@ -577,9 +577,10 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                                   f"(backtest insuffisant ou négatif)")
             elif suspension:
                 st["suspendu"] = suspension
-            else:
-                journal.enregistrer(r["nom"], st, prix_actuel or 0,
-                                    (r.get("fiabilite") or {}).get("niveau", "?"))
+            # L'enregistrement au journal est DIFFERE apres le verdict du
+            # Miroir (etape 5) : un signal bloque par l'intermarche ne doit
+            # jamais y entrer, et un signal valide doit y entrer AVEC son
+            # champ intermarche pour qu'on puisse mesurer l'apport du Miroir.
     d0 = _tps.perf_counter()
     try:
         n_res = journal.resoudre(bars_par_tf)
@@ -678,6 +679,30 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
         _evt("Constellation", f"indisponible : {str(e)[:90]}", "alerte")
     chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
     paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
+
+    # --- Etape 5 (validee par l'utilisateur) : le Miroir agit sur les
+    #     signaux. Sens conteste + score bloque -> suspension ; sinon le
+    #     facteur et le score sont attaches au setup et au journal.
+    cst = paquet.get("constellation") or {}
+    sc_ = cst.get("score") or {}
+    for r in resultats:
+        st = r.get("setup") or {}
+        if not st.get("setup"):
+            continue
+        if sc_ and cst.get("sens_teste") == st["setup"] and not st.get("suspendu"):
+            if sc_.get("bloque"):
+                st["suspendu"] = ("contradiction intermarché : "
+                                  + str(sc_.get("motif", ""))[:110])
+                _evt("Miroir", f"{r['nom']} {st['setup']} BLOQUÉ — "
+                     f"{len(sc_.get('contredisent', []))} actifs contredisent", "veto")
+            else:
+                st["intermarche"] = {
+                    "score": sc_.get("score"), "base": sc_.get("base"),
+                    "fiable": sc_.get("fiable"),
+                    "facteur": sc_.get("facteur_confiance", 1.0)}
+        if not st.get("suspendu"):
+            journal.enregistrer(r["nom"], st, prix_actuel or 0,
+                                (r.get("fiabilite") or {}).get("niveau", "?"))
 
     paquet["agents"] = agents_live(paquet)
     return paquet

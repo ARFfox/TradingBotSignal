@@ -65,6 +65,9 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
             "cree_ts": int(dt.datetime.now(dt.timezone.utc).timestamp()),
             "statut": "en_attente",     # -> ouvert -> gagnant/perdant ; ou non_execute
             "resolu_le": None, "r_obtenu": None,
+            # Trace du Miroir (AG-10) : indispensable pour mesurer un jour
+            # si la confirmation intermarche ameliore reellement les resultats.
+            "intermarche": s.get("intermarche"),
         })
         _sauver(signaux)
     return True

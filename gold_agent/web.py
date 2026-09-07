@@ -392,6 +392,12 @@ def _carte(r: dict) -> str:
             h.append(f'<div class="al {cl}">{txt}</div>')
         h.append("</div>")
 
+    im = (r.get("setup") or {}).get("intermarche")
+    if im:
+        fiab_txt = "" if im.get("fiable") else " · base mince"
+        h.append(f'<div class="ict-ligne">🪞 Miroir : confiance <b>×{im["facteur"]:.2f}</b> '
+                 f'(score {im["score"]:+.2f}, base {im["base"]:.2f}{fiab_txt})</div>')
+
     ic = r.get("ict") or {}
     pd_ = ic.get("premium_discount") or {}
     amd = ic.get("amd") or {}
