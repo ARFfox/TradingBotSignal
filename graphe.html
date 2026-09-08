@@ -1,0 +1,233 @@
+<!-- Vue en graphe des agents — gabarit autonome, aucune bibliotheque externe.
+     Claude Code : integrer tel quel dans web.py, ou servir ce fichier.
+     Donnees attendues : GET /api/graphe -> {noeuds, liens, couches}
+     (le format exact que produit graphe_agents.Graphe.json())            -->
+<div id="gr-hote">
+  <div id="gr-barre">
+    <span class="gr-t">RÉSEAU DES AGENTS</span>
+    <label><input type="checkbox" id="gr-flux" checked> flux</label>
+    <label><input type="checkbox" id="gr-noms" checked> noms</label>
+    <button id="gr-fige">⏸ figer</button>
+    <span id="gr-etat"></span>
+  </div>
+  <canvas id="gr-canvas"></canvas>
+  <div id="gr-info" hidden></div>
+  <div id="gr-legende">
+    <span><i style="background:#7ee787"></i>confirme</span>
+    <span><i style="background:#e3b341"></i>contredit</span>
+    <span><i style="background:#f85149"></i>blocage</span>
+    <span><i style="background:#58a6ff"></i>corrélation</span>
+    <span><i style="background:#30363d"></i>flux</span>
+    <span><i class="mort"></i>agent muet</span>
+  </div>
+</div>
+
+<style>
+#gr-hote{position:relative;background:#0d1117;border:1px solid #21262d;border-radius:10px;
+  overflow:hidden;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9}
+#gr-barre{display:flex;gap:14px;align-items:center;padding:8px 12px;border-bottom:1px solid #21262d;
+  background:#010409;flex-wrap:wrap}
+#gr-barre .gr-t{font-weight:700;letter-spacing:.08em;color:#8b949e;font-size:11px}
+#gr-barre label{color:#8b949e;font-size:11px;cursor:pointer;user-select:none}
+#gr-barre button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:5px;
+  padding:3px 9px;cursor:pointer;font:inherit;font-size:11px}
+#gr-barre button:hover{background:#30363d}
+#gr-etat{margin-left:auto;color:#6e7681;font-size:11px}
+#gr-canvas{display:block;width:100%;height:520px;cursor:grab}
+#gr-canvas.gr-drag{cursor:grabbing}
+#gr-info{position:absolute;pointer-events:none;background:#161b22ee;border:1px solid #30363d;
+  border-radius:7px;padding:8px 11px;max-width:270px;font-size:11.5px;line-height:1.5;
+  box-shadow:0 6px 22px #000a;z-index:5}
+#gr-info b{color:#e6edf3}
+#gr-info .s{color:#8b949e}
+#gr-legende{display:flex;gap:14px;padding:7px 12px;border-top:1px solid #21262d;background:#010409;
+  font-size:10.5px;color:#8b949e;flex-wrap:wrap}
+#gr-legende i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;
+  vertical-align:middle}
+#gr-legende i.mort{width:9px;height:9px;border-radius:50%;background:#484f58}
+</style>
+
+<script>
+(() => {
+  const cv = document.getElementById('gr-canvas'), cx = cv.getContext('2d');
+  const info = document.getElementById('gr-info'), etat = document.getElementById('gr-etat');
+  const cbFlux = document.getElementById('gr-flux'), cbNoms = document.getElementById('gr-noms');
+  const btn = document.getElementById('gr-fige');
+
+  // Ordre des couches : la lecture va de la perception vers la decision.
+  // Sans ce biais, un graphe force-directed melange tout et on ne lit rien.
+  const RANG = {perception:0, marche:1, relation:2, critique:3, decision:4, chef:5, sortie:6};
+  const COUL = {confirme:'#7ee787', contredit:'#e3b341', bloque:'#f85149',
+                correlation:'#58a6ff', alimente:'#30363d'};
+
+  let N = [], L = [], fige = false, survol = null, tire = null, W = 0, H = 0;
+
+  function dim() {
+    const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  new ResizeObserver(dim).observe(cv);
+
+  function charger(g) {
+    const nb = Math.max(...Object.values(RANG)) + 1;
+    N = g.noeuds.map((n, i) => {
+      const r = RANG[n.couche] ?? 3;
+      return Object.assign({}, n, {
+        // Position de depart deja triee par couche : la simulation
+        // converge en 2 s au lieu de 15, et le resultat est stable.
+        x: W * (0.10 + 0.80 * r / (nb - 1)) + (Math.random() - .5) * 40,
+        y: H * (0.15 + 0.70 * ((i * 7) % 11) / 10),
+        vx: 0, vy: 0, r: 9 + 13 * (n.taille ?? 1) / 1.5
+      });
+    });
+    const idx = Object.fromEntries(N.map((n, i) => [n.id, i]));
+    L = g.liens.filter(l => idx[l.de] != null && idx[l.vers] != null)
+               .map(l => Object.assign({}, l, {a: idx[l.de], b: idx[l.vers]}));
+    const morts = N.filter(n => !n.vivant).length;
+    const conflits = L.filter(l => l.type === 'bloque' || l.type === 'contredit').length;
+    etat.textContent = `${N.length} agents · ${conflits} conflit(s)` +
+                       (morts ? ` · ${morts} muet(s)` : '');
+  }
+
+  function pas() {
+    const nb = Math.max(...Object.values(RANG)) + 1;
+    for (const n of N) {
+      if (n === tire) continue;
+      // repulsion
+      for (const m of N) {
+        if (m === n) continue;
+        let dx = n.x - m.x, dy = n.y - m.y, d2 = dx*dx + dy*dy || 1;
+        if (d2 < 62500) { const f = 900 / d2; n.vx += dx * f; n.vy += dy * f; }
+      }
+      // rappel vers la colonne de sa couche
+      const cible = W * (0.10 + 0.80 * (RANG[n.couche] ?? 3) / (nb - 1));
+      n.vx += (cible - n.x) * 0.020;
+      n.vy += (H / 2 - n.y) * 0.0016;
+    }
+    for (const l of L) {
+      const a = N[l.a], b = N[l.b];
+      // Un lien porteur d'information tire plus fort qu'un simple flux :
+      // les agents en desaccord se rapprochent et sautent aux yeux.
+      const k = (l.type === 'alimente' ? 0.0016 : 0.0060) * (0.4 + (l.poids ?? .5));
+      const dx = b.x - a.x, dy = b.y - a.y;
+      if (a !== tire) { a.vx += dx * k; a.vy += dy * k; }
+      if (b !== tire) { b.vx -= dx * k; b.vy -= dy * k; }
+    }
+    for (const n of N) {
+      if (n === tire) continue;
+      n.vx *= .82; n.vy *= .82;
+      n.x = Math.max(n.r + 6, Math.min(W - n.r - 6, n.x + n.vx));
+      n.y = Math.max(n.r + 6, Math.min(H - n.r - 6, n.y + n.vy));
+    }
+  }
+
+  function fleche(x1, y1, x2, y2, r) {
+    const a = Math.atan2(y2 - y1, x2 - x1), px = x2 - Math.cos(a) * r, py = y2 - Math.sin(a) * r;
+    cx.beginPath(); cx.moveTo(px, py);
+    cx.lineTo(px - 9 * Math.cos(a - .38), py - 9 * Math.sin(a - .38));
+    cx.lineTo(px - 9 * Math.cos(a + .38), py - 9 * Math.sin(a + .38));
+    cx.closePath(); cx.fill();
+  }
+
+  function dessiner(t) {
+    cx.clearRect(0, 0, W, H);
+    for (const l of L) {
+      if (l.type === 'alimente' && !cbFlux.checked) continue;
+      const a = N[l.a], b = N[l.b], c = COUL[l.type] || '#30363d';
+      const vif = survol && (survol === a || survol === b);
+      cx.save();
+      cx.strokeStyle = c;
+      cx.globalAlpha = l.type === 'alimente' ? (vif ? .8 : .3) : (vif ? 1 : .78);
+      cx.lineWidth = l.type === 'alimente' ? 1 : 1 + 3.4 * (l.poids ?? .5);
+      // pointilles anime pour un blocage : impossible a rater
+      if (l.type === 'bloque') { cx.setLineDash([7, 5]); cx.lineDashOffset = -t / 42; }
+      cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke();
+      cx.setLineDash([]);
+      if (l.jours > 0 || l.type === 'bloque' || l.type === 'contredit') {
+        cx.fillStyle = c; fleche(a.x, a.y, b.x, b.y, b.r + 3);
+      }
+      if (vif && l.etiquette) {
+        cx.globalAlpha = 1; cx.fillStyle = c; cx.font = '10px ui-monospace,monospace';
+        cx.textAlign = 'center';
+        cx.fillText(l.etiquette, (a.x + b.x) / 2, (a.y + b.y) / 2 - 5);
+      }
+      cx.restore();
+    }
+    for (const n of N) {
+      const vif = survol === n;
+      cx.save();
+      if (n.vivant && n.statut !== '—') {           // halo pulsant = agent actif
+        cx.globalAlpha = .16 + .10 * Math.sin(t / 520 + n.x);
+        cx.fillStyle = n.coul;
+        cx.beginPath(); cx.arc(n.x, n.y, n.r + 9, 0, 7); cx.fill();
+      }
+      cx.globalAlpha = 1;
+      cx.fillStyle = n.vivant ? '#161b22' : '#0d1117';
+      cx.strokeStyle = n.coul; cx.lineWidth = vif ? 2.5 : 1.5;
+      if (!n.vivant) cx.setLineDash([3, 3]);
+      cx.beginPath(); cx.arc(n.x, n.y, n.r, 0, 7); cx.fill(); cx.stroke();
+      cx.setLineDash([]);
+      cx.font = `${Math.round(n.r * 0.95)}px sans-serif`;
+      cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.globalAlpha = n.vivant ? 1 : .45;
+      cx.fillText(n.emoji, n.x, n.y + 1);
+      if (cbNoms.checked) {
+        cx.globalAlpha = vif ? 1 : .72;
+        cx.fillStyle = n.vivant ? '#c9d1d9' : '#6e7681';
+        cx.font = '10.5px ui-monospace,monospace'; cx.textBaseline = 'top';
+        cx.fillText(n.nom, n.x, n.y + n.r + 5);
+      }
+      cx.restore();
+    }
+  }
+
+  let t0 = 0;
+  function boucle(t) {
+    if (!fige) pas();
+    dessiner(t);
+    requestAnimationFrame(boucle);
+  }
+
+  function sous(e) {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    return N.find(n => (n.x - x) ** 2 + (n.y - y) ** 2 < (n.r + 5) ** 2) || null;
+  }
+  cv.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect();
+    if (tire) { tire.x = e.clientX - r.left; tire.y = e.clientY - r.top; tire.vx = tire.vy = 0; }
+    survol = tire || sous(e);
+    if (survol) {
+      info.hidden = false;
+      info.innerHTML = `<b>${survol.emoji} ${survol.nom}</b> <span class="s">${survol.id}</span><br>` +
+        `<span class="s">${survol.couche} · ${survol.statut} · conviction ${survol.conviction}%</span>` +
+        (survol.detail ? `<br>${survol.detail}` : '') +
+        (survol.vivant ? '' : '<br><span style="color:#f85149">agent muet</span>');
+      info.style.left = Math.min(survol.x + 16, r.width - 285) + 'px';
+      info.style.top = (survol.y + 14) + 'px';
+    } else info.hidden = true;
+  });
+  cv.addEventListener('mousedown', e => { tire = sous(e); if (tire) cv.classList.add('gr-drag'); });
+  addEventListener('mouseup', () => { tire = null; cv.classList.remove('gr-drag'); });
+  cv.addEventListener('mouseleave', () => { info.hidden = true; survol = null; });
+  cv.addEventListener('click', e => {
+    const n = sous(e);
+    // Claude Code : brancher ici l'ouverture de la page de l'agent.
+    if (n && window.ouvrirAgent) window.ouvrirAgent(n.id);
+  });
+  btn.onclick = () => { fige = !fige; btn.textContent = fige ? '▶ animer' : '⏸ figer'; };
+
+  async function rafraichir() {
+    try {
+      const r = await fetch('/api/graphe', {cache: 'no-store'});
+      if (r.ok) charger(await r.json());
+    } catch (e) { etat.textContent = 'graphe indisponible'; }
+  }
+
+  dim();
+  rafraichir();
+  setInterval(rafraichir, 15000);   // meme cadence que le reste du panneau
+  requestAnimationFrame(boucle);
+  window.grapheCharger = charger;   // pour injecter des donnees sans fetch
+})();
+</script>

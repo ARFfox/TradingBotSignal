@@ -17,6 +17,7 @@ import threading
 import time
 import webbrowser
 from datetime import datetime, timezone
+from pathlib import Path
 
 from . import auth, config as _cfg, datasource as ds, indicators as _ind, notify, patterns as _pat, structure as _st, tableau
 
@@ -599,6 +600,83 @@ un bloqueur de publicité filtre probablement tradingview.com — ajoute une exc
 pour 127.0.0.1.</div></div>"""
 
 
+def _bloc_marches(d: dict) -> str:
+    """INTEGRATION_MARCHES.md §4 : tuiles, grilles, avances.
+
+    variation_pct (perf 20 j du composite) et largeur (part de membres
+    haussiers) mesurent deux choses differentes et s'affichent separement.
+    Le degrade de la grille porte sur force_relative : dans un marche qui
+    monte de 11 %, un actif a +8 % est un retardataire, pas un gagnant."""
+    m = d.get("marches")
+    if not m:
+        return ('<div class="carte"><h3>🌍 Les 4 marchés</h3>'
+                '<p style="color:#8b949e">cache de prix en cours de construction '
+                '— revenir dans quelques minutes</p></div>')
+
+    tuiles = ""
+    for t in m["tuiles"]:
+        if not t.get("fiable"):
+            corps = '<div style="color:#8b949e;font-size:12px">données insuffisantes</div>'
+        else:
+            fl = "▲" if t["variation_pct"] >= 0 else "▼"
+            cf = "#3fb950" if t["variation_pct"] >= 0 else "#f85149"
+            corps = (f'<div style="font-size:18px;font-weight:700;color:{cf}">'
+                     f'{fl} {abs(t["variation_pct"]):.1f}%<span style="font-size:10.5px;'
+                     f'color:#6e7681;font-weight:400"> / 20 j</span></div>'
+                     f'<div style="font-size:12px;color:#c9d1d9;margin:3px 0">{t["regime"]}</div>'
+                     f'<div style="font-size:11px;color:#8b949e">largeur {t["largeur"]:.0%} haussiers '
+                     f'· cohésion {t["cohesion"]:+.2f}</div>'
+                     f'<div style="font-size:11px;color:#8b949e">{t["actifs"]} actifs · '
+                     f'leader {t["leader"]}</div>')
+        tuiles += (f'<div class="carte" style="cursor:pointer;border-color:{t["coul"]}44" '
+                   f'onclick="marcheGrille(&#39;{t["cle"]}&#39;)">'
+                   f'<h3 style="color:{t["coul"]}">{t["emoji"]} {t["nom"]}</h3>{corps}</div>')
+
+    grilles = ""
+    for cle, carreaux in m["grilles"].items():
+        lignes = ""
+        for c in carreaux:
+            fr = c["force_relative"]
+            # Degrade continu sur la force relative, borne a +/-3 points.
+            x = max(-1.0, min(1.0, fr / 3.0))
+            coul = f"rgba(63,185,80,{abs(x)*.85:.2f})" if x >= 0 else f"rgba(248,81,73,{abs(x)*.85:.2f})"
+            role = {"leader": " 👑", "retardataire": " 🐌"}.get(c["role"], "")
+            lignes += (f'<tr><td>{c["ticker"]}{role}</td>'
+                       f'<td style="text-align:right">{c["variation_pct"]:+.2f}%</td>'
+                       f'<td>{c["biais"]}</td>'
+                       f'<td style="text-align:right;background:{coul}">{fr:+.2f}</td></tr>')
+        grilles += (f'<div id="mg-{cle}" class="carte" hidden style="grid-column:1/-1">'
+                    f'<h3>Grille — force relative (perf − médiane du marché)</h3>'
+                    f'<table><tr><th>Actif</th><th>Perf 20 j</th><th>Biais</th>'
+                    f'<th>Force rel.</th></tr>{lignes}</table></div>')
+
+    av = ""
+    menes = [a for a in m.get("avances", []) if a.get("jours")]
+    if menes:
+        av = ("<div class='carte' style='grid-column:1/-1'><h3>🕸️ Avances mesurées</h3>" +
+              "".join(f"<div style='font-size:12.5px;margin:3px 0'>→ {a['verdict']} "
+                      f"(corr {a['corr']:+.2f}, gain {a['gain']:+.2f})</div>" for a in menes) +
+              "<div style='font-size:11px;color:#6e7681;margin-top:6px'>Seuil corrigé du test "
+              "multiple (z 2,8 sur 11 décalages) — « simultané » est la réponse la plus "
+              "fréquente et c'est normal.</div></div>")
+
+    return (f'<div class="cerveau" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">'
+            f'{tuiles}{grilles}{av}</div>'
+            '<script>function marcheGrille(k){document.querySelectorAll("[id^=mg-]")'
+            '.forEach(e=>{e.hidden = (e.id !== "mg-"+k) || !e.hidden});}</script>')
+
+
+def _fragment_graphe() -> str:
+    """graphe.html (INTEGRATION_GRAPHE.md) : rendu canvas autonome du reseau
+    des agents. Lu tel quel — jamais interpole dans une f-string, le fichier
+    est plein d'accolades JavaScript."""
+    try:
+        return (Path(__file__).resolve().parent.parent / "graphe.html").read_text(
+            encoding="utf-8")
+    except Exception:
+        return ""
+
+
 def _panneau_agents(d: dict) -> str:
     """Le système d'agents en direct — chaque champ vient de l'état réel."""
     ags = d.get("agents") or []
@@ -930,6 +1008,7 @@ backtest : bougie touchant stop ET objectif = perte. Une entrée limite jamais t
 est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
 
     bloc_constel = _bloc_constellation(d)
+    bloc_marches = _bloc_marches(d)
 
     sa = d.get("sante") or {}
     ags = ""
@@ -963,7 +1042,8 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
     import json as _json
     EMO = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
            "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠",
-           "AG-09": "🌌", "AG-10": "🪞"}
+           "AG-09": "🌌", "AG-10": "🪞", "AG-16": "😈", "AG-11": "💱",
+           "AG-12": "🪙", "AG-13": "🥇", "AG-14": "📊", "AG-15": "🕸️"}
     donnees_cerveau = _json.dumps({"agents": [
         {"nom": a["nom"], "ok": True, "detail": a["activites"][0][:80],
          "emoji": EMO.get(a["code"], "🤖"), "cible": None, "coul": a["coul"]}
@@ -980,10 +1060,15 @@ est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
     panneau = _panneau_agents(d)
     # Anciennes cartes + bloc superviseur retires : les agents live couvrent
     # tout, et le superviseur notifie ses corrections.
-    bloc_cerveau = (f'{panneau}'
-                    f'<div style="font-size:11px;color:#6e7681;margin:4px 0 6px">'
-                    f'Démonstration — les agents et leurs liaisons en 3D :</div>'
-                    f'{canvas}')
+    bloc_cerveau = (panneau
+                    + '<div style="font-size:11px;color:#6e7681;margin:10px 0 6px">'
+                      'Le réseau des agents — tout ce qui est visible est mesuré '
+                      'à l&#39;instant du rendu (taille = conviction, rouge animé = blocage, '
+                      'gris = agent muet) :</div>'
+                    + _fragment_graphe()
+                    + '<div style="font-size:11px;color:#6e7681;margin:14px 0 6px">'
+                      'Démonstration — les agents et leurs liaisons en 3D :</div>'
+                    + canvas)
 
     u = d.get("usage") or {}
     if u.get("limite"):
@@ -1039,12 +1124,14 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <button class="onglet" data-p="p-strats">Stratégies</button>
 <button class="onglet" data-p="p-histo">Historique</button>
 <button class="onglet" data-p="p-constel">Constellation</button>
+<button class="onglet" data-p="p-marches">Marchés</button>
 </div>
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
 <div id="p-graph" class="panneau">{bloc_graph}</div>
 <div id="p-strats" class="panneau">{bloc_strats}</div>
 <div id="p-histo" class="panneau">{bloc_histo}</div>
 <div id="p-constel" class="panneau">{bloc_constel}</div>
+<div id="p-marches" class="panneau">{bloc_marches}</div>
 <div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
 <div class="grille">{cartes}</div>
 <footer>
@@ -1564,12 +1651,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
 
         if auth.comptes_existent() and not auth.session_valide(self._jeton()):
-            if self.path.startswith("/json"):
+            if self.path.startswith(("/json", "/api/")):
                 self._repondre(b'{"erreur":"non authentifie"}',
                                "application/json; charset=utf-8", code=401)
             else:
                 self._repondre(PAGE_CONNEXION.replace("{erreur}", "").encode(),
                                "text/html; charset=utf-8", code=401)
+            return
+
+        if self.path.startswith("/api/graphe"):
+            g = (getattr(tableau, "DERNIER_PAQUET", None) or {}).get("graphe") \
+                or {"noeuds": [], "liens": []}
+            corps = json.dumps(g, ensure_ascii=False).encode()
+            self._repondre(corps, "application/json; charset=utf-8")
             return
 
         if self.path.startswith("/cerveau.js"):

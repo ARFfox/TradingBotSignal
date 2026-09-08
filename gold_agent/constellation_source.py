@@ -26,12 +26,22 @@ _TELECHARGEMENT = {"en_cours": False, "verrou": threading.Lock()}
 
 
 def _univers() -> list[str]:
+    """Union des tickers de la constellation (AG-09) et des 4 marches
+    (AG-11..14) : une seule requete yfinance, un seul cache, deux
+    consommateurs — c'est la contrainte d'INTEGRATION_MARCHES.md §2."""
     import sys
     racine = str(Path(__file__).resolve().parent.parent)
     if racine not in sys.path:
         sys.path.insert(0, racine)
     from constellation_agent import NOMS
-    return list(NOMS.keys())
+    tickers = set(NOMS)
+    try:
+        from agents_marches import MARCHES
+        for m in MARCHES.values():
+            tickers |= set(m["tickers"])
+    except Exception:
+        pass          # les marches sont optionnels, la constellation jamais
+    return sorted(tickers)
 
 
 def _telecharger() -> None:

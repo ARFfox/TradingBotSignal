@@ -24,11 +24,11 @@ la sortie n'est pas verte.
   - piste : la fonction doit recevoir un Instrument en parametre
 - **gold_agent/news.py:520** — symbole cable en dur : bars = ds.twelvedata_bars("XAU/USD", "D", 5000)
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/tableau.py** — 767 lignes (max 500)
+- **gold_agent/tableau.py** — 1020 lignes (max 500)
   - piste : a decouper (regle 16 du CLAUDE.md)
 - **gold_agent/tableau.py:398** — symbole cable en dur : def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/web.py** — 1643 lignes (max 500)
+- **gold_agent/web.py** — 1835 lignes (max 500)
   - piste : a decouper (regle 16 du CLAUDE.md)
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre

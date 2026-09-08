@@ -733,7 +733,61 @@ def collecter(symbole: str = "XAU/USD", bougies: int = 600) -> dict:
                                 (r.get("fiabilite") or {}).get("niveau", "?"))
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
+    # --- les 4 marches + matrice intermarches (AG-11..15) -----------------
+    # INTEGRATION_MARCHES.md : meme cache disque que la constellation,
+    # jamais de telechargement au rendu, jamais Twelve Data.
+    d0 = _tps.perf_counter()
+    paquet["marches"] = None
+    try:
+        from . import constellation_source
+        from agents_marches import MatriceMarches, CODES
+        px = constellation_source.prix()
+        if px is not None:
+            mm = MatriceMarches(px)
+            paquet["marches"] = {
+                "tuiles": mm.tuiles(),
+                "grilles": {k: [vars(c) for c in a.etat().carreaux]
+                            for k, a in mm.agents.items()},
+                "etats": {k: {x: v for x, v in vars(a.etat()).items()
+                              if x != "carreaux"}
+                          for k, a in mm.agents.items()},
+                "correlations": mm.correlations().round(3).to_dict(),
+                "avances": mm.avance_retard(),
+                "graphe": mm.graphe(),
+                "cartes": [mm.agents[k].carte_agent(CODES[k]) for k in mm.agents]
+                          + [mm.carte_agent("AG-15")],
+            }
+    except Exception as e:
+        _evt("marches", f"indisponible : {str(e)[:80]}", "warn")
+    paquet["chrono"]["marches"] = round((_tps.perf_counter() - d0) * 1000, 1)
+
     paquet["agents"] = agents_live(paquet)
+
+    # --- le reseau des agents (INTEGRATION_GRAPHE.md) ---------------------
+    # Tout ce que le graphe montre est mesure a l'instant du rendu : un
+    # agent sans carte s'affiche MUET, un blocage s'anime en rouge.
+    try:
+        from graphe_agents import construire
+        avocat_resume = None
+        for r in resultats:
+            v = (r.get("setup") or {}).get("avocat")
+            if v and v.get("objections"):
+                avocat_resume = {"cible": "AG-03",
+                                 "objections": v["objections"],
+                                 "bloque": v["verdict"] == "non_refute"}
+                if avocat_resume["bloque"]:
+                    break
+        paquet["graphe"] = construire(
+            cartes=paquet["agents"],
+            intermarches=(paquet.get("marches") or {}).get("graphe"),
+            miroir=(paquet.get("constellation") or {}).get("score"),
+            avocat=avocat_resume,
+        ).json()
+    except Exception as e:
+        paquet["graphe"] = {"noeuds": [], "liens": []}
+        _evt("graphe", f"indisponible : {str(e)[:80]}", "warn")
+
+    globals()["DERNIER_PAQUET"] = paquet
     return paquet
 
 
@@ -957,4 +1011,10 @@ def agents_live(d: dict) -> list:
                    "metriques": f"{len(probs)} problème(s) · "
                                 f"{len(sa.get('reparations') or [])} correction(s) disponible(s)",
                    "charge": max(1, 100 - min(99, autres))})
+
+    # ---- AG-11..15 : les 4 marches + la matrice (cartes deja au format
+    #      du panneau, testees par test_cartes_au_format_du_panneau) ------
+    for carte_m in (d.get("marches") or {}).get("cartes", []):
+        carte_m.setdefault("charge", charge("marches"))
+        agents.append(carte_m)
     return agents
