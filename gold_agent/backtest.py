@@ -5,7 +5,7 @@ import argparse
 import json
 import sys
 
-from . import bridge, datasource as ds, strategy as sg
+from . import bridge, datasource as ds, instruments, strategy as sg
 
 TF_NOMS = {"D": "Daily", "240": "H4", "60": "H1", "30": "M30", "15": "M15", "5": "M5", "1": "M1"}
 PRESETS = {
@@ -46,9 +46,8 @@ def main() -> int:
 
     try:
         if a.source == "twelvedata":
-            sym = a.symbol.split(":")[-1]
-            if sym.upper() in ("XAUUSD", "GOLD"):
-                sym = "XAU/USD"
+            inst = instruments.depuis_alias(a.symbol)
+            sym = inst.symbole if inst else a.symbol.split(":")[-1]
             bars = ds.twelvedata_bars(sym, a.tf, a.bars)
         else:
             bridge.ensure_tradingview()

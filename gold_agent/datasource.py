@@ -36,6 +36,8 @@ COMPTEUR = {"twelvedata": 0, "fred": 0, "depuis": None}
 import threading as _th
 import time as _t
 
+from . import instruments
+
 _ROTATION = {"index": 0, "usage": {}, "repos": {}, "verrou": _th.Lock()}
 REPOS_APRES_ERREUR = 65        # secondes — la limite Twelve Data est par minute
 
@@ -163,10 +165,12 @@ INTERVALLES = {"D": "1day", "240": "4h", "60": "1h", "30": "30min",
                "15": "15min", "5": "5min", "1": "1min"}
 
 
-def twelvedata_bars(symbole: str = "XAU/USD", tf: str = "60",
+def twelvedata_bars(symbole: str | None = None, tf: str = "60",
                     nombre: int = 5000) -> list[dict]:
     """Bougies OHLCV au même format que le pont TradingView (ordre chronologique)."""
     import datetime as _d
+    if symbole is None:
+        symbole = instruments.par_defaut().symbole
     if COMPTEUR["depuis"] is None:
         COMPTEUR["depuis"] = _d.datetime.now(_d.timezone.utc)
     intervalle = INTERVALLES.get(tf, tf)
@@ -265,7 +269,9 @@ def _ttl_quote_adaptatif() -> int:
     return TTL_QUOTE
 
 
-def quote_direct(symbole: str = "XAU/USD", ttl: int | None = None) -> dict:
+def quote_direct(symbole: str | None = None, ttl: int | None = None) -> dict:
+    if symbole is None:
+        symbole = instruments.par_defaut().symbole
     """Dernier prix traite. Une seule requete, bien moins couteuse qu'une serie.
 
     Les bougies servent a l'analyse et changent lentement ; le prix affiche

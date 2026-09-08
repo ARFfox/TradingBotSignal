@@ -30,3 +30,16 @@ def par_defaut() -> Instrument:
 
 def obtenir(symbole: str) -> Instrument:
     return REGISTRE.get(symbole) or par_defaut()
+
+
+# Noms TradingView / courants -> cle du registre. C'est ici, et seulement
+# ici, que la correspondance vit (regle 13 : le symbole comme la valeur du
+# point viennent de l'objet Instrument, jamais d'un litteral dans le code).
+ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
+
+
+def depuis_alias(nom: str) -> Instrument | None:
+    """Instrument correspondant a un nom TradingView ('OANDA:XAUUSD'), ou None."""
+    brut = nom.split(":")[-1].upper()
+    cle = ALIAS.get(brut, brut)
+    return REGISTRE.get(cle)

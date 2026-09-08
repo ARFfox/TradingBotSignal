@@ -32,3 +32,11 @@ def test_proportionnalite():
 def test_defaut_est_or():
     assert instruments.par_defaut().point_par_lot == 100.0
     assert instruments.par_defaut().symbole == "XAU/USD"
+
+
+def test_depuis_alias_resout_les_noms_tradingview():
+    """Regle 13 : la correspondance de symboles vit dans le registre,
+    jamais dans une table locale d'un module de calcul (bug backtest.py:51)."""
+    assert instruments.depuis_alias("OANDA:XAUUSD").symbole == "XAU/USD"
+    assert instruments.depuis_alias("gold").symbole == "XAU/USD"
+    assert instruments.depuis_alias("INCONNU:ZZZ") is None
