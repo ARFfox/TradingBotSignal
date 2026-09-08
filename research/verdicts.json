@@ -1,0 +1,112 @@
+{
+ "H4": {
+  "instrument": "XAU/USD",
+  "tf": "H4",
+  "fenetres": 31,
+  "fenetres_positives": 3,
+  "fenetres_evaluables": 3,
+  "trades": 39,
+  "r_total": 24.21,
+  "r_moyen": 0.621,
+  "taux_reussite": 59.0,
+  "profit_factor": 2.5,
+  "pire_creux": -7.06,
+  "regimes": {
+   "range": 24,
+   "tendance": 15
+  },
+  "autorise": true,
+  "motif": "tous les critères passés",
+  "jours_calendrier": 1020,
+  "note": "",
+  "genere_le": "2026-09-08"
+ },
+ "H1": {
+  "instrument": "XAU/USD",
+  "tf": "H1",
+  "fenetres": 31,
+  "fenetres_positives": 3,
+  "fenetres_evaluables": 4,
+  "trades": 36,
+  "r_total": 10.68,
+  "r_moyen": 0.297,
+  "taux_reussite": 44.4,
+  "profit_factor": 1.52,
+  "pire_creux": -11.2,
+  "regimes": {
+   "range": 20,
+   "tendance": 16
+  },
+  "autorise": true,
+  "motif": "tous les critères passés",
+  "jours_calendrier": 208,
+  "note": "",
+  "genere_le": "2026-09-08"
+ },
+ "M30": {
+  "instrument": "XAU/USD",
+  "tf": "M30",
+  "fenetres": 31,
+  "fenetres_positives": 9,
+  "fenetres_evaluables": 16,
+  "trades": 88,
+  "r_total": 23.82,
+  "r_moyen": 0.271,
+  "taux_reussite": 44.3,
+  "profit_factor": 1.47,
+  "pire_creux": -11.34,
+  "regimes": {
+   "range": 55,
+   "tendance": 33
+  },
+  "autorise": true,
+  "motif": "tous les critères passés",
+  "jours_calendrier": 104,
+  "note": "",
+  "genere_le": "2026-09-08"
+ },
+ "M15": {
+  "instrument": "XAU/USD",
+  "tf": "M15",
+  "fenetres": 31,
+  "fenetres_positives": 3,
+  "fenetres_evaluables": 13,
+  "trades": 82,
+  "r_total": 0.78,
+  "r_moyen": 0.009,
+  "taux_reussite": 35.4,
+  "profit_factor": 1.01,
+  "pire_creux": -34.12,
+  "regimes": {
+   "tendance": 33,
+   "range": 49
+  },
+  "autorise": false,
+  "motif": "PF 1.01 ≤ 1.3 · 3/13 fenêtres évaluables positives",
+  "jours_calendrier": 52,
+  "note": "",
+  "genere_le": "2026-09-08"
+ },
+ "M5": {
+  "instrument": "XAU/USD",
+  "tf": "M5",
+  "fenetres": 31,
+  "fenetres_positives": 8,
+  "fenetres_evaluables": 13,
+  "trades": 69,
+  "r_total": 22.83,
+  "r_moyen": 0.331,
+  "taux_reussite": 44.9,
+  "profit_factor": 1.55,
+  "pire_creux": -14.54,
+  "regimes": {
+   "range": 36,
+   "tendance": 33
+  },
+  "autorise": true,
+  "motif": "tous les critères passés",
+  "jours_calendrier": 17,
+  "note": "⚠️ preuve courte : 17 j de calendrier seulement — critères passés mais conditions de marché peu variées",
+  "genere_le": "2026-09-08"
+ }
+}

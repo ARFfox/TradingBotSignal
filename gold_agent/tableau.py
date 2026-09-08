@@ -10,7 +10,8 @@ import threading
 import time
 
 from . import avocat, config, datasource as ds, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
-from .cerveau import _consensus, _notifier_reparations, _sante, agents_live  # noqa: F401
+from .cerveau import (_consensus, _notifier_reparations, _sante,  # noqa: F401
+                      agents_live, grille_conviction)
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -424,6 +425,9 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
             journal.enregistrer(r["nom"], st, prix_actuel or 0,
                                 (r.get("fiabilite") or {}).get("niveau", "?"))
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
+
+    paquet["grille"] = grille_conviction(_sig_journal,
+                                         [t["nom"] for t in TIMEFRAMES])
 
     # --- les 4 marches + matrice intermarches (AG-11..15) -----------------
     # INTEGRATION_MARCHES.md : meme cache disque que la constellation,

@@ -481,3 +481,7 @@ def agents_live(d: dict) -> list:
         carte_m.setdefault("charge", charge("marches"))
         agents.append(carte_m)
     return agents
+
+
+# grille_conviction vit dans grille.py (regle 17)
+from .grille import grille_conviction  # noqa: E402,F401

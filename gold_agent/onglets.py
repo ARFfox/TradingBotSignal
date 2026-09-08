@@ -321,5 +321,52 @@ backtest : bougie touchant stop ET objectif = perte. Une entrée limite jamais t
 est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
 
     return {"news": bloc_news, "graph": bloc_graph,
-            "strats": bloc_strats, "histo": bloc_histo,
+            "strats": bloc_strats + _bloc_grille(d), "histo": bloc_histo,
             "boule": boule, "widget": widget}
+
+
+COULEUR_CARREAU = {"vert": "#3fb950", "bleu": "#58a6ff",
+                   "gris": "#8b949e", "rouge": "#f85149"}
+
+
+def _bloc_grille(d: dict) -> str:
+    """La grille de conviction : etat live 90 j + verdict walk-forward.
+
+    Affichage seulement : l'emission reste gouvernee par config.tf_emission
+    tant que Mushine n'a pas valide le cablage de la regle 3.
+    """
+    g = d.get("grille") or []
+    if not g:
+        return ""
+    lignes = ""
+    for x in g:
+        cl = COULEUR_CARREAU.get(x["couleur"], "#8b949e")
+        wf = x.get("walkforward")
+        if wf:
+            v = "✅ autorisé" if wf["autorise"] else "❌ refusé"
+            wf_txt = (f'{v} · {wf["trades"]} trades · R moyen '
+                      f'{wf["r_moyen"]:+.3f} · PF {wf["profit_factor"]}')
+            if wf.get("note"):
+                wf_txt += f'<br><span style="color:#d29922">{wf["note"]}</span>'
+        else:
+            wf_txt = "pas encore mesuré — lancer python3 -m research.rapport_edge"
+        pf = x["profit_factor"]
+        pf_txt = "∞" if pf == float("inf") else f"{pf}"
+        lignes += (
+            f'<tr><td><span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:50%;background:{cl};margin-right:7px"></span>'
+            f'<b>{x["tf"]}</b></td>'
+            f'<td style="color:{cl};font-weight:700">{x["couleur"].upper()}</td>'
+            f'<td>{x["trades"]} résolu(s) · {x["r_cumule"]:+.2f}R · PF {pf_txt} · '
+            f'{x["taux_reussite"]}%</td>'
+            f'<td style="font-size:11.5px">{wf_txt}</td></tr>')
+    return (
+        '<div class="strats" style="margin-top:14px"><h3 style="margin:0 0 8px">'
+        '🟩 Grille de conviction — XAU/USD</h3><table>'
+        '<tr><th>TF</th><th>Carreau (90 j live)</th><th>Journal réel</th>'
+        '<th>Walk-forward (protocole)</th></tr>' + lignes + '</table>'
+        '<div style="font-size:11.5px;color:#6e7681;margin-top:8px">'
+        'VERT = R &gt; +0,3 ET PF &gt; 1,3 ET ≥ 30 trades résolus sur 90 jours '
+        'glissants — le seul état qui donnera le droit d&#39;émettre quand la '
+        'règle 3 sera câblée (pour l&#39;instant la grille OBSERVE, l&#39;émission '
+        'reste fondée sur les backtests H4/H1/M30).</div></div>')
