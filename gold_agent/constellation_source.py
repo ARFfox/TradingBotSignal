@@ -50,8 +50,14 @@ def _telecharger() -> None:
         import warnings
         warnings.filterwarnings("ignore")
         import yfinance as yf
-        df = yf.download(_univers(), period="3y", interval="1d",
-                         progress=False, auto_adjust=True)["Close"]
+        brut = yf.download(_univers(), period="3y", interval="1d",
+                           progress=False, auto_adjust=True)
+        # Cache OHLC complet (Phase 1 : le biais de structure a besoin des
+        # hauts/bas, pas seulement des clotures). Colonnes MultiIndex
+        # (champ, ticker) ; prix() continue d'extraire les clotures.
+        champs = [c for c in ("Open", "High", "Low", "Close")
+                  if c in brut.columns.get_level_values(0)]
+        df = brut[champs]
         if df is not None and len(df) > 100:
             tmp = CACHE.with_suffix(".tmp.parquet")
             df.to_parquet(tmp)
@@ -71,8 +77,8 @@ def _lancer_telechargement() -> None:
     threading.Thread(target=_telecharger, daemon=True).start()
 
 
-def prix(force: bool = False):
-    """DataFrame de clôtures quotidiennes (colonnes = tickers), ou None."""
+def _charger(force: bool = False):
+    """Lecture brute du cache : (DataFrame avec attrs['perime'], ) ou None."""
     import pandas as pd
 
     if CACHE.exists():
@@ -92,3 +98,40 @@ def prix(force: bool = False):
     # Aucun cache lisible : on amorce en fond, la page affiche INITIALISATION
     _lancer_telechargement()
     return None
+
+
+def prix(force: bool = False):
+    """DataFrame de clôtures quotidiennes (colonnes = tickers), ou None.
+
+    Contrat inchangé depuis l'étape 1 : les 26 tests et les 4 marchés
+    consomment ce format. Un cache nouvelle génération (OHLC, colonnes
+    MultiIndex) est réduit à son niveau "Close" ; un vieux cache plat est
+    rendu tel quel.
+    """
+    import pandas as pd
+
+    df = _charger(force)
+    if df is None:
+        return None
+    if isinstance(df.columns, pd.MultiIndex):
+        fermetures = df["Close"]
+        fermetures.attrs["perime"] = df.attrs.get("perime", False)
+        return fermetures
+    return df
+
+
+def ohlc(force: bool = False):
+    """DataFrame OHLC complet (colonnes MultiIndex (champ, ticker)), ou None.
+
+    None tant que le cache est de l'ancienne génération (clôtures seules) :
+    le téléchargement de fond le regénérera au format complet, et d'ici là
+    l'appelant se replie sur le biais provisoire — jamais d'exception.
+    """
+    import pandas as pd
+
+    df = _charger(force)
+    if df is None or not isinstance(df.columns, pd.MultiIndex):
+        if df is not None:
+            _lancer_telechargement()   # vieux format : regeneration en fond
+        return None
+    return df

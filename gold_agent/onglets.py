@@ -150,6 +150,7 @@ def _bloc_constellation(d: dict) -> str:
              + '</div></details>')
     h.append('<div style="color:#6e7681;font-size:11.5px;margin-top:10px">37 actifs · '
              'fenêtres 30/90/250 j · recalcul 6 h · source yfinance (cache disque) · '
+             f'biais : {c.get("source_biais", "?")} · '
              'les relations viennent des DONNÉES, jamais d&#39;idées reçues</div>')
     h.append("</div>")
     return "".join(h)

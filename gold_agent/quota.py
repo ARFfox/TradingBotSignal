@@ -85,3 +85,24 @@ def _bars_caches(symbole: str, tf: str, bougies: int) -> tuple:
         _CACHE[cle] = {"bars": bars, "t": _time.time()}
     return bars, 0, False
 
+
+
+def _avec_prix_direct(bars: list[dict], prix: float) -> list[dict]:
+    """Réplique les bougies en réalignant la dernière sur le prix en direct.
+
+    La bougie en cours n'est pas close : sa clôture mise en cache est
+    périmée. On la corrige pour que l'analyse porte sur le prix réel.
+    On COPIE — muter la liste en cache la corromprait pour tous les appels
+    suivants.
+    """
+    if not bars or prix is None:
+        return bars
+    copie = list(bars)
+    d = dict(copie[-1])
+    d["close"] = prix
+    d["high"] = max(d["high"], prix)
+    d["low"] = min(d["low"], prix)
+    copie[-1] = d
+    return copie
+
+

@@ -35,8 +35,9 @@ def _evt(agent: str, texte: str, niveau: str = "info") -> None:
 def evenements() -> list:
     with _EV_VERROU:
         return list(_EVENEMENTS)
-from .quota import (PROFILS, TTL_PLANCHER, _bars_caches, _ttl,  # noqa: F401
-                    budget, definir_profil, ttl_effectifs)
+from .quota import (PROFILS, TTL_PLANCHER, _avec_prix_direct,  # noqa: F401
+                    _bars_caches, _ttl, budget, definir_profil,
+                    ttl_effectifs)
 
 
 TIMEFRAMES = [
@@ -70,25 +71,6 @@ FIABILITE = {
     "M5": {"trades": 21, "esperance": 0.340, "pf": 1.60, "creux": -4.33,
            "note": "17 j seulement", "niveau": "non mesuré"},
 }
-
-
-def _avec_prix_direct(bars: list[dict], prix: float) -> list[dict]:
-    """Réplique les bougies en réalignant la dernière sur le prix en direct.
-
-    La bougie en cours n'est pas close : sa clôture mise en cache est
-    périmée. On la corrige pour que l'analyse porte sur le prix réel.
-    On COPIE — muter la liste en cache la corromprait pour tous les appels
-    suivants.
-    """
-    if not bars or prix is None:
-        return bars
-    copie = list(bars)
-    d = dict(copie[-1])
-    d["close"] = prix
-    d["high"] = max(d["high"], prix)
-    d["low"] = min(d["low"], prix)
-    copie[-1] = d
-    return copie
 
 
 def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
@@ -350,7 +332,18 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         px = constellation_source.prix()
         if px is not None and "GC=F" in px.columns:
             ag = Constellation(px)
-            biais = biais_provisoire(px)
+            # Phase 1 : le biais vient d'AG-02 Structure (pivots HH/HL + EMA
+            # auto-calibrees) des que le cache OHLC existe. Repli sur le
+            # provisoire tant que le cache est de l'ancienne generation —
+            # biais_provisoire n'est PAS supprime (INTEGRATION_AG09 §10).
+            po = constellation_source.ohlc()
+            if po is not None:
+                from . import biais_structure
+                biais = biais_structure.biais_membres(po)
+                source_biais = "AG-02 Structure (pivots + EMA calibrées)"
+            else:
+                biais = biais_provisoire(px)
+                source_biais = "provisoire (EMA 20/50) — cache OHLC en construction"
             mi = Miroir(ag)
             g = ag.groupes("GC=F")
 
@@ -366,6 +359,7 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
                 "clusters": ag.clusters("GC=F"),
                 "score": vars(score),
                 "biais": biais,
+                "source_biais": source_biais,
                 "ruptures": ag.ruptures(),
                 "perime": getattr(px, "attrs", {}).get("perime", False),
             }
