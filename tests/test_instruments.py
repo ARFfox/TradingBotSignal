@@ -40,3 +40,20 @@ def test_depuis_alias_resout_les_noms_tradingview():
     assert instruments.depuis_alias("OANDA:XAUUSD").symbole == "XAU/USD"
     assert instruments.depuis_alias("gold").symbole == "XAU/USD"
     assert instruments.depuis_alias("INCONNU:ZZZ") is None
+
+
+def test_code_pour_traduit_par_source():
+    """Regle 13 : la traduction de symboles vit dans le registre, pas dans
+    les adapters. Un adapter demande le code, il ne le devine pas."""
+    btc = instruments.REGISTRE["BTC/USD"]
+    assert btc.code_pour("binance") == "BTCUSDT"
+    assert btc.code_pour("yahoo") == "BTC-USD"
+    assert btc.code_pour("source_inconnue") == "BTC/USD"
+
+
+def test_le_cout_est_porte_par_l_instrument():
+    """Regle 14 : le cout d'un backtest vient de l'Instrument, jamais d'une
+    constante partagee — 0,05 % sur BTC n'a rien a voir avec l'or."""
+    assert instruments.REGISTRE["BTC/USD"].cout_pct > 0
+    assert (instruments.REGISTRE["BTC/USD"].cout_pct
+            != instruments.REGISTRE["EUR/USD"].cout_pct)

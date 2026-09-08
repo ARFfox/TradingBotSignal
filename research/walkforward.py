@@ -95,8 +95,13 @@ def fenetres(n: int, echauffement: int, test: int, pas: int) -> list[tuple]:
 
 def executer(bars: list[dict], p: sg.Params, instrument: str, tf: str,
              echauffement: int = 400, test: int = 300,
-             pas: int = 150) -> Resultat:
-    """Deroule le protocole complet sur un historique de bougies."""
+             pas: int = 150, cout_pct: float | None = None) -> Resultat:
+    """Deroule le protocole complet sur un historique de bougies.
+
+    cout_pct : cout aller-retour en % du prix (Instrument.cout_pct). Il est
+    converti en POINTS fenetre par fenetre sur le prix median du segment —
+    un cout fixe en points serait faux sur un actif qui a triple en 3 ans.
+    """
     r = Resultat(instrument=instrument, tf=tf)
     fs = fenetres(len(bars), echauffement, test, pas)
     r.fenetres = len(fs)
@@ -107,11 +112,20 @@ def executer(bars: list[dict], p: sg.Params, instrument: str, tf: str,
     tous_r: list[float] = []
     for a, d_test, f_test in fs:
         segment = bars[a:f_test]
-        signaux = sg.detecter(segment, p)
+        p_fen = p
+        if cout_pct is not None:
+            import dataclasses
+            closes = sorted(b["close"] for b in segment[-(f_test - d_test):])
+            median = closes[len(closes) // 2]
+            p_fen = dataclasses.replace(p, cout_pts=median * cout_pct / 100)
+        signaux = sg.detecter(segment, p_fen)
         # PURGE : seuls les signaux nes DANS la fenetre de test comptent.
         seuil = d_test - a
         signaux = [s for s in signaux if s.index >= seuil]
-        trades = sg.simuler(segment, signaux, p)
+        # Bougies plates (ATR ~ 0 sur certains flux Yahoo) : un signal dont
+        # le stop colle a l'entree a un risque nul — degenere, on le jette.
+        signaux = [s for s in signaux if abs(s.entree - s.stop) > 1e-12]
+        trades = sg.simuler(segment, signaux, p_fen)
         trades = [t for t in trades if t.resultat in ("gagnant", "perdant")]
         if not trades:
             continue

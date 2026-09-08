@@ -4,13 +4,13 @@ montre-moi la sortie. N'annonce pas que c'est fini tant que
 la sortie n'est pas verte.
 
 ## AVERTISSEMENTS (non bloquants, a traiter ensuite)
-- **gold_agent/instruments.py:15** — symbole cable en dur : symbole: str          # identifiant Twelve Data (ex : "XAU/USD")
+- **gold_agent/instruments.py:15** — symbole cable en dur : symbole: str          # identifiant canonique (ex : "XAU/USD")
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:22** — symbole cable en dur : "XAU/USD": Instrument("XAU/USD", "Or spot", 100.0, 2),
+- **gold_agent/instruments.py:35** — symbole cable en dur : "XAU/USD": Instrument("XAU/USD", "Or spot", 100.0, 2, cout_pct=0.007,
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:28** — symbole cable en dur : return REGISTRE["XAU/USD"]
+- **gold_agent/instruments.py:52** — symbole cable en dur : return REGISTRE["XAU/USD"]
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:38** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
+- **gold_agent/instruments.py:62** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre

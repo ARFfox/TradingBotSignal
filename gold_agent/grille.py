@@ -26,7 +26,9 @@ def grille_conviction(signaux: list, tf_noms: list[str]) -> list[dict]:
     except Exception:
         verdicts = {}
     for x in carreaux:
-        v = verdicts.get(x["tf"]) or {}
+        v = ((verdicts.get(x.get("instrument", "")) or verdicts) or {}).get(x["tf"]) or {}
+        if not isinstance(v, dict) or "autorise" not in v:
+            v = {}
         x["walkforward"] = ({"autorise": v.get("autorise"),
                              "r_moyen": v.get("r_moyen"),
                              "profit_factor": v.get("profit_factor"),
