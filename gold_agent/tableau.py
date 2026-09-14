@@ -164,6 +164,11 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         flux_crypto = _flux.flux_crypto()
     except Exception:
         flux_crypto = {"disponible": False, "lecture": []}
+    try:
+        from . import vigie_gdelt as _vg
+        gdelt = _vg.presse()
+    except Exception:
+        gdelt = {"disponible": False, "lecture": []}
     chrono["vigie"] = chrono.get("vigie", 0.0) + (_tps.perf_counter() - d0)
 
     # Journal : chaque signal emis est memorise puis suivi jusqu'a son
@@ -239,7 +244,7 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         "quote": quote,
         "usage": usage,
         "news": {"risque": evenementiel, "agenda": agenda, "macro": macro,
-                 "minieres": minieres, "cot": cot, "actus": actus, "flux_crypto": flux_crypto, "saison": saison},
+                 "minieres": minieres, "cot": cot, "actus": actus, "flux_crypto": flux_crypto, "gdelt": gdelt, "saison": saison},
         "historique": historique,
         "suspension": suspension,
         "tf_emission": tf_autorises,

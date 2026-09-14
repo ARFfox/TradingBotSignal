@@ -262,6 +262,9 @@ def agents_live(d: dict) -> list:
     if sn.get("disponible"):
         lignes.append(f"saisonnalité {sn['mois']} : {sn['moyen_pct']:+.1f}% ({sn['annees']} ans)")
     geo_calme = {"calme": 90, "modere": 55, "eleve": 20}.get(act.get("niveau"), 50)
+    gd = n.get("gdelt") or {}
+    if gd.get("disponible"):
+        lignes += [f"🌐 {x}" for x in gd.get("lecture", [])[:2]]
     agents.append({"code": "AG-01", "nom": "Vigie", "role": "News éco + géo + macro",
                    "coul": "#58a6ff", "statut": "STREAMING", "activites": lignes,
                    "conviction": geo_calme,

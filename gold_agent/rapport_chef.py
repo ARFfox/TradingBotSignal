@@ -94,6 +94,13 @@ def generer(paquet: dict, signaux: list | None = None) -> str:
               for o in ops[:3]]
         L.append("")
 
+    # --- presse mondiale (GDELT) ------------------------------------------
+    gd = (paquet.get("news") or {}).get("gdelt") or {}
+    if gd.get("disponible") and gd.get("lecture"):
+        L += ["## Presse mondiale (GDELT, 15 min)"]
+        L += [f"- 🌐 {x}" for x in gd["lecture"]]
+        L.append("")
+
     # --- flux crypto -------------------------------------------------------
     fx = (paquet.get("news") or {}).get("flux_crypto") or {}
     if fx.get("disponible") and fx.get("lecture"):

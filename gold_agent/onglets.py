@@ -249,6 +249,12 @@ def _blocs_onglets(d: dict) -> dict:
             f'<b>{mi["aem"]["variation_pct"]:+.1f}%</b> vs or '
             f'<b>{mi["or"]["variation_pct"]:+.1f}%</b> — {etat_mi}</div>')
 
+    gd = n.get("gdelt") or {}
+    if gd.get("disponible"):
+        lignes_macro += "".join(
+            f'<div class="macrol">🌐 GDELT (presse mondiale, 15 min) : {x}</div>'
+            for x in gd.get("lecture", []))
+
     act = n.get("actus") or {}
     bloc_geo = ""
     if act.get("niveau") == "eleve":
