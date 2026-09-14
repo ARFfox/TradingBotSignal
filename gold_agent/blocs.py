@@ -262,7 +262,7 @@ def _grille(d: dict) -> str:
 COUCHES_CASES = [
     ("PERCEPTION", ["AG-01", "AG-02", "AG-04", "AG-05"]),
     ("MARCHÉS", ["AG-11", "AG-12", "AG-13", "AG-14"]),
-    ("RELATIONS", ["AG-09", "AG-15", "AG-10"]),
+    ("RELATIONS", ["AG-09", "AG-15", "AG-10", "AG-17"]),
     ("CRITIQUE", ["AG-16"]),
     ("DÉCISION", ["AG-03", "AG-06", "AG-07"]),
 ]

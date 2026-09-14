@@ -126,6 +126,27 @@ def _bloc_constellation(d: dict) -> str:
                 f'<tr><th></th><th>actif</th><th>corr</th><th>poids</th>'
                 f'<th>biais</th><th>régime</th></tr>{lignes}</table></div>')
 
+    ops_r = d.get("rattrapage") or []
+    if ops_r:
+        lignes_r = ""
+        for o in ops_r:
+            val = ('<span style="color:#d29922"> · à valider (Vigie agitée : '
+                   'une news spécifique n&#39;est pas une divergence)</span>'
+                   if o.get("a_valider") else "")
+            lignes_r += (f'<div style="margin:4px 0;font-size:12.5px">🎯 '
+                         f'<b>{o["ticker"]}</b> en retard de <b>{o["z"]:+.1f} σ</b> '
+                         f'sur l&#39;or (or {o.get("perf5j_pivot", "?"):+}% / '
+                         f'{o["ticker"]} {o.get("perf5j_membre", "?"):+}% sur 5 j) '
+                         f'→ piste <b>{o["sens"]}</b> {o["ticker"]} · {o["note"]}{val}</div>')
+        h.append('<div style="border:1px solid #7ee787;border-radius:8px;'
+                 'padding:10px 12px;margin-bottom:14px">'
+                 '<div style="color:#7ee787;font-weight:700">🎯 Rattrapage (AG-17) '
+                 '— paires à corrélation STABLE seulement</div>' + lignes_r +
+                 '<div style="font-size:11px;color:#6e7681;margin-top:6px">'
+                 'Piste d&#39;analyse, PAS un signal : cette famille n&#39;a pas '
+                 'encore passé le walk-forward, et le taux affiché est mesuré '
+                 'sur l&#39;historique de la paire.</div></div>')
+
     h.append(table(c.get("satellites", []), f'🟢 Satellites ({len(c.get("satellites",[]))}) '
              f'— bougent avec l&#39;or', "#3fb950"))
     h.append(table(c.get("miroirs", []), f'🔴 Miroirs ({len(c.get("miroirs",[]))}) '

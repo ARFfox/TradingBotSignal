@@ -85,6 +85,15 @@ def generer(paquet: dict, signaux: list | None = None) -> str:
               f"{len(sc.get('contredisent', []))} contredisent",
               f"- Biais : {c.get('source_biais', '?')}", ""]
 
+    # --- rattrapage -------------------------------------------------------
+    ops = paquet.get("rattrapage") or []
+    if ops:
+        L += ["## Rattrapage (AG-17)"]
+        L += [f"- 🎯 {o['ticker']} : écart {o['z']:+.1f} σ → piste {o['sens']} "
+              f"· {o['note']}" + (" · **à valider (Vigie)**" if o.get("a_valider") else "")
+              for o in ops[:3]]
+        L.append("")
+
     # --- calibration Brier ----------------------------------------------
     try:
         from . import avis

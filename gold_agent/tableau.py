@@ -308,6 +308,29 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
     paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
 
+    # --- AG-17 Rattrapage (SPEC_V2 §2B) --------------------------------
+    # Paires a correlation STABLE seulement ; le taux de fermeture est
+    # mesure sur l'historique de la paire ; Vigie agitee -> « a valider ».
+    d0 = _tps.perf_counter()
+    paquet["rattrapage"] = []
+    try:
+        from . import constellation_source, rattrapage as _rp
+        c_ = paquet.get("constellation") or {}
+        membres_ = (c_.get("satellites") or []) + (c_.get("miroirs") or [])
+        if membres_:
+            n_ = paquet.get("news") or {}
+            calme = (((n_.get("risque") or {}).get("etat") == "ok")
+                     and ((n_.get("actus") or {}).get("niveau") != "eleve"))
+            px_ = constellation_source.prix()
+            ops = _rp.detecter(px_, "GC=F", membres_, vigie_calme=calme)
+            paquet["rattrapage"] = ops
+            for op in ops[:2]:
+                _evt("Rattrapage", f"{op['ticker']} en retard de {op['z']:+.1f} σ "
+                     f"sur l'or — {op['note'][:60]}", "alerte")
+    except Exception as e:
+        _evt("Rattrapage", f"indisponible : {str(e)[:70]}", "warn")
+    paquet["chrono"]["rattrapage"] = round((_tps.perf_counter() - d0) * 1000, 1)
+
     # --- les 4 marches + matrice intermarches (AG-11..15) -----------------
     # INTEGRATION_MARCHES.md : meme cache disque que la constellation,
     # jamais de telechargement au rendu, jamais Twelve Data.

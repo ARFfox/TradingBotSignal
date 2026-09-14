@@ -61,6 +61,8 @@ AGENTS: dict[str, dict] = {
               "coul": "#f778ba", "ecoute": ["AG-11", "AG-12", "AG-13", "AG-14"]},
     "AG-10": {"nom": "Miroir", "emoji": "🪞", "couche": "relation",
               "coul": "#f778ba", "ecoute": ["AG-09", "AG-02"]},
+    "AG-17": {"nom": "Rattrapage", "emoji": "🎯", "couche": "relation",
+              "coul": "#7ee787", "ecoute": ["AG-09", "AG-01"]},
     # --- couche critique : ils s'opposent --------------------------------
     "AG-16": {"nom": "Avocat du diable", "emoji": "😈", "couche": "critique",
               "coul": "#f85149", "ecoute": ["AG-03", "AG-01", "AG-10"]},

@@ -396,6 +396,26 @@ def agents_live(d: dict) -> list:
         lignes_av = ["aucun setup à contester pour l'instant",
                      "je cherche des raisons d'échouer, pas de réussir"]
     conviction_av = min(95, 25 + 35 * n_bloq + 15 * n_maj + 5 * n_min)
+    ops_r = d.get("rattrapage") or []
+    if ops_r:
+        lignes_r = [f"{o['ticker']} : écart {o['z']:+.1f} σ → {o['sens']} "
+                    f"({'à valider — Vigie agitée' if o['a_valider'] else 'Vigie calme'})"
+                    for o in ops_r[:3]]
+        lignes_r += [ops_r[0]["note"][:76]]
+        statut_r = "OPPORTUNITE"
+        conviction_r = min(90, 40 + 25 * len(ops_r))
+    else:
+        lignes_r = ["aucun écart au-delà de 1,8 σ sur les paires stables",
+                    "seules les corrélations stables (≥ 0,75) sont surveillées"]
+        statut_r, conviction_r = "VEILLE", 20
+    agents.append({"code": "AG-17", "nom": "Rattrapage",
+                   "role": "Divergences de convergence — paires stables",
+                   "coul": "#7ee787", "statut": statut_r,
+                   "activites": lignes_r, "conviction": conviction_r,
+                   "metriques": f"{len(ops_r)} écart(s) · seuil 1,8 σ · "
+                                f"taux MESURÉ par paire",
+                   "charge": charge("rattrapage")})
+
     agents.append({"code": "AG-16", "nom": "Avocat du diable",
                    "role": "Vote toujours CONTRE — doit être réfuté",
                    "coul": "#f85149",
