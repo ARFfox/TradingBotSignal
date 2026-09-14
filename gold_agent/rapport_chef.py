@@ -94,6 +94,13 @@ def generer(paquet: dict, signaux: list | None = None) -> str:
               for o in ops[:3]]
         L.append("")
 
+    # --- flux crypto -------------------------------------------------------
+    fx = (paquet.get("news") or {}).get("flux_crypto") or {}
+    if fx.get("disponible") and fx.get("lecture"):
+        L += ["## Positionnement crypto (contexte — recouplage mesuré)"]
+        L += [f"- ₿ {x}" for x in fx["lecture"]]
+        L.append("")
+
     # --- calibration Brier ----------------------------------------------
     try:
         from . import avis

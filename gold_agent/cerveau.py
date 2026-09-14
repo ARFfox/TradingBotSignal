@@ -312,6 +312,11 @@ def agents_live(d: dict) -> list:
     if cot.get("disponible"):
         lignes.append(f"COT : {cot['net']:+,} contrats ({cot['percentile']:.0f}e pct, "
                       f"{cot['variation_4s']:+,}/4 sem)")
+    fx = n.get("flux_crypto") or {}
+    if fx.get("disponible"):
+        # le recouplage or/crypto est MESURE par la constellation : le
+        # positionnement BTC est devenu un contexte pertinent pour l'or
+        lignes += [f"₿ {x}" for x in fx.get("lecture", [])[:2]]
     agents.append({"code": "AG-05", "nom": "Minières & Flux", "role": "AEM · COT · positionnement",
                    "coul": "#f0883e", "statut": "STREAMING",
                    "activites": lignes or ["sources indisponibles"],

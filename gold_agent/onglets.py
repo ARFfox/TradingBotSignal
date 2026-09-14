@@ -58,6 +58,17 @@ def _bloc_marches(d: dict) -> str:
                     f'<table><tr><th>Actif</th><th>Perf 20 j</th><th>Biais</th>'
                     f'<th>Force rel.</th></tr>{lignes}</table></div>')
 
+    fx = (d.get("news") or {}).get("flux_crypto") or {}
+    if fx.get("disponible"):
+        grilles += ('<div class="carte" style="grid-column:1/-1"><h3>₿ Positionnement '
+                    'crypto (Binance Futures, quotidien)</h3>'
+                    + "".join(f'<div style="font-size:12.5px;margin:3px 0">• {x}</div>'
+                              for x in fx.get("lecture", []))
+                    + '<div style="font-size:11px;color:#6e7681;margin-top:6px">'
+                    'Lecture de positionnement, pas un vote — pertinente pour '
+                    'l&#39;or depuis que la constellation mesure le recouplage '
+                    'or/crypto.</div></div>')
+
     av = ""
     menes = [a for a in m.get("avances", []) if a.get("jours")]
     if menes:

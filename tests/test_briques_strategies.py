@@ -90,3 +90,28 @@ def test_range_asiatique_et_balayage():
     b = sessions.balayage_asiatique(bars)
     assert b["haut"] == 103 and b["bas"] == 99
     assert b["balaye"] and b["cote"] == "haut"
+
+
+def test_flux_crypto_lit_le_positionnement():
+    """AG-05 : lecture de positionnement, jamais un vote au consensus."""
+    from gold_agent import flux
+
+    class Fake:
+        def funding(self, s): return {"taux_pct": 0.05, "prochain_ts": 0}
+        def open_interest(self, s): return {"actuel": 104.0,
+                                            "variation_pct": 4.0, "heures": 24}
+        def ratio_long_short(self, s): return {"ratio": 2.2, "part_long_pct": 68.8}
+
+    out = flux.flux_crypto(feed=Fake())
+    assert out["disponible"] and out["ratio_ls"] == 2.2
+    texte = " ".join(out["lecture"])
+    assert "longs payent cher" in texte, "funding 0,05 %/8h = charge"
+    assert "consensus acheteur chargé" in texte, "ratio 2,2 = longs charges"
+    assert "l'argent entre" in texte
+
+    class Panne:
+        def funding(self, s): raise OSError("reseau")
+        def open_interest(self, s): raise OSError("reseau")
+        def ratio_long_short(self, s): raise OSError("reseau")
+    out2 = flux.flux_crypto(feed=Panne())
+    assert out2["disponible"] is False, "panne = indisponible, jamais d'exception"

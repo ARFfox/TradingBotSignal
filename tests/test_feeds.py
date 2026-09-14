@@ -138,3 +138,37 @@ def test_un_petit_cache_ne_repond_pas_a_une_grosse_demande(tmp_path, monkeypatch
     assert len(f.bars("X", "60", 200, ttl=3600)) == 200, \
         "le cache de 50 ne doit pas repondre a une demande de 200"
     assert f.appels == 2
+
+
+# ---------------------------------------------------------- binance futures
+def _futures_fige(reponses):
+    from feeds.binance import BinanceFutures
+    bf = BinanceFutures(sommeil=lambda s: None, seau=SeauJetons(100, 100.0))
+    bf.reponses = dict(reponses)
+    bf._transport = lambda url, timeout=20: next(
+        v for k, v in bf.reponses.items() if k in url)
+    return bf
+
+
+def test_futures_funding_oi_ratio_normalises():
+    bf = _futures_fige({
+        "premiumIndex": {"lastFundingRate": "0.00045", "nextFundingTime": 1750000000000},
+        "openInterestHist": [{"sumOpenInterest": "100.0"},
+                             {"sumOpenInterest": "104.0"}],
+        "topLongShortPositionRatio": [{"longShortRatio": "2.203",
+                                       "longAccount": "0.6878"}],
+    })
+    f = bf.funding("BTCUSDT")
+    assert f["taux_pct"] == 0.045
+    oi = bf.open_interest("BTCUSDT")
+    assert oi["variation_pct"] == 4.0 and oi["heures"] == 1
+    r = bf.ratio_long_short("BTCUSDT")
+    assert r["ratio"] == 2.203 and r["part_long_pct"] == 68.8
+
+
+def test_futures_reponse_malforme_donne_none():
+    bf = _futures_fige({"premiumIndex": {"code": -1}, "openInterestHist": [],
+                        "topLongShortPositionRatio": []})
+    assert bf.funding("X") is None
+    assert bf.open_interest("X") is None
+    assert bf.ratio_long_short("X") is None
