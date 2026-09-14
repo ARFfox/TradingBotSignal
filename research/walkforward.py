@@ -95,12 +95,15 @@ def fenetres(n: int, echauffement: int, test: int, pas: int) -> list[tuple]:
 
 def executer(bars: list[dict], p: sg.Params, instrument: str, tf: str,
              echauffement: int = 400, test: int = 300,
-             pas: int = 150, cout_pct: float | None = None) -> Resultat:
+             pas: int = 150, cout_pct: float | None = None,
+             detecteur=None) -> Resultat:
     """Deroule le protocole complet sur un historique de bougies.
 
     cout_pct : cout aller-retour en % du prix (Instrument.cout_pct). Il est
     converti en POINTS fenetre par fenetre sur le prix median du segment —
     un cout fixe en points serait faux sur un actif qui a triple en 3 ans.
+    detecteur : fonction (bars, Params) -> list[Signal] a valider — par
+    defaut la regle du projet ; les strategies du skill s'y branchent.
     """
     r = Resultat(instrument=instrument, tf=tf)
     fs = fenetres(len(bars), echauffement, test, pas)
@@ -118,7 +121,7 @@ def executer(bars: list[dict], p: sg.Params, instrument: str, tf: str,
             closes = sorted(b["close"] for b in segment[-(f_test - d_test):])
             median = closes[len(closes) // 2]
             p_fen = dataclasses.replace(p, cout_pts=median * cout_pct / 100)
-        signaux = sg.detecter(segment, p_fen)
+        signaux = (detecteur or sg.detecter)(segment, p_fen)
         # PURGE : seuls les signaux nes DANS la fenetre de test comptent.
         seuil = d_test - a
         signaux = [s for s in signaux if s.index >= seuil]

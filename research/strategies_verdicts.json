@@ -1,0 +1,290 @@
+{
+ "CRT": {
+  "XAU/USD|H1": {
+   "instrument": "CRT · XAU/USD",
+   "tf": "H1",
+   "fenetres": 31,
+   "fenetres_positives": 0,
+   "fenetres_evaluables": 0,
+   "trades": 11,
+   "r_total": -6.42,
+   "r_moyen": -0.584,
+   "taux_reussite": 18.2,
+   "profit_factor": 0.31,
+   "pire_creux": -8.31,
+   "regimes": {
+    "range": 9,
+    "tendance": 2
+   },
+   "autorise": false,
+   "motif": "11 trades < 30 · PF 0.31 ≤ 1.3 · R moyen -0.584 ≤ 0",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|H1": {
+   "instrument": "CRT · BTC/USD",
+   "tf": "H1",
+   "fenetres": 31,
+   "fenetres_positives": 0,
+   "fenetres_evaluables": 0,
+   "trades": 8,
+   "r_total": -2.54,
+   "r_moyen": -0.317,
+   "taux_reussite": 25.0,
+   "profit_factor": 0.63,
+   "pire_creux": -6.81,
+   "regimes": {
+    "tendance": 5,
+    "range": 3
+   },
+   "autorise": false,
+   "motif": "8 trades < 30 · PF 0.63 ≤ 1.3 · R moyen -0.317 ≤ 0",
+   "genere_le": "2026-09-14"
+  }
+ },
+ "IFVG": {
+  "XAU/USD|H1": {
+   "instrument": "IFVG · XAU/USD",
+   "tf": "H1",
+   "fenetres": 31,
+   "fenetres_positives": 10,
+   "fenetres_evaluables": 29,
+   "trades": 256,
+   "r_total": -56.13,
+   "r_moyen": -0.219,
+   "taux_reussite": 21.5,
+   "profit_factor": 0.74,
+   "pire_creux": -84.94,
+   "regimes": {
+    "range": 156,
+    "tendance": 100
+   },
+   "autorise": false,
+   "motif": "PF 0.74 ≤ 1.3 · R moyen -0.219 ≤ 0 · 10/29 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "XAU/USD|M30": {
+   "instrument": "IFVG · XAU/USD",
+   "tf": "M30",
+   "fenetres": 31,
+   "fenetres_positives": 12,
+   "fenetres_evaluables": 30,
+   "trades": 270,
+   "r_total": 42.47,
+   "r_moyen": 0.157,
+   "taux_reussite": 28.9,
+   "profit_factor": 1.2,
+   "pire_creux": -34.22,
+   "regimes": {
+    "tendance": 133,
+    "range": 137
+   },
+   "autorise": false,
+   "motif": "PF 1.2 ≤ 1.3 · 12/30 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "XAU/USD|M15": {
+   "instrument": "IFVG · XAU/USD",
+   "tf": "M15",
+   "fenetres": 31,
+   "fenetres_positives": 14,
+   "fenetres_evaluables": 27,
+   "trades": 335,
+   "r_total": -25.1,
+   "r_moyen": -0.075,
+   "taux_reussite": 25.7,
+   "profit_factor": 0.91,
+   "pire_creux": -54.8,
+   "regimes": {
+    "range": 206,
+    "tendance": 129
+   },
+   "autorise": false,
+   "motif": "PF 0.91 ≤ 1.3 · R moyen -0.075 ≤ 0",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|H1": {
+   "instrument": "IFVG · BTC/USD",
+   "tf": "H1",
+   "fenetres": 31,
+   "fenetres_positives": 5,
+   "fenetres_evaluables": 31,
+   "trades": 310,
+   "r_total": -141.17,
+   "r_moyen": -0.455,
+   "taux_reussite": 24.8,
+   "profit_factor": 0.54,
+   "pire_creux": -163.64,
+   "regimes": {
+    "tendance": 138,
+    "range": 172
+   },
+   "autorise": false,
+   "motif": "PF 0.54 ≤ 1.3 · R moyen -0.455 ≤ 0 · 5/31 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|M30": {
+   "instrument": "IFVG · BTC/USD",
+   "tf": "M30",
+   "fenetres": 31,
+   "fenetres_positives": 7,
+   "fenetres_evaluables": 31,
+   "trades": 329,
+   "r_total": -217.44,
+   "r_moyen": -0.661,
+   "taux_reussite": 24.9,
+   "profit_factor": 0.45,
+   "pire_creux": -254.79,
+   "regimes": {
+    "tendance": 130,
+    "range": 199
+   },
+   "autorise": false,
+   "motif": "PF 0.45 ≤ 1.3 · R moyen -0.661 ≤ 0 · 7/31 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|M15": {
+   "instrument": "IFVG · BTC/USD",
+   "tf": "M15",
+   "fenetres": 31,
+   "fenetres_positives": 2,
+   "fenetres_evaluables": 29,
+   "trades": 362,
+   "r_total": -443.05,
+   "r_moyen": -1.224,
+   "taux_reussite": 18.8,
+   "profit_factor": 0.24,
+   "pire_creux": -449.57,
+   "regimes": {
+    "range": 234,
+    "tendance": 128
+   },
+   "autorise": false,
+   "motif": "PF 0.24 ≤ 1.3 · R moyen -1.224 ≤ 0 · 2/29 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  }
+ },
+ "ORB": {
+  "XAU/USD|M15": {
+   "instrument": "ORB · XAU/USD",
+   "tf": "M15",
+   "fenetres": 31,
+   "fenetres_positives": 0,
+   "fenetres_evaluables": 0,
+   "trades": 17,
+   "r_total": 4.15,
+   "r_moyen": 0.244,
+   "taux_reussite": 64.7,
+   "profit_factor": 1.66,
+   "pire_creux": -4.22,
+   "regimes": {
+    "range": 9,
+    "tendance": 8
+   },
+   "autorise": false,
+   "motif": "17 trades < 30",
+   "genere_le": "2026-09-14"
+  },
+  "XAU/USD|M5": {
+   "instrument": "ORB · XAU/USD",
+   "tf": "M5",
+   "fenetres": 31,
+   "fenetres_positives": 0,
+   "fenetres_evaluables": 0,
+   "trades": 16,
+   "r_total": 1.35,
+   "r_moyen": 0.084,
+   "taux_reussite": 56.2,
+   "profit_factor": 1.19,
+   "pire_creux": -2.19,
+   "regimes": {
+    "tendance": 7,
+    "range": 9
+   },
+   "autorise": false,
+   "motif": "16 trades < 30 · PF 1.19 ≤ 1.3",
+   "genere_le": "2026-09-14"
+  }
+ },
+ "POC_RETEST": {
+  "XAU/USD|M30": {
+   "instrument": "POC_RETEST · XAU/USD",
+   "tf": "M30",
+   "fenetres": 31,
+   "fenetres_positives": 1,
+   "fenetres_evaluables": 6,
+   "trades": 52,
+   "r_total": -24.17,
+   "r_moyen": -0.465,
+   "taux_reussite": 17.3,
+   "profit_factor": 0.47,
+   "pire_creux": -29.09,
+   "regimes": {
+    "tendance": 10,
+    "range": 42
+   },
+   "autorise": false,
+   "motif": "PF 0.47 ≤ 1.3 · R moyen -0.465 ≤ 0 · 1/6 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "XAU/USD|M15": {
+   "instrument": "POC_RETEST · XAU/USD",
+   "tf": "M15",
+   "fenetres": 31,
+   "fenetres_positives": 2,
+   "fenetres_evaluables": 3,
+   "trades": 33,
+   "r_total": 25.32,
+   "r_moyen": 0.767,
+   "taux_reussite": 27.3,
+   "profit_factor": 1.99,
+   "pire_creux": -11.81,
+   "regimes": {
+    "range": 23,
+    "tendance": 10
+   },
+   "autorise": true,
+   "motif": "tous les critères passés · ⚠️ preuve courte : 52 j de calendrier — et 14 candidats testés : un faux positif est statistiquement attendu. À reconfirmer hors échantillon avant toute question d'émission.",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|M30": {
+   "instrument": "POC_RETEST · BTC/USD",
+   "tf": "M30",
+   "fenetres": 31,
+   "fenetres_positives": 4,
+   "fenetres_evaluables": 24,
+   "trades": 117,
+   "r_total": -77.07,
+   "r_moyen": -0.659,
+   "taux_reussite": 12.8,
+   "profit_factor": 0.44,
+   "pire_creux": -82.7,
+   "regimes": {
+    "range": 110,
+    "tendance": 7
+   },
+   "autorise": false,
+   "motif": "PF 0.44 ≤ 1.3 · R moyen -0.659 ≤ 0 · 4/24 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  },
+  "BTC/USD|M15": {
+   "instrument": "POC_RETEST · BTC/USD",
+   "tf": "M15",
+   "fenetres": 31,
+   "fenetres_positives": 8,
+   "fenetres_evaluables": 24,
+   "trades": 168,
+   "r_total": -103.8,
+   "r_moyen": -0.618,
+   "taux_reussite": 19.6,
+   "profit_factor": 0.53,
+   "pire_creux": -127.91,
+   "regimes": {
+    "range": 158,
+    "tendance": 10
+   },
+   "autorise": false,
+   "motif": "PF 0.53 ≤ 1.3 · R moyen -0.618 ≤ 0 · 8/24 fenêtres évaluables positives",
+   "genere_le": "2026-09-14"
+  }
+ }
+}
