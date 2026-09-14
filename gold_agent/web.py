@@ -150,6 +150,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                "text/html; charset=utf-8", code=401)
             return
 
+        if self.path.startswith("/api/instruments"):
+            # SPEC_SITE_V3 §8 : le registre complet, statique et leger.
+            from . import instruments as _instz
+            corps = json.dumps([{
+                "cle": i.cle, "libelle": i.symbole, "nom": i.nom,
+                "marche": i.marche, "tv": i.code_pour("tv"),
+                "decimales": i.decimales}
+                for i in _instz.REGISTRE.values()], ensure_ascii=False).encode()
+            self._repondre(corps, "application/json; charset=utf-8")
+            return
+
+        if self.path.startswith("/api/signaux/actifs"):
+            # LA liste des pastilles — lue du dernier paquet, jamais recalculee.
+            sig = (getattr(tableau, "DERNIER_PAQUET", None) or {}).get("signaux_actifs") or []
+            self._repondre(json.dumps(sig, ensure_ascii=False).encode(),
+                           "application/json; charset=utf-8")
+            return
+
         if self.path.startswith("/api/graphe"):
             g = (getattr(tableau, "DERNIER_PAQUET", None) or {}).get("graphe") \
                 or {"noeuds": [], "liens": []}

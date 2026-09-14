@@ -133,7 +133,7 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <button class="onglet actif" data-p="p-risque">Risque événementiel</button>
 <button class="onglet" data-p="p-graph">Analyse graphique</button>
 <button class="onglet" data-p="p-strats">Stratégies</button>
-<button class="onglet" data-p="p-histo">Historique</button>
+<button class="onglet" data-p="p-histo">Signaux validés</button>
 <button class="onglet" data-p="p-constel">Constellation</button>
 <button class="onglet" data-p="p-marches">Marchés</button>
 </div>

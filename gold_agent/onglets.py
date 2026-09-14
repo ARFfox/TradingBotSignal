@@ -289,36 +289,67 @@ def _blocs_onglets(d: dict) -> dict:
 </table></div>"""
 
     hi = d.get("historique") or {}
+    # SPEC_SITE_V3 §7 — « Signaux validés » : seuls les signaux EMIS y
+    # figurent (le journal n'enregistre que ceux-la : les suspendus et les
+    # timeframes coupes n'y entrent jamais). C'est la seule definition qui
+    # rend le taux honnete : il mesure ce qui t'a ete recommande.
+    ICONES = {"gagnant": ("✅ TP", "ok"), "perdant": ("❌ SL", "ko"),
+              "ouvert": ("⏳ en cours", ""), "en_attente": ("🕐 en attente", ""),
+              "non_execute": ("⚪ expiré", "")}
     lignes_h = ""
-    # Seuls les denouements reels s'affichent : entree touchee puis stop
-    # (perdant) ou TP (gagnant). Les "jamais executes" et en-cours restent
-    # comptes dans le resume mais n'encombrent pas la table.
     for x in hi.get("derniers", []):
-        st = x["statut"]
-        if st not in ("gagnant", "perdant"):
-            continue
-        cls_h = {"gagnant": "ok", "perdant": "ko"}.get(st, "")
-        r_txt = f'{x["r_obtenu"]:+.2f}R' if x.get("r_obtenu") is not None else "—"
-        lignes_h += (f'<tr><td>{x["cree_le"][:16].replace("T"," ")}</td><td>{x["tf"]}</td>'
-                     f'<td>{x["sens"]}</td><td>{x["entree"]}</td><td>{x["stop"]}</td>'
-                     f'<td>{x["objectif"]}</td><td>{x["fiabilite"]}</td>'
-                     f'<td class="{cls_h}">{st}</td><td>{r_txt}</td></tr>')
+        icone, cls_h = ICONES.get(x["statut"], (x["statut"], ""))
+        r_txt = (f'{x["r_obtenu"]:+.2f}' if x.get("r_obtenu") is not None
+                 and x["statut"] in ("gagnant", "perdant") else "—")
+        estompe = ' style="opacity:.55"' if x["statut"] not in ("gagnant", "perdant") else ""
+        lignes_h += (f'<tr{estompe}><td>{x["cree_le"][:16].replace("T", " ")}</td>'
+                     f'<td>{x["tf"]}</td><td>{x["sens"]}</td><td>{x["entree"]}</td>'
+                     f'<td>{x["stop"]}</td><td>{x["objectif"]}</td>'
+                     f'<td class="{cls_h}">{icone}</td><td>{r_txt}</td></tr>')
     if not lignes_h:
-        lignes_h = '<tr><td colspan="9">aucun signal enregistré pour l&#39;instant — le journal se remplit à mesure que la règle émet</td></tr>'
-    taux = hi.get("taux_reussite_pct")
-    resume_h = (f'{hi.get("total_emis",0)} signaux émis · {hi.get("resolus",0)} résolus '
-                f'({hi.get("gagnants",0)} gagnants / {hi.get("perdants",0)} perdants'
-                + (f' · taux {taux}%' if taux is not None else "")
-                + f') · cumul {hi.get("cumul_R",0):+.2f}R · '
-                f'{hi.get("en_attente",0)} en attente · {hi.get("ouverts",0)} ouverts · '
-                f'{hi.get("non_executes",0)} jamais exécutés')
+        lignes_h = ('<tr><td colspan="8">aucun signal émis pour l&#39;instant — '
+                    'le journal se remplit à mesure que la règle émet</td></tr>')
+
+    resolus = hi.get("resolus", 0)
+    # Regle 2 de la spec : sous 20 resolus, « echantillon insuffisant » A LA
+    # PLACE du pourcentage — un taux sur 3 signaux est du bruit.
+    if resolus >= 20 and hi.get("taux_reussite_pct") is not None:
+        taux_txt = f'{hi["taux_reussite_pct"]}%'
+        taux_sous = f'({resolus} résolus)'
+    else:
+        taux_txt = "échantillon<br>insuffisant"
+        taux_sous = f'({resolus} résolus — il en faut 20)'
+    rs_ = [x.get("r_obtenu") or 0 for x in hi.get("derniers", [])
+           if x.get("statut") in ("gagnant", "perdant")]
+    gains_ = sum(r for r in rs_ if r > 0)
+    pertes_ = abs(sum(r for r in rs_ if r < 0))
+    pf_txt = (f'{gains_ / pertes_:.2f}' if pertes_ else ("∞" if gains_ else "—"))
+
+    def _stat(valeur, libelle, sous=""):
+        return (f'<div style="text-align:center;padding:4px 14px">'
+                f'<div style="font-size:21px;font-weight:800">{valeur}</div>'
+                f'<div style="font-size:10.5px;color:#8b949e">{libelle}'
+                + (f'<br>{sous}' if sous else "") + '</div></div>')
+
+    entete_h = ('<div style="display:flex;justify-content:space-around;flex-wrap:wrap;'
+                'border:1px solid #21262d;border-radius:10px;background:#0d1117;'
+                'padding:8px;margin-bottom:12px">'
+                + _stat(f'{hi.get("cumul_R", 0):+.2f}R', "R cumulé",
+                        "la mesure qui compte")
+                + _stat(taux_txt, "taux de réussite", taux_sous)
+                + _stat(f'{resolus} / {hi.get("total_emis", 0)}', "résolus / émis")
+                + _stat(pf_txt, "profit factor") + '</div>')
+
     bloc_histo = f"""<div class="strats">
-<div style="font-size:13.5px;color:#e6edf3;margin-bottom:10px"><b>Résultat global :</b> {resume_h}</div>
-<table><tr><th>Émis le (UTC)</th><th>TF</th><th>Sens</th><th>Entrée</th><th>Stop</th><th>TP</th><th>Fiabilité</th><th>Statut</th><th>R</th></tr>
+<div style="font-size:12px;color:#8b949e;margin-bottom:8px"><b style="color:#e6edf3">
+SIGNAUX VALIDÉS</b> — uniquement ce qui t&#39;a été affiché ou notifié. Pas les setups
+rejetés, pas les timeframes coupés : si tu ne l&#39;as pas vu à l&#39;écran, il n&#39;est pas ici.</div>
+{entete_h}
+<table><tr><th>Émis le (UTC)</th><th>TF</th><th>Sens</th><th>Entrée</th><th>SL</th><th>TP</th><th>Résultat</th><th>R</th></tr>
 {lignes_h}</table>
-<div style="font-size:11.5px;color:#6e7681;margin-top:8px">Résolution aux mêmes règles que le
-backtest : bougie touchant stop ET objectif = perte. Une entrée limite jamais touchée sous 48 h
-est classée « non exécuté » et ne compte pas dans le taux.</div></div>"""
+<div style="font-size:11.5px;color:#6e7681;margin-top:8px">Les signaux expirés (entrée jamais
+touchée) et en cours ne comptent ni dans le taux ni dans le R : il n&#39;y a rien à y gagner ni à
+y perdre. Bougie touchant stop ET objectif = perte (convention prudente du backtest).</div></div>"""
 
     return {"news": bloc_news, "graph": bloc_graph,
             "strats": bloc_strats + _bloc_grille(d), "histo": bloc_histo,
