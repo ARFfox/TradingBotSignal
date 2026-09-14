@@ -336,6 +336,7 @@ NAV_JS = r"""
     if (!inst) return;
     window.INSTRUMENT_ACTIF = inst.cle;
     majEnTete(inst); majGraphique(inst);
+    majAnalyse(inst);
     document.querySelectorAll('.tuile-inst').forEach(t =>
       t.classList.toggle('actif', t.dataset.cle === inst.cle));
     if (inst.cle === 'XAUUSD') {
@@ -343,6 +344,33 @@ NAV_JS = r"""
       if (note) note.hidden = true;
     }
   }
+  let ANALYSE_EN_COURS = null;
+  function majAnalyse(inst) {
+    const grille = document.querySelector('.grille');
+    if (!grille) return;
+    if (inst.cle === 'XAUUSD') {
+      // retour a l'or : le rafraichissement normal reprend la main
+      if (window.rafraichir) rafraichir(true);
+      return;
+    }
+    grille.innerHTML = '<div class="bandeau">Analyse de ' + inst.libelle
+      + ' en cours (données ' + (inst.binance ? 'Binance' : 'Yahoo, différées')
+      + ')…</div>';
+    const jeton = inst.cle;
+    ANALYSE_EN_COURS = jeton;
+    fetch('/api/instruments/' + jeton, {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        if (ANALYSE_EN_COURS !== jeton || window.INSTRUMENT_ACTIF !== jeton) return;
+        grille.innerHTML = d.html || ('<div class="bandeau">analyse indisponible : '
+                                      + (d.erreur || '?') + '</div>');
+      })
+      .catch(() => {
+        if (window.INSTRUMENT_ACTIF === jeton)
+          grille.innerHTML = '<div class="bandeau">analyse indisponible (réseau)</div>';
+      });
+  }
+
   addEventListener('hashchange', appliquerHash);
   if (location.hash) appliquerHash();
 

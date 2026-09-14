@@ -197,7 +197,8 @@ async function rafraichir(manuel) {{
     const d = await r.json();
     if (d.erreur) throw new Error(d.erreur);
 
-    document.querySelector(".grille").innerHTML = d.html;
+    if ((window.INSTRUMENT_ACTIF || "XAUUSD") === "XAUUSD")
+      document.querySelector(".grille").innerHTML = d.html;
     window.appliquerTf && window.appliquerTf();
     if (d.boule) document.querySelector(".boule").outerHTML = d.boule;
     if (d.sante && window.majCerveau) window.majCerveau(d.sante);

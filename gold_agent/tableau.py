@@ -36,9 +36,10 @@ def _evt(agent: str, texte: str, niveau: str = "info") -> None:
 def evenements() -> list:
     with _EV_VERROU:
         return list(_EVENEMENTS)
+from .analyse import analyser_tf
 from .quota import (FIABILITE, PROFILS, TTL_PLANCHER,  # noqa: F401
                     _avec_prix_direct, _bars_caches, _ttl, budget,
-                    definir_profil, ttl_effectifs)
+                    dernier_cache, definir_profil, ttl_effectifs)
 
 
 TIMEFRAMES = [
@@ -85,73 +86,23 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         pass
 
     for spec in TIMEFRAMES:
-        entree = {"nom": spec["nom"], "role": spec["role"], "tf": spec["tf"],
-                  "fiabilite": FIABILITE.get(spec["nom"], {})}
         try:
             bars_cache, age, du_cache = _bars_caches(symbole, spec["tf"], bougies)
+            bars = _avec_prix_direct(bars_cache, prix_actuel)
+            # L'analyse elle-meme vit dans analyse.analyser_tf : la MEME
+            # fonction sert l'or et les autres instruments (SPEC_SITE_V3
+            # niveau 3) — deux copies divergeraient sans bruit.
+            entree = analyser_tf(bars, spec, FIABILITE.get(spec["nom"], {}),
+                                 prix_direct=prix_actuel, chrono=chrono,
+                                 cout_pts=0.3)
             entree["age_secondes"] = age
             entree["du_cache"] = du_cache
-            bars = _avec_prix_direct(bars_cache, prix_actuel)
-            d_struct = __import__("time").perf_counter()
-            h = [b["high"] for b in bars]
-            l = [b["low"] for b in bars]
-            c = [b["close"] for b in bars]
-            o = [b["open"] for b in bars]
-            p = sg.Params(k_stop=spec.get("k_stop", 1.0), rr_min=1.5, cout_pts=0.3,
-                          facteur_superieur=spec["mtf"], **spec["params"])
-            d0 = __import__("time").perf_counter()
-            entree["setup"] = sg.setup_actuel(bars, p)
-            chrono["stratege"] = chrono.get("stratege", 0.0) + (__import__("time").perf_counter() - d0)
-            entree["prix"] = round(c[-1], 2)
-            entree["prix_direct"] = prix_actuel
-            entree["rsi"] = ind.last_valid(ind.rsi(c, 14))
-            entree["atr"] = ind.last_valid(ind.atr(h, l, c, 14))
-            entree["ema_fast"] = ind.last_valid(ind.ema(c, p.ema_fast))
-            entree["ema_slow"] = ind.last_valid(ind.ema(c, p.ema_slow))
-            entree["periodes"] = [p.ema_fast, p.ema_slow]
-            entree["extension"] = rg.score_extension(c[-1], entree["ema_fast"], entree["rsi"])
-            chrono["structure"] = chrono.get("structure", 0.0) + (__import__("time").perf_counter() - d_struct)
-            entree["volatilite"] = rg.regime_volatilite(h, l, c)
-            entree["renversement"] = rg.renversement(o, h, l, c)
-            d0 = __import__("time").perf_counter()
-            try:
-                entree["ict"] = ict.analyse_ict(bars, entree["atr"])
-            except Exception:
-                entree["ict"] = None
-            chrono["traceur"] = chrono.get("traceur", 0.0) + (__import__("time").perf_counter() - d0)
-            d0 = __import__("time").perf_counter()
-            try:
-                zz = pat.zigzag(h, l, seuil=(entree["atr"] or 1) * 2)
-                entree["abc"] = pat.correction_abc(zz, entree["atr"])
-            except Exception:
-                entree["abc"] = {"scenario": None}
-            chrono["traceur"] = chrono.get("traceur", 0.0) + (__import__("time").perf_counter() - d0)
-            chrono["structure"] = chrono.get("structure", 0.0)
-
-            # Pourcentage haussier de CE timeframe (jauge de la carte)
-            b_pts = s_pts = 0.0
-            if entree["ema_fast"] and entree["ema_slow"]:
-                (b_pts, s_pts) = (b_pts + 1.5, s_pts) if entree["ema_fast"] > entree["ema_slow"]                     else (b_pts, s_pts + 1.5)
-                if c[-1] > entree["ema_slow"]:
-                    b_pts += 1.0
-                else:
-                    s_pts += 1.0
-            if entree["rsi"] is not None:
-                if entree["rsi"] >= 55: b_pts += 0.5
-                elif entree["rsi"] <= 45: s_pts += 0.5
-            tot = b_pts + s_pts
-            entree["pct_haussier"] = round(b_pts / tot * 100) if tot else 50
-
-            entree["bougies"] = [
-                {"t": b["time"], "o": b["open"], "h": b["high"],
-                 "l": b["low"], "c": b["close"]} for b in bars[-120:]
-            ]
-            entree["erreur"] = None
         except Exception as e:
             # Repli sur la derniere donnee connue, en le signalant clairement :
             # une carte vide est moins utile qu'une carte datee et annoncee.
-            with _VERROU:
-                vieux = _CACHE.get((symbole, spec["tf"], bougies))
+            entree = {"nom": spec["nom"], "role": spec["role"], "tf": spec["tf"],
+                      "fiabilite": FIABILITE.get(spec["nom"], {})}
+            vieux = dernier_cache(symbole, spec["tf"], bougies)
             msg = str(e)[:160]
             if vieux:
                 entree["erreur"] = f"rafraichissement impossible ({msg})"

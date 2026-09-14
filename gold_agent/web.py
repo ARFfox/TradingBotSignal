@@ -32,6 +32,16 @@ from .blocs import WIDGET_TV  # noqa: F401
 
 from .rendu import rendre, surveiller  # noqa: F401
 
+def _grille_instrument(a: dict) -> str:
+    """Cartes 5 TF d'un instrument non emetteur — la MEME _grille que l'or,
+    precedee d'un bandeau qui dit la verite sur son statut."""
+    bandeau = ('<div class="bandeau" style="border-color:#d29922">'
+               f'<b>{a["symbole"]} — analyse seulement.</b> Cet instrument '
+               'n&#39;émet aucun signal : chaque timeframe affiche son verdict '
+               'walk-forward réel. Le badge de fiabilité dit ce qui a été mesuré.</div>')
+    return bandeau + _grille(a)
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
 
     def _jeton(self) -> str | None:
@@ -148,6 +158,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
             else:
                 self._repondre(PAGE_CONNEXION.replace("{erreur}", "").encode(),
                                "text/html; charset=utf-8", code=401)
+            return
+
+        if self.path.startswith("/api/instruments/"):
+            # SPEC_SITE_V3 §8/§2 niveau 3 : l'analyse 5 TF d'un instrument
+            # NON emetteur, calculee a la demande (feeds caches) et memoisee
+            # 120 s. Jamais de journalisation, jamais de notification.
+            cle = self.path.rsplit("/", 1)[-1].split("?")[0]
+            memo = globals().setdefault("_MEMO_ANALYSES", {})
+            ancien = memo.get(cle)
+            if ancien and time.time() - ancien["t"] < 120:
+                self._repondre(ancien["corps"], "application/json; charset=utf-8")
+                return
+            try:
+                from . import analyse as _an
+                a = _an.analyse_instrument(cle)
+                corps = json.dumps({"symbole": a["symbole"], "nom": a["nom"],
+                                    "html": _grille_instrument(a)},
+                                   ensure_ascii=False).encode()
+                memo[cle] = {"t": time.time(), "corps": corps}
+                self._repondre(corps, "application/json; charset=utf-8")
+            except Exception as e:
+                self._repondre(json.dumps({"erreur": str(e)[:150]}).encode(),
+                               "application/json; charset=utf-8", code=500)
             return
 
         if self.path.startswith("/api/instruments"):

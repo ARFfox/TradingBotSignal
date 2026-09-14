@@ -124,3 +124,11 @@ FIABILITE = {
 }
 
 
+
+
+def dernier_cache(symbole: str, tf: str, bougies: int) -> dict | None:
+    """Derniere entree du cache de bougies, meme perimee — pour le repli
+    quand le rafraichissement echoue (une carte datee et annoncee vaut
+    mieux qu'une carte vide)."""
+    with _VERROU:
+        return _CACHE.get((symbole, tf, bougies))
