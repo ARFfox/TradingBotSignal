@@ -201,6 +201,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                            "application/json; charset=utf-8")
             return
 
+        if self.path.startswith("/api/boucles"):
+            from . import boucles as _boucles
+            corps = json.dumps(_boucles.etat(), ensure_ascii=False).encode()
+            self._repondre(corps, "application/json; charset=utf-8")
+            return
+
         if self.path.startswith("/api/graphe"):
             g = (getattr(tableau, "DERNIER_PAQUET", None) or {}).get("graphe") \
                 or {"noeuds": [], "liens": []}
@@ -315,7 +321,8 @@ def main() -> int:
         print(f"  cles Twelve Data : {b['cles']} en rotation — quota cumule {b['quota']}/jour", flush=True)
         print(f"  consommation prevue : ~{b['prevu']}/jour ({b['part_pct']}% du quota)", flush=True)
         print("  caches : " + ", ".join(f"{k}={v}s" for k, v in b["ttl"].items()), flush=True)
-        threading.Thread(target=surveiller, args=(a.surveillance, arret), daemon=True).start()
+        from . import boucles as _boucles
+        _boucles.demarrer(_boucles.defaut(a.surveillance), arret)
     else:
         print("Surveillance desactivee (profil consultation, caches courts)", flush=True)
 
