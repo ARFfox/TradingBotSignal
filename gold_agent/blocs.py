@@ -414,3 +414,23 @@ def _bloc_navigation(d: dict) -> str:
             f'style="border-color:#d29922"></div>'
             f'<script type="application/json" id="donnees-instruments">'
             f'{donnees}</script>')
+
+
+def _bloc_rapport() -> str:
+    """Le dernier rapport quotidien du Chef, replie sous un <details>."""
+    try:
+        from . import rapport_chef
+        texte = rapport_chef.dernier()
+    except Exception:
+        texte = None
+    if not texte:
+        return ('<div style="font-size:11px;color:#6e7681;margin:10px 0">'
+                'Le premier rapport quotidien du Chef sera écrit à la '
+                'prochaine collecte.</div>')
+    import html as _html
+    return ('<details style="margin:12px 0"><summary style="cursor:pointer;'
+            'font-size:12.5px;color:#c9d1d9">📋 Rapport quotidien du Chef '
+            '(dernier)</summary><pre style="white-space:pre-wrap;font-size:11.5px;'
+            'color:#8b949e;background:#0d1117;border:1px solid #21262d;'
+            'border-radius:8px;padding:12px;margin-top:8px">'
+            + _html.escape(texte) + '</pre></details>')

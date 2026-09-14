@@ -10,7 +10,8 @@ import time
 from datetime import datetime
 
 from . import config as _cfg, datasource as ds, notify, tableau
-from .blocs import (_bloc_navigation, _boule, _carte, _cases_agents,
+from .blocs import (_bloc_navigation, _bloc_rapport, _boule, _carte,
+                    _cases_agents,
                     _fragment_graphe, _grille,
                     _panneau_agents, WIDGET_TV)
 from .onglets import _bloc_constellation, _bloc_marches, _blocs_onglets
@@ -73,6 +74,7 @@ def rendre(d: dict) -> str:
     # et lisible d'un coup d'oeil (la demo 3D est retiree). Le graphe
     # force-directed mesure reste en dessous pour explorer les relations.
     bloc_cerveau = (_cases_agents(d)
+                    + _bloc_rapport()
                     + panneau
                     + '<div style="font-size:11px;color:#6e7681;margin:10px 0 6px">'
                       'Exploration — le réseau mesuré (taille = conviction, '

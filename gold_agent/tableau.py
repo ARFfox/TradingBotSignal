@@ -437,6 +437,16 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         paquet["graphe"] = {"noeuds": [], "liens": []}
         _evt("graphe", f"indisponible : {str(e)[:80]}", "warn")
 
+    # Rapport quotidien du Chef (SPEC_V2 : recalibration 24 h) — une fois
+    # par jour, jamais bloquant pour la page.
+    try:
+        from . import rapport_chef
+        chemin_r = rapport_chef.quotidien(paquet)
+        if chemin_r:
+            _evt("Superviseur", f"rapport quotidien écrit : {chemin_r}", "alerte")
+    except Exception:
+        pass
+
     globals()["DERNIER_PAQUET"] = paquet
     return paquet
 
