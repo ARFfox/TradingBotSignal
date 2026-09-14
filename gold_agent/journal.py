@@ -32,20 +32,31 @@ def _sauver(signaux: list[dict]) -> None:
     FICHIER.write_text(json.dumps(signaux, ensure_ascii=False, indent=1))
 
 
-def cle_signal(tf: str, s: dict) -> str:
+def _defaut() -> str:
+    from . import instruments
+    return instruments.par_defaut().symbole
+
+
+def cle_signal(tf: str, s: dict, instrument: str | None = None) -> str:
     """Cle SANS le stop ni l'objectif : ils sont derives de l'ATR et bougent
     de quelques centimes a chaque cycle — les inclure transformait une seule
     configuration en dizaines de « signaux » (167 entrees pour 10 trades
-    reels le 31/08). L'entree est arrondie au point entier."""
-    return f"{tf}|{s['setup']}|{round(s['entree'])}"
+    reels le 31/08). L'entree est arrondie au point entier ; l'instrument
+    fait partie de la cle depuis le passage multi-marches (15/09)."""
+    inst = instrument or _defaut()
+    # les petits prix (forex, alts) s'arrondissent plus finement
+    entree = round(s["entree"], 4 if s["entree"] < 100 else 0)
+    return f"{inst}|{tf}|{s['setup']}|{entree}"
 
 
 FENETRE_ANTIRAFALE_H = 12   # pas deux enregistrements du meme groupe sous 12 h
 
 
-def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
+def enregistrer(tf: str, s: dict, prix: float, fiabilite: str,
+                instrument: str | None = None) -> bool:
     """Ajoute un signal s'il n'est pas déjà connu. Renvoie True si nouveau."""
-    k = cle_signal(tf, s)
+    instrument = instrument or _defaut()
+    k = cle_signal(tf, s, instrument)
     with _VERROU:
         signaux = _charger()
         # Deduplication sur la cle QUEL QUE SOIT le statut : un signal deja
@@ -57,7 +68,7 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
             if x["cle"] == k and                     maintenant_ts - x["cree_ts"] < FENETRE_ANTIRAFALE_H * 3600:
                 return False
         signaux.append({
-            "cle": k, "tf": tf, "sens": s["setup"],
+            "cle": k, "instrument": instrument, "tf": tf, "sens": s["setup"],
             "entree": s["entree"], "stop": s["stop"], "objectif": s["objectif"],
             "rr_prevu": s.get("rr"), "fiabilite": fiabilite,
             "prix_a_l_emission": prix,
@@ -81,18 +92,23 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
     return True
 
 
-def resoudre(bars_par_tf: dict) -> int:
+def resoudre(bars_par_tf: dict, instrument: str | None = None) -> int:
     """Fait avancer chaque signal ouvert avec les bougies disponibles.
 
-    `bars_par_tf` : {"H4": [...], ...} — les bougies deja en cache du
-    tableau ; aucune requete supplementaire n'est faite ici.
+    `bars_par_tf` : {"H4": [...], ...} — les bougies deja en cache ; aucune
+    requete supplementaire ici. `instrument` limite la resolution a UN
+    instrument (multi-marches) ; None = l'or (les entrees historiques sans
+    champ instrument sont a lui).
     """
+    instrument = instrument or _defaut()
     maintenant = int(dt.datetime.now(dt.timezone.utc).timestamp())
     modifies = 0
     with _VERROU:
         signaux = _charger()
         for s in signaux:
             if s["statut"] not in ("en_attente", "ouvert"):
+                continue
+            if s.get("instrument", _defaut()) != instrument:
                 continue
             bars = bars_par_tf.get(s["tf"]) or []
             apres = [b for b in bars if b["time"] > s["cree_ts"]]

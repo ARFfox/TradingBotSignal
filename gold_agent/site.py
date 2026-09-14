@@ -60,9 +60,15 @@ def grilles_instruments() -> dict:
 
 
 def signaux_actifs(resultats: list, symbole: str) -> list[dict]:
-    """La liste unique des signaux EMIS et encore actifs (non suspendus)."""
+    """La liste unique des signaux EMIS et encore actifs — l'or (collecte
+    temps reel) + le multi-marches (boucle, derniere passe)."""
     inst = instruments.obtenir(symbole)
     out = []
+    try:
+        from .multi import signaux_actifs_multi
+        out.extend(signaux_actifs_multi())
+    except Exception:
+        pass
     for r in resultats:
         st = r.get("setup") or {}
         if not st.get("setup") or st.get("suspendu"):

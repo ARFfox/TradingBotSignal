@@ -295,6 +295,8 @@ def _blocs_onglets(d: dict) -> dict:
     # figurent (le journal n'enregistre que ceux-la : les suspendus et les
     # timeframes coupes n'y entrent jamais). C'est la seule definition qui
     # rend le taux honnete : il mesure ce qui t'a ete recommande.
+    from .instruments import par_defaut as _pd
+    _defaut_inst = _pd().symbole
     ICONES = {"gagnant": ("✅ TP", "ok"), "perdant": ("❌ SL", "ko"),
               "ouvert": ("⏳ en cours", ""), "en_attente": ("🕐 en attente", ""),
               "non_execute": ("⚪ expiré", "")}
@@ -304,12 +306,15 @@ def _blocs_onglets(d: dict) -> dict:
         r_txt = (f'{x["r_obtenu"]:+.2f}' if x.get("r_obtenu") is not None
                  and x["statut"] in ("gagnant", "perdant") else "—")
         estompe = ' style="opacity:.55"' if x["statut"] not in ("gagnant", "perdant") else ""
+        note_x = x.get("decision_chef")
         lignes_h += (f'<tr{estompe}><td>{x["cree_le"][:16].replace("T", " ")}</td>'
+                     f'<td>{x.get("instrument", _defaut_inst)}</td>'
                      f'<td>{x["tf"]}</td><td>{x["sens"]}</td><td>{x["entree"]}</td>'
                      f'<td>{x["stop"]}</td><td>{x["objectif"]}</td>'
+                     f'<td>{note_x if note_x is not None else "—"}%</td>'
                      f'<td class="{cls_h}">{icone}</td><td>{r_txt}</td></tr>')
     if not lignes_h:
-        lignes_h = ('<tr><td colspan="8">aucun signal émis pour l&#39;instant — '
+        lignes_h = ('<tr><td colspan="10">aucun signal émis pour l&#39;instant — '
                     'le journal se remplit à mesure que la règle émet</td></tr>')
 
     resolus = hi.get("resolus", 0)
@@ -349,7 +354,7 @@ def _blocs_onglets(d: dict) -> dict:
 SIGNAUX VALIDÉS</b> — uniquement ce qui t&#39;a été affiché ou notifié. Pas les setups
 rejetés, pas les timeframes coupés : si tu ne l&#39;as pas vu à l&#39;écran, il n&#39;est pas ici.</div>
 {entete_h}
-<table><tr><th>Émis le (UTC)</th><th>TF</th><th>Sens</th><th>Entrée</th><th>SL</th><th>TP</th><th>Résultat</th><th>R</th></tr>
+<table><tr><th>Émis le (UTC)</th><th>Instrument</th><th>TF</th><th>Sens</th><th>Entrée</th><th>SL</th><th>TP</th><th>Note</th><th>Résultat</th><th>R</th></tr>
 {lignes_h}</table>
 <div style="font-size:11.5px;color:#6e7681;margin-top:8px">Les signaux expirés (entrée jamais
 touchée) et en cours ne comptent ni dans le taux ni dans le R : il n&#39;y a rien à y gagner ni à

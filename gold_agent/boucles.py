@@ -157,8 +157,13 @@ def defaut(intervalle_signaux: int = 300) -> list[Boucle]:
     """Les boucles du serveur. La collecte tourne plus souvent que la
     notification : c'est elle qui resout le journal, nourrit la calibration
     et ecrit le rapport quotidien — les TTL par bougie bornent son cout."""
+    from .multi import EtapeMulti
     return [
         Boucle("collecte", "Collecte & résolution", 60.0, _tour_collecte),
         Boucle("signaux", "Surveillance des signaux",
                float(intervalle_signaux), EtapeSignaux()),
+        # Multi-marches (15/09) : crypto complete + rotation Yahoo — la
+        # grosse data d'apprentissage du Superviseur, instrument par
+        # instrument. 10 min par tour, les TTL des feeds bornent le cout.
+        Boucle("multi", "Analyse multi-marchés", 600.0, EtapeMulti()),
     ]

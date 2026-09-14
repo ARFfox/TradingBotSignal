@@ -69,7 +69,10 @@ def noter(st: dict, fiabilite: dict, suspension: str | None,
 
     niveau_fi = (fiabilite or {}).get("niveau", "?")
     bonus_fi = {"mesuré": 20, "indicatif": 10, "déconseillé": -15,
-                "non mesuré": -5}.get(niveau_fi, 0)
+                "non mesuré": -5,
+                # multi-marches : le verdict du protocole note l'instrument
+                "walk-forward autorisé": 15,
+                "walk-forward REFUSÉ": -20}.get(niveau_fi, 0)
     if bonus_fi:
         note += bonus_fi
         composantes.append(f"fiabilité {niveau_fi} {bonus_fi:+d}")

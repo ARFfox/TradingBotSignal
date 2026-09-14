@@ -32,7 +32,9 @@ def carreau(signaux: list[dict], tf: str, instrument: str | None = None,
         instrument = instruments.par_defaut().symbole
     depuis = (maintenant or time.time()) - fenetre_jours * 86400
     resolus = [s for s in signaux
-               if s.get("tf") == tf and (s.get("cree_ts") or 0) >= depuis
+               if s.get("tf") == tf
+               and s.get("instrument", instrument) == instrument
+               and (s.get("cree_ts") or 0) >= depuis
                and s.get("statut") in ("gagnant", "perdant")
                and s.get("r_obtenu") is not None]
     rs = [float(s["r_obtenu"]) for s in resolus]
