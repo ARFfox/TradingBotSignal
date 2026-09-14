@@ -126,6 +126,16 @@ class EtapeSignaux:
             if self.premier or cle in self.connus:
                 continue
             fi = (r.get("fiabilite") or {}).get("niveau", "?")
+            dc = s.get("decision_chef") or {}
+            # Seules les opportunites PROPRES partent au telephone (decision
+            # auto-calibree du Superviseur) — tout reste visible sur le site.
+            if dc and not dc.get("notifiable", True):
+                print(f"[{datetime.now():%H:%M:%S}] signal {r['nom']} "
+                      f"{s['setup']} note {dc.get('pct')}% < seuil — visible "
+                      f"sur le site, pas de push", flush=True)
+                continue
+            if dc.get("pct") is not None:
+                fi = f"{fi} · Superviseur {dc['pct']}%"
             try:
                 svg = _grand_graphique(r)
             except Exception:
@@ -133,7 +143,7 @@ class EtapeSignaux:
             envoye = notify.diffuser(r["nom"], s, d.get("prix"), fi, svg=svg)
             canaux = ", ".join(k for k, v in envoye.items() if v) or "aucun canal"
             print(f"[{datetime.now():%H:%M:%S}] signal {r['nom']} {s['setup']} "
-                  f"entree {s['entree']} (fiabilite: {fi}) -> {canaux}", flush=True)
+                  f"entree {s['entree']} ({fi}) -> {canaux}", flush=True)
         self.connus = actuels
         self.premier = False
 

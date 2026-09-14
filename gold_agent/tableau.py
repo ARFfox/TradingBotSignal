@@ -379,6 +379,16 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         _sig_journal = journal._charger()
     except Exception:
         _sig_journal = []
+    # L'AUTO-CALIBRATION du Superviseur (demande de Mushine, 14/09) : la
+    # grille live et les poids Brier sont calcules AVANT la notation pour
+    # que l'historique reel pese dans chaque note, automatiquement.
+    try:
+        paquet["calibration"] = avis_agents.evaluer(_sig_journal)
+    except Exception:
+        paquet["calibration"] = {}
+    paquet["grille"] = grille_conviction(_sig_journal,
+                                         [t["nom"] for t in TIMEFRAMES])
+    _carreaux_tf = {x["tf"]: x for x in paquet["grille"]}
     try:
         from . import news as _news_av
         _evts_agenda = _news_av.prochains(fenetre_heures=8.0, impact_min="High")
@@ -410,28 +420,26 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         if verdict:
             st["avocat"] = verdict
 
+        # Calibration : l'avis directionnel des agents AVANT la note,
+        # pour que leurs poids Brier mesures pesent dedans.
+        try:
+            st["avis"] = avis_agents.directions(paquet, r)
+        except Exception:
+            st["avis"] = {}
         # --- LA DECISION DU SUPERVISEUR (module decision.py) ------------
-        st["decision_chef"] = noter_decision(st, r.get("fiabilite"),
-                                             suspension, miroir_contre, verdict)
+        st["decision_chef"] = noter_decision(
+            st, r.get("fiabilite"), suspension, miroir_contre, verdict,
+            carreau=_carreaux_tf.get(r["nom"]),
+            calibration=paquet.get("calibration"))
         if miroir_contre or (verdict and verdict["verdict"] == "non_refute"):
             _evt("Superviseur", f"{r['nom']} {st['setup']} émis à "
                  f"{st['decision_chef']['pct']} % malgré des objections — "
                  f"décision pesée, pas bloquée", "alerte")
 
-        # Calibration du Chef : chaque signal emporte l'avis directionnel
-        # des agents — a sa resolution, chaque avis devient un point Brier.
-        try:
-            st["avis"] = avis_agents.directions(paquet, r)
-        except Exception:
-            st["avis"] = {}
         journal.enregistrer(r["nom"], st, prix_actuel or 0,
                             (r.get("fiabilite") or {}).get("niveau", "?"))
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
-    try:
-        paquet["calibration"] = avis_agents.evaluer(_sig_journal)
-    except Exception:
-        paquet["calibration"] = {}
     # SPEC_SITE_V3 §4 : LA liste unique dont derivent toutes les pastilles.
     try:
         from . import site as _site
@@ -439,8 +447,12 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         paquet["marches_site"] = _site.grilles_instruments()
     except Exception:
         paquet["signaux_actifs"], paquet["marches_site"] = [], {}
-    paquet["grille"] = grille_conviction(_sig_journal,
-                                         [t["nom"] for t in TIMEFRAMES])
+    # grille rafraichie apres la boucle : les signaux tout juste emis y figurent
+    try:
+        paquet["grille"] = grille_conviction(journal._charger(),
+                                             [t["nom"] for t in TIMEFRAMES])
+    except Exception:
+        pass
 
 
     paquet["agents"] = agents_live(paquet)

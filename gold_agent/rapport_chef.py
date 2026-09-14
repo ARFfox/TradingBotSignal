@@ -137,8 +137,9 @@ def generer(paquet: dict, signaux: list | None = None) -> str:
 
     L += ["---",
           "*Rapport automatique — le système analyse et notifie, il ne "
-          "passe aucun ordre. Les poids calculés ne gouvernent pas encore "
-          "le consensus (validation en attente).*", ""]
+          "passe aucun ordre. Le Superviseur s'auto-calibre : le journal "
+          "réel et les poids Brier ajustent chaque note, et seules les "
+          "opportunités propres partent au téléphone.*", ""]
     return "\n".join(L)
 
 

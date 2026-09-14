@@ -52,8 +52,10 @@ COMPRENDRE → ÉCRIRE (une chose à la fois) → python3 verif.py → CORRIGER 
 10. Une base d'information mince peut faire douter, jamais rassurer.
 11. Tout backtest inclut les coûts (`cout_pts` or fixe, `cout_pct` ailleurs).
 12. Les poids des agents sont **calculés** (Brier, `gold_agent/avis.py`),
-    jamais choisis — et pas encore appliqués au consensus (validation en
-    attente).
+    jamais choisis. Depuis le 14/09 ils s'appliquent AUTOMATIQUEMENT à la
+    note du Superviseur (`gold_agent/decision.py`), avec le journal 90 j —
+    plus de blocages : une probabilité affichée, composant par composant ;
+    le téléphone ne reçoit que les notes ≥ SEUIL_NOTIFICATION.
 
 ## Données et code
 
@@ -81,5 +83,6 @@ COMPRENDRE → ÉCRIRE (une chose à la fois) → python3 verif.py → CORRIGER 
   incluses). Rapports quotidiens : `~/.gold_agent_rapports/`.
 - Rapports d'edge : `python3 -m research.rapport_edge` et
   `python3 -m research.rapport_strategies` (relancer périodiquement).
-- Décisions en attente de Mushine : « affine verif » · « câble la règle 3 »
-  (grille → émission) · « applique les poids » (Brier → consensus).
+- Décisions en attente de Mushine : « affine verif » (faux positifs du
+  registre) · « câble la règle 3 » (grille → émission) — les poids Brier
+  sont déjà appliqués à la note du Superviseur (14/09).

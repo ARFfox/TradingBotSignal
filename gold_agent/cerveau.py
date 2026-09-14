@@ -461,7 +461,10 @@ def agents_live(d: dict) -> list:
 
     sa = d.get("sante") or {}
     probs = sa.get("problemes") or []
-    lignes = [f"suspension : {(d.get('suspension') or 'levée — émission active')[:80]}"]
+    from .decision import SEUIL_NOTIFICATION as _seuil
+    lignes = [f"vigilance : {(d.get('suspension') or 'aucune — régime normal')[:70]}",
+              f"auto-calibration : journal 90 j + Brier dans chaque note · "
+              f"push ≥ {_seuil} %"]
     for nt, st_ in setups:
         if not st_.get("suspendu"):
             lignes.append(f"VALIDÉ {nt} : {st_['entree']} / SL {st_['stop']} / TP {st_['objectif']}")
