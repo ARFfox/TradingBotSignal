@@ -286,47 +286,11 @@ def _blocs_onglets(d: dict) -> dict:
 
     # Onglet analyse graphique : nos graphiques en grand, avec les zones de
     # la regle superposees — ce que le widget TradingView ne peut pas montrer.
-    btns, charts = "", ""
-    for i, r in enumerate(d["timeframes"]):
-        actif = " actif" if i == 0 else ""
-        btns += f'<button class="tf-btn{actif}" data-c="gc-{r["nom"]}">{r["nom"]}</button>'
-        svg = _grand_graphique(r)
-        s_ = r.get("setup") or {}
-        etat = (f'{s_["setup"].upper()} — entrée {s_["entree"]} · stop {s_["stop"]} · '
-                f'TP {s_["objectif"]} · R:R {s_["rr"]}') if s_.get("setup")                else f'aucun signal — {s_.get("raison", "")}'
-        abc_ = r.get("abc") or {}
-        chips = ['<span style="color:#3fb950">📈 Structure : EMA + S/R + zigzag</span>',
-                 '<span style="color:#a371f7">✏️ Traceur : Fibonacci 38/50/62</span>']
-        if abc_.get("scenario"):
-            chips.append(f'<span style="color:#a371f7">✏️ Traceur : ABC cible {abc_["cible_C"]}</span>')
-        if s_.get("setup"):
-            chips.append('<span style="color:#e3b341">♟️ Stratège : zones entrée/SL/TP</span>')
-            chips.append(f'<span style="color:#1f6feb">🧠 Superviseur : '
-                         f'{"SUSPENDU" if s_.get("suspendu") else "validé"}</span>')
-        barre = ('<div style="font-size:11px;margin:2px 0 8px;display:flex;gap:14px;flex-wrap:wrap">'
-                 + " ".join(chips) + '</div>')
-        charts += (f'<div id="gc-{r["nom"]}" class="grand-chart{actif}">'
-                   f'<div style="font-size:13px;color:#c9d1d9;margin-bottom:2px">'
-                   f'<b>{r["nom"]}</b> · {etat}</div>{barre}{svg}</div>')
-    bloc_graph = f'<div class="tf-btns">{btns}</div>{charts}'
-
-    # Onglet strategies : ce qui a ete mesure, y compris ce qui a ete rejete.
-    bloc_strats = """<div class="strats"><table>
-<tr><th>Couche</th><th>Effet mesuré (H4, ~3 ans, coût 0,3 pt)</th><th>Statut</th></tr>
-<tr><td>Repli sur support en tendance (base)</td><td>70 trades · +0,656R · creux −4,11R</td><td class="ok">active</td></tr>
-<tr><td>Filtre surachat/survente RSI 70/30</td><td>+0,762R · creux −3,10R (−25 %)</td><td class="ok">active</td></tr>
-<tr><td>Contexte du timeframe supérieur</td><td>+16 % d'espérance (H4→Daily)</td><td class="ok">active</td></tr>
-<tr><td>Veto d'extension gradué (score 0-100)</td><td>a évité l'achat au sommet du 24-25/08</td><td class="ok">active</td></tr>
-<tr><td>Veto news à fort impact (calendrier éco)</td><td>non backtestable — protection de spread</td><td class="ok">active</td></tr>
-<tr><td>Macro FRED (taux réels, dollar)</td><td>arguments de débat, poids ≤ 2,5</td><td class="ok">active</td></tr>
-<tr><td>COT — positions des fonds spéculatifs</td><td>tendance + percentile 3 ans</td><td class="ok">active</td></tr>
-<tr><td>Divergence minières (AEM)</td><td>corrélation +0,80 même jour, lead-lag nul</td><td class="ok">confirmation seule</td></tr>
-<tr><td>Filtre Bollinger %B</td><td>+0,762R → +0,352R : dégrade</td><td class="ko">rejetée</td></tr>
-<tr><td>AEM comme prédicteur</td><td>corrélations décalées &lt; 0,12</td><td class="ko">rejetée</td></tr>
-<tr><td>Côté vendeur</td><td>5 trades, espérance négative</td><td class="ko">non validé</td></tr>
-</table></div>"""
-
+    # Les onglets Analyse graphique / Strategies ont ete retires
+    # (14/09) : le grand graphique vit dans les cartes, la grille de
+    # conviction dans Signaux valides.
     hi = d.get("historique") or {}
+
     # SPEC_SITE_V3 §7 — « Signaux validés » : seuls les signaux EMIS y
     # figurent (le journal n'enregistre que ceux-la : les suspendus et les
     # timeframes coupes n'y entrent jamais). C'est la seule definition qui
@@ -349,14 +313,16 @@ def _blocs_onglets(d: dict) -> dict:
                     'le journal se remplit à mesure que la règle émet</td></tr>')
 
     resolus = hi.get("resolus", 0)
-    # Regle 2 de la spec : sous 20 resolus, « echantillon insuffisant » A LA
-    # PLACE du pourcentage — un taux sur 3 signaux est du bruit.
-    if resolus >= 20 and hi.get("taux_reussite_pct") is not None:
+    # Definition de Mushine (14/09) : TP touche = positif, SL touche =
+    # negatif, pourcentage du cumul des deux — toujours affiche, avec
+    # l'effectif juste en dessous (un % sans effectif serait trompeur).
+    if resolus and hi.get("taux_reussite_pct") is not None:
         taux_txt = f'{hi["taux_reussite_pct"]}%'
-        taux_sous = f'({resolus} résolus)'
+        taux_sous = (f'{hi.get("gagnants", 0)} TP ✅ / '
+                     f'{hi.get("perdants", 0)} SL ❌ ({resolus} résolus)')
     else:
-        taux_txt = "échantillon<br>insuffisant"
-        taux_sous = f'({resolus} résolus — il en faut 20)'
+        taux_txt = "—"
+        taux_sous = "aucun signal résolu encore"
     rs_ = [x.get("r_obtenu") or 0 for x in hi.get("derniers", [])
            if x.get("statut") in ("gagnant", "perdant")]
     gains_ = sum(r for r in rs_ if r > 0)
@@ -374,7 +340,7 @@ def _blocs_onglets(d: dict) -> dict:
                 'padding:8px;margin-bottom:12px">'
                 + _stat(f'{hi.get("cumul_R", 0):+.2f}R', "R cumulé",
                         "la mesure qui compte")
-                + _stat(taux_txt, "taux de réussite", taux_sous)
+                + _stat(taux_txt, "signaux validés par les agents", taux_sous)
                 + _stat(f'{resolus} / {hi.get("total_emis", 0)}', "résolus / émis")
                 + _stat(pf_txt, "profit factor") + '</div>')
 
@@ -389,8 +355,8 @@ rejetés, pas les timeframes coupés : si tu ne l&#39;as pas vu à l&#39;écran,
 touchée) et en cours ne comptent ni dans le taux ni dans le R : il n&#39;y a rien à y gagner ni à
 y perdre. Bougie touchant stop ET objectif = perte (convention prudente du backtest).</div></div>"""
 
-    return {"news": bloc_news, "graph": bloc_graph,
-            "strats": bloc_strats + _bloc_grille(d), "histo": bloc_histo,
+    return {"news": bloc_news,
+            "histo": bloc_histo + _bloc_grille(d),
             "boule": boule, "widget": widget}
 
 

@@ -79,6 +79,16 @@ def _carte(r: dict) -> str:
             h.append(f'<div class="al {cl}">{txt}</div>')
         h.append("</div>")
 
+    dc = (r.get("setup") or {}).get("decision_chef")
+    if dc:
+        pct = dc["pct"]
+        coul_dc = "#3fb950" if pct >= 65 else ("#d29922" if pct >= 45 else "#f85149")
+        det = " · ".join(dc.get("composantes", [])[:4])
+        h.append(f'<div class="ict-ligne">🧠 Décision du Superviseur : '
+                 f'<b style="color:{coul_dc}">{pct} %</b>'
+                 + (f' <span style="color:#8b949e">({det})</span>' if det else "")
+                 + '</div>')
+
     im = (r.get("setup") or {}).get("intermarche")
     if im:
         fiab_txt = "" if im.get("fiable") else " · base mince"
@@ -118,7 +128,7 @@ def _carte(r: dict) -> str:
         h.append(f'<div class="al chaud" style="margin-top:6px">{r["erreur"]}</div>')
 
     h.append("</div>")
-    h.append(f'<div class="chart">{_chandeliers(r.get("bougies", []), s)}</div>')
+    h.append(f'<div class="chart" style="overflow-x:auto">{_grand_graphique(r)}</div>')
     h.append("</div>")
     return "".join(h)
 
@@ -306,7 +316,9 @@ def _cases_agents(d: dict) -> str:
                 pire = "#f85149"
             elif coul == "#d29922" and pire != "#f85149":
                 pire = "#d29922"
-            nom = a["nom"] if a else code
+            NOMS = {"AG-11": "Forex", "AG-12": "Crypto", "AG-13": "Matières",
+                    "AG-14": "Actions", "AG-15": "Intermarchés"}
+            nom = a["nom"] if a else NOMS.get(code, code)
             conv = f'{a["conviction"]}%' if a else "—"
             bord = "1px dashed #484f58" if not vivant else "1px solid #30363d"
             detail = (a["activites"][0][:60] if a and a.get("activites") else "aucune donnée")

@@ -99,6 +99,8 @@ REGISTRE = {i.symbole: i for i in [
        dec=3, tick=0.001, cout=0.018),
     _i("EUR/GBP", "Euro / livre", "forex", "OANDA:EURGBP", "EURGBP=X",
        dec=5, tick=0.00001, cout=0.013),
+    _i("EUR/CHF", "Euro / franc suisse", "forex", "OANDA:EURCHF", "EURCHF=X",
+       dec=5, tick=0.00001, cout=0.015),
     _i("EUR/AUD", "Euro / aussie", "forex", "OANDA:EURAUD", "EURAUD=X",
        dec=5, tick=0.00001, cout=0.018),
     _i("AUD/JPY", "Aussie / yen", "forex", "OANDA:AUDJPY", "AUDJPY=X",

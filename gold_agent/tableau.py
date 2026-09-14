@@ -12,6 +12,7 @@ import time
 from . import avis as avis_agents, avocat, config, datasource as ds, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
 from .cerveau import (_consensus, _notifier_reparations, _sante,  # noqa: F401
                       agents_live, grille_conviction)
+from .decision import noter as noter_decision
 
 # Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
 # cache, chaque rechargement en consomme 4 et le quota saute en quelques
@@ -196,17 +197,10 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
                 {"time": b["t"], "high": b["h"], "low": b["l"], "close": b["c"]}
                 for b in r["bougies"]]
         r["emission"] = r["nom"] in tf_autorises
-        st = r.get("setup") or {}
-        if st.get("setup"):
-            if r["nom"] not in tf_autorises:
-                st["suspendu"] = (f"émission désactivée pour {r['nom']} "
-                                  f"(backtest insuffisant ou négatif)")
-            elif suspension:
-                st["suspendu"] = suspension
-            # L'enregistrement au journal est DIFFERE apres le verdict du
-            # Miroir (etape 5) : un signal bloque par l'intermarche ne doit
-            # jamais y entrer, et un signal valide doit y entrer AVEC son
-            # champ intermarche pour qu'on puisse mesurer l'apport du Miroir.
+        # Plus AUCUN verrou sur les setups (decision de Mushine, 14/09) :
+        # le Superviseur pese les avis (Miroir, Avocat, Vigie, fiabilite)
+        # dans une DECISION chiffree — voir l'etape 5. La vigilance
+        # (regime, serie perdante) reste affichee et pese dans la note.
     d0 = _tps.perf_counter()
     try:
         n_res = journal.resoudre(bars_par_tf)
@@ -261,62 +255,66 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     paquet["constellation"] = None
     sens_courant = "achat" if paquet["consensus"]["pct_haussier"] >= 50 else "vente"
     memo = globals().setdefault("_MEMO_CONSTELLATION", {})
-    if memo.get("paquet") is not None and             _tps.time() - memo.get("t", 0) < 600 and memo.get("sens") == sens_courant:
+    if memo.get("paquet") is not None and \
+            _tps.time() - memo.get("t", 0) < 600 and memo.get("sens") == sens_courant:
+        # Raccourci : on REUTILISE la constellation memorisee, mais on ne
+        # retourne PAS — le return anticipe d'origine sautait tout ce qui
+        # suit (marches, Miroir/Avocat/journal, grille, calibration,
+        # rattrapage, rapport) pendant 10 minutes apres chaque calcul.
         paquet["constellation"] = memo["paquet"]
         chrono["constellation"] = chrono.get("constellation", 0.0)
         paquet["chrono"]["constellation"] = 0.0
-        paquet["agents"] = agents_live(paquet)
-        return paquet
-    try:
-        from . import constellation_source
-        import sys as _sys
-        _racine = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
-        if _racine not in _sys.path:
-            _sys.path.insert(0, _racine)
-        from constellation_agent import Constellation, Miroir, biais_provisoire
+    else:
+        try:
+            from . import constellation_source
+            import sys as _sys
+            _racine = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
+            if _racine not in _sys.path:
+                _sys.path.insert(0, _racine)
+            from constellation_agent import Constellation, Miroir, biais_provisoire
 
-        px = constellation_source.prix()
-        if px is not None and "GC=F" in px.columns:
-            ag = Constellation(px)
-            # Phase 1 : le biais vient d'AG-02 Structure (pivots HH/HL + EMA
-            # auto-calibrees) des que le cache OHLC existe. Repli sur le
-            # provisoire tant que le cache est de l'ancienne generation —
-            # biais_provisoire n'est PAS supprime (INTEGRATION_AG09 §10).
-            po = constellation_source.ohlc()
-            if po is not None:
-                from . import biais_structure
-                biais = biais_structure.biais_membres(po)
-                source_biais = "AG-02 Structure (pivots + EMA calibrées)"
-            else:
-                biais = biais_provisoire(px)
-                source_biais = "provisoire (EMA 20/50) — cache OHLC en construction"
-            mi = Miroir(ag)
-            g = ag.groupes("GC=F")
+            px = constellation_source.prix()
+            if px is not None and "GC=F" in px.columns:
+                ag = Constellation(px)
+                # Phase 1 : le biais vient d'AG-02 Structure (pivots HH/HL + EMA
+                # auto-calibrees) des que le cache OHLC existe. Repli sur le
+                # provisoire tant que le cache est de l'ancienne generation —
+                # biais_provisoire n'est PAS supprime (INTEGRATION_AG09 §10).
+                po = constellation_source.ohlc()
+                if po is not None:
+                    from . import biais_structure
+                    biais = biais_structure.biais_membres(po)
+                    source_biais = "AG-02 Structure (pivots + EMA calibrées)"
+                else:
+                    biais = biais_provisoire(px)
+                    source_biais = "provisoire (EMA 20/50) — cache OHLC en construction"
+                mi = Miroir(ag)
+                g = ag.groupes("GC=F")
 
-            # Le sens teste est celui du consensus courant, pas une hypothese.
-            sens = "achat" if paquet["consensus"]["pct_haussier"] >= 50 else "vente"
-            score = mi.evaluer("GC=F", sens, biais)
+                # Le sens teste est celui du consensus courant, pas une hypothese.
+                sens = "achat" if paquet["consensus"]["pct_haussier"] >= 50 else "vente"
+                score = mi.evaluer("GC=F", sens, biais)
 
-            paquet["constellation"] = {
-                "sens_teste": sens,
-                "satellites": [vars(m) for m in g["satellites"]],
-                "miroirs": [vars(m) for m in g["miroirs"]],
-                "n_decouples": len(g["decouples"]),
-                "clusters": ag.clusters("GC=F"),
-                "score": vars(score),
-                "biais": biais,
-                "source_biais": source_biais,
-                "ruptures": ag.ruptures(),
-                "perime": getattr(px, "attrs", {}).get("perime", False),
-            }
-            ag.sauver()
-        memo["paquet"] = paquet["constellation"]
-        memo["t"] = _tps.time()
-        memo["sens"] = sens_courant
-    except Exception as e:
-        _evt("Constellation", f"indisponible : {str(e)[:90]}", "alerte")
-    chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
-    paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
+                paquet["constellation"] = {
+                    "sens_teste": sens,
+                    "satellites": [vars(m) for m in g["satellites"]],
+                    "miroirs": [vars(m) for m in g["miroirs"]],
+                    "n_decouples": len(g["decouples"]),
+                    "clusters": ag.clusters("GC=F"),
+                    "score": vars(score),
+                    "biais": biais,
+                    "source_biais": source_biais,
+                    "ruptures": ag.ruptures(),
+                    "perime": getattr(px, "attrs", {}).get("perime", False),
+                }
+                ag.sauver()
+            memo["paquet"] = paquet["constellation"]
+            memo["t"] = _tps.time()
+            memo["sens"] = sens_courant
+        except Exception as e:
+            _evt("Constellation", f"indisponible : {str(e)[:90]}", "alerte")
+        chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
+        paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
 
     # --- AG-17 Rattrapage (SPEC_V2 §2B) --------------------------------
     # Paires a correlation STABLE seulement ; le taux de fermeture est
@@ -391,42 +389,43 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         st = r.get("setup") or {}
         if not st.get("setup"):
             continue
-        if sc_ and cst.get("sens_teste") == st["setup"] and not st.get("suspendu"):
-            if sc_.get("bloque"):
-                st["suspendu"] = ("contradiction intermarché : "
-                                  + str(sc_.get("motif", ""))[:110])
-                _evt("Miroir", f"{r['nom']} {st['setup']} BLOQUÉ — "
-                     f"{len(sc_.get('contredisent', []))} actifs contredisent", "veto")
-            else:
-                st["intermarche"] = {
-                    "score": sc_.get("score"), "base": sc_.get("base"),
-                    "fiable": sc_.get("fiable"),
-                    "facteur": sc_.get("facteur_confiance", 1.0)}
-        # L'Avocat du diable examine tout setup encore vivant : une objection
-        # majeure non refutee bloque, les autres sont montrees sur la carte.
-        if not st.get("suspendu"):
-            try:
-                verdict = avocat.examiner(r, _sig_journal, _evts_agenda)
-            except Exception as e:
-                verdict = None
-                _evt("Avocat", f"examen impossible : {str(e)[:60]}", "warn")
-            if verdict:
-                st["avocat"] = verdict
-                if verdict["verdict"] == "non_refute":
-                    st["suspendu"] = ("avocat du diable : "
-                                      + str(verdict["motif_blocage"])[:110])
-                    _evt("Avocat", f"{r['nom']} {st['setup']} BLOQUÉ — "
-                         f"{verdict['motif_blocage'][:70]}", "veto")
-        if not st.get("suspendu"):
-            # Calibration du Chef : le signal emporte l'avis directionnel
-            # des agents au moment de l'emission — a sa resolution, chaque
-            # avis devient un point de mesure du score de Brier.
-            try:
-                st["avis"] = avis_agents.directions(paquet, r)
-            except Exception:
-                st["avis"] = {}
-            journal.enregistrer(r["nom"], st, prix_actuel or 0,
-                                (r.get("fiabilite") or {}).get("niveau", "?"))
+        # Le Miroir attache toujours sa lecture (jamais un verrou).
+        miroir_contre = False
+        if sc_ and cst.get("sens_teste") == st["setup"]:
+            st["intermarche"] = {
+                "score": sc_.get("score"), "base": sc_.get("base"),
+                "fiable": sc_.get("fiable"),
+                "facteur": sc_.get("facteur_confiance", 1.0)}
+            miroir_contre = bool(sc_.get("bloque"))
+            if miroir_contre:
+                _evt("Miroir", f"{r['nom']} {st['setup']} contredit par "
+                     f"{len(sc_.get('contredisent', []))} actifs — le "
+                     f"Superviseur en tient compte", "alerte")
+        # L'Avocat verse ses objections au dossier — il ne bloque plus.
+        try:
+            verdict = avocat.examiner(r, _sig_journal, _evts_agenda)
+        except Exception as e:
+            verdict = None
+            _evt("Avocat", f"examen impossible : {str(e)[:60]}", "warn")
+        if verdict:
+            st["avocat"] = verdict
+
+        # --- LA DECISION DU SUPERVISEUR (module decision.py) ------------
+        st["decision_chef"] = noter_decision(st, r.get("fiabilite"),
+                                             suspension, miroir_contre, verdict)
+        if miroir_contre or (verdict and verdict["verdict"] == "non_refute"):
+            _evt("Superviseur", f"{r['nom']} {st['setup']} émis à "
+                 f"{st['decision_chef']['pct']} % malgré des objections — "
+                 f"décision pesée, pas bloquée", "alerte")
+
+        # Calibration du Chef : chaque signal emporte l'avis directionnel
+        # des agents — a sa resolution, chaque avis devient un point Brier.
+        try:
+            st["avis"] = avis_agents.directions(paquet, r)
+        except Exception:
+            st["avis"] = {}
+        journal.enregistrer(r["nom"], st, prix_actuel or 0,
+                            (r.get("fiabilite") or {}).get("niveau", "?"))
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
     try:

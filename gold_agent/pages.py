@@ -154,8 +154,10 @@ font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .tuile-inst{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12px}
 .tuile-inst:hover{border-color:#58a6ff}
 .tuile-inst.actif{border-color:#1f6feb;box-shadow:0 0 0 1px #1f6feb}
-.tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:8px;
-padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tf-nav{grid-column:1/-1;display:flex;flex-direction:row;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:10px;
+width:64px;height:48px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .tfb.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
 .tfb .bip{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:99px;
 background:#f85149;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;

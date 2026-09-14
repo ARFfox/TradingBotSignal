@@ -63,10 +63,10 @@ def _sante(resultats: list, usage, quote) -> dict:
     donnees_ok = sum(1 for r in resultats if not r.get("erreur"))
     agent("Prix & bougies", "cotations et historique 5 timeframes",
           "Twelve Data (5 clés en rotation)", donnees_ok == len(resultats),
-          f"{donnees_ok}/{len(resultats)} timeframes servis", "📊", "p-graph")
+          f"{donnees_ok}/{len(resultats)} timeframes servis", "📊", None)
     q_ok = bool(quote) and quote.get("age", 999) < 120
     agent("Prix direct", "dernier prix traité (15 s)", "Twelve Data /quote",
-          q_ok, f"âge {quote.get('age','?')} s" if quote else "indisponible", "💹", "p-graph")
+          q_ok, f"âge {quote.get('age','?')} s" if quote else "indisponible", "💹", None)
     if usage and usage.get("limite"):
         restant = usage["restant"]
         agent("Quota API", "suivi de la consommation réelle", "Twelve Data /api_usage",
@@ -117,7 +117,7 @@ def _sante(resultats: list, usage, quote) -> dict:
                     f"les signaux recents ne fonctionnent pas dans ce regime")
     agent("Stratégie", "règle mécanique, filtres, garde-fou",
           "interne (backtesté : +0,76R H4/3 ans)", True,
-          "voir l'onglet Stratégies", "♟️", "p-strats")
+          "règle mesurée (voir CLAUDE.md)", "♟️", None)
     agent("Journal & historique", "suivi de chaque signal jusqu'au dénouement",
           "interne", journal_ok, detail_j, "📜", "p-histo")
 

@@ -71,6 +71,8 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
             # Avis directionnels des agents a l'emission — la matiere du
             # score de Brier du Chef d'orchestre (poids calcules).
             "avis": s.get("avis") or {},
+            # La decision chiffree du Superviseur au moment de l'emission
+            "decision_chef": (s.get("decision_chef") or {}).get("pct"),
             # SPEC_SITE_V3 §7 : le journal ne contient QUE des signaux
             # emis (les suspendus n'y entrent jamais) — le champ le grave.
             "emis": True,

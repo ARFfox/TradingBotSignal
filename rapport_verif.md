@@ -10,9 +10,9 @@ la sortie n'est pas verte.
   - piste : la fonction doit recevoir un Instrument en parametre
 - **gold_agent/instruments.py:68** — symbole cable en dur : td="XAU/USD", point=100.0, dec=2, cout=0.007),
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:170** — symbole cable en dur : return REGISTRE["XAU/USD"]
+- **gold_agent/instruments.py:172** — symbole cable en dur : return REGISTRE["XAU/USD"]
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:191** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
+- **gold_agent/instruments.py:193** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre

@@ -33,11 +33,8 @@ def rendre(d: dict) -> str:
              else f"prix il y a {age}s") if q else ""
 
     _onglets = _blocs_onglets(d)
-    bloc_news, bloc_graph = _onglets["news"], _onglets["graph"]
-    bloc_strats, bloc_histo = _onglets["strats"], _onglets["histo"]
+    bloc_news, bloc_histo = _onglets["news"], _onglets["histo"]
     boule, widget = _onglets["boule"], _onglets["widget"]
-    bloc_constel = _bloc_constellation(d)
-    bloc_marches = _bloc_marches(d)
 
     sa = d.get("sante") or {}
     ags = ""
@@ -75,11 +72,7 @@ def rendre(d: dict) -> str:
     # force-directed mesure reste en dessous pour explorer les relations.
     bloc_cerveau = (_cases_agents(d)
                     + _bloc_rapport()
-                    + panneau
-                    + '<div style="font-size:11px;color:#6e7681;margin:10px 0 6px">'
-                      'Exploration — le réseau mesuré (taille = conviction, '
-                      'rouge animé = blocage, gris = agent muet) :</div>'
-                    + _fragment_graphe())
+                    + panneau)
 
     u = d.get("usage") or {}
     if u.get("limite"):
@@ -133,18 +126,10 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <div class="haut-page">{boule}{widget}</div>
 <div class="onglets">
 <button class="onglet actif" data-p="p-risque">Risque événementiel</button>
-<button class="onglet" data-p="p-graph">Analyse graphique</button>
-<button class="onglet" data-p="p-strats">Stratégies</button>
 <button class="onglet" data-p="p-histo">Signaux validés</button>
-<button class="onglet" data-p="p-constel">Constellation</button>
-<button class="onglet" data-p="p-marches">Marchés</button>
 </div>
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
-<div id="p-graph" class="panneau">{bloc_graph}</div>
-<div id="p-strats" class="panneau">{bloc_strats}</div>
 <div id="p-histo" class="panneau">{bloc_histo}</div>
-<div id="p-constel" class="panneau">{bloc_constel}</div>
-<div id="p-marches" class="panneau">{bloc_marches}</div>
 <div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
 <div class="grille">{cartes}</div>
 <footer>

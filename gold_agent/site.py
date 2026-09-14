@@ -44,7 +44,7 @@ def grilles_instruments() -> dict:
                     veille = float(serie.iloc[-2])
                     if veille:
                         variation = round((prix / veille - 1) * 100, 2)
-            tuiles.append({"cle": inst.cle, "libelle": inst.symbole,
+            tuiles.append({"cle": inst.cle, "libelle": inst.symbole,  # noqa: E501
                            "nom": inst.nom, "marche": marche,
                            "tv": inst.code_pour("tv"),
                            "binance": (inst.code_pour("binance")
@@ -52,6 +52,9 @@ def grilles_instruments() -> dict:
                                        else None),
                            "decimales": inst.decimales,
                            "prix": prix, "variation_pct": variation})
+        if marche in ("crypto", "actions"):
+            # demande de Mushine : « ce qui bouge trop » en premier
+            tuiles.sort(key=lambda t: -abs(t["variation_pct"] or 0))
         out[marche] = tuiles
     return out
 
