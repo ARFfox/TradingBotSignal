@@ -256,3 +256,113 @@ def _grille(d: dict) -> str:
             + "".join(_carte(r) for r in d["timeframes"]))
 
 
+
+
+# Couches de lecture du schema en cases — memes familles que graphe_agents.
+COUCHES_CASES = [
+    ("PERCEPTION", ["AG-01", "AG-02", "AG-04", "AG-05"]),
+    ("MARCHÉS", ["AG-11", "AG-12", "AG-13", "AG-14"]),
+    ("RELATIONS", ["AG-09", "AG-15", "AG-10"]),
+    ("CRITIQUE", ["AG-16"]),
+    ("DÉCISION", ["AG-03", "AG-06", "AG-07"]),
+]
+
+
+def _cases_agents(d: dict) -> str:
+    """SPEC_SITE_V3 §6 : le panneau principal du Cerveau — un schema en
+    CASES figees (CSS grid, traits SVG), lisible d'un coup d'oeil.
+
+    - point de couleur = statut : vert actif · jaune veille · rouge blocage
+      · gris muet ; un agent muet garde sa case, en pointilles — JAMAIS
+      masque (une case absente ressemble a un agent qui n'existe pas)
+    - pas d'icones, pas de moteur physique : les cases ne bougent pas
+    - clic sur une case -> le panneau de l'agent
+    """
+    par_code = {a.get("code"): a for a in (d.get("agents") or [])}
+
+    def _etat(a: dict | None) -> tuple[str, str, bool]:
+        """(couleur du point, libelle, vivant)"""
+        if not a:
+            return "#484f58", "muet", False
+        st = str(a.get("statut", "")).upper()
+        if st in ("BLOCAGE",):
+            return "#f85149", st, True
+        if st in ("VEILLE", "OBSERVATION", "COMPUTING", "PERIME", "OBJECTION"):
+            return "#d29922", st, True
+        if st in ("MUET", "INITIALISATION", "PANNE"):
+            return "#484f58", st, False
+        return "#3fb950", st or "ACTIF", True
+
+    n = len(COUCHES_CASES)
+    colonnes = ""
+    couleurs_traits = []
+    for titre, codes in COUCHES_CASES:
+        cases = ""
+        pire = "#30363d"
+        for code in codes:
+            a = par_code.get(code)
+            coul, st, vivant = _etat(a)
+            if coul == "#f85149":
+                pire = "#f85149"
+            elif coul == "#d29922" and pire != "#f85149":
+                pire = "#d29922"
+            nom = a["nom"] if a else code
+            conv = f'{a["conviction"]}%' if a else "—"
+            bord = "1px dashed #484f58" if not vivant else "1px solid #30363d"
+            detail = (a["activites"][0][:60] if a and a.get("activites") else "aucune donnée")
+            cases += (
+                f'<div onclick="allerOnglet(&#39;p-cerveau&#39;)" title="{detail}" '
+                f'style="border:{bord};border-radius:8px;padding:7px 9px;margin:5px 0;'
+                f'background:#0d1117;cursor:pointer;font-size:11.5px">'
+                f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+                f'background:{coul};margin-right:6px"></span>'
+                f'<b>{code}</b> {nom}'
+                f'<span style="float:right;color:#8b949e">{conv}</span></div>')
+        couleurs_traits.append(pire)
+        colonnes += (f'<div><div style="font-size:10px;letter-spacing:.1em;'
+                     f'color:#6e7681;margin-bottom:4px">{titre}</div>{cases}</div>')
+
+    # Traits SVG : chaque couche converge vers le Superviseur. Rouge si la
+    # couche porte un blocage, jaune si une contradiction, gris sinon.
+    traits = "".join(
+        f'<line x1="{(i + 0.5) * 1000 / n:.0f}" y1="0" x2="500" y2="54" '
+        f'stroke="{c}" stroke-width="{3 if c != "#30363d" else 1.5}"/>'
+        for i, c in enumerate(couleurs_traits))
+
+    a00 = par_code.get("AG-00")
+    c00, st00, _ = _etat(a00)
+    setups = [x for x in (d.get("signaux_actifs") or [])]
+    if not setups:
+        for r in d.get("timeframes", []):
+            st_ = r.get("setup") or {}
+            if st_.get("setup") and not st_.get("suspendu"):
+                setups.append({"tf": r["nom"], "sens": st_["setup"],
+                               "entree": st_.get("entree")})
+    if setups:
+        s0 = setups[0]
+        signal_txt = (f'{len(setups)} signal(aux) — {s0.get("tf")} '
+                      f'{s0.get("sens")} @ {s0.get("entree")}')
+        coul_sig = "#3fb950"
+    else:
+        signal_txt = "aucun signal émis en ce moment"
+        coul_sig = "#8b949e"
+
+    return (
+        '<div style="background:#010409;border:1px solid #21262d;border-radius:10px;'
+        'padding:14px;margin-bottom:14px">'
+        f'<div style="display:grid;grid-template-columns:repeat({n},1fr);gap:12px">'
+        f'{colonnes}</div>'
+        f'<svg viewBox="0 0 1000 54" preserveAspectRatio="none" '
+        f'style="display:block;width:100%;height:54px">{traits}</svg>'
+        f'<div style="max-width:340px;margin:0 auto;text-align:center;'
+        f'border:1.5px solid {c00};border-radius:10px;padding:10px;background:#0d1117">'
+        f'<span style="display:inline-block;width:9px;height:9px;border-radius:50%;'
+        f'background:{c00};margin-right:6px"></span>'
+        f'<b>AG-00 SUPERVISEUR</b> — probabilité + opportunité'
+        f'<div style="color:#8b949e;font-size:11.5px;margin-top:3px">{st00} · '
+        f'conviction {a00["conviction"] if a00 else "—"}%</div></div>'
+        f'<div style="text-align:center;color:#6e7681;font-size:16px">▼</div>'
+        f'<div style="max-width:340px;margin:0 auto;text-align:center;'
+        f'border:1px solid {coul_sig};border-radius:10px;padding:9px;'
+        f'color:{coul_sig};font-size:12.5px;background:#0d1117">'
+        f'<b>SIGNAL ÉMIS</b> — {signal_txt}</div></div>')

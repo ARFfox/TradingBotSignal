@@ -10,9 +10,8 @@ import time
 from datetime import datetime
 
 from . import config as _cfg, datasource as ds, notify, tableau
-from .blocs import (_boule, _carte, _fragment_graphe, _grille,
+from .blocs import (_boule, _carte, _cases_agents, _fragment_graphe, _grille,
                     _panneau_agents, WIDGET_TV)
-from .cerveau_js import CERVEAU_JS  # noqa: F401
 from .onglets import _bloc_constellation, _bloc_marches, _blocs_onglets
 from .pages import CSS
 
@@ -67,36 +66,16 @@ def rendre(d: dict) -> str:
     if recos:
         diag += ('<br><br><b>Recommandations</b> (à mesurer avant application — le système '
                  'ne se modifie jamais seul) :<br>' + "<br>".join(f"→ {x}" for x in recos))
-    import json as _json
-    EMO = {"AG-01": "📡", "AG-02": "📈", "AG-03": "♟️", "AG-04": "✏️",
-           "AG-05": "⛏️", "AG-06": "🎲", "AG-07": "💡", "AG-00": "🧠",
-           "AG-09": "🌌", "AG-10": "🪞", "AG-16": "😈", "AG-11": "💱",
-           "AG-12": "🪙", "AG-13": "🥇", "AG-14": "📊", "AG-15": "🕸️"}
-    donnees_cerveau = _json.dumps({"agents": [
-        {"nom": a["nom"], "ok": True, "detail": a["activites"][0][:80],
-         "emoji": EMO.get(a["code"], "🤖"), "cible": None, "coul": a["coul"]}
-        for a in (d.get("agents") or []) if a["code"] != "AG-00"]}, ensure_ascii=False)
-    canvas = (f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;'
-              f'margin-bottom:14px;overflow:hidden;position:relative">'
-              f'<button id="btn-rotation" class="tf-btn" '
-              f'style="position:absolute;top:10px;right:10px;z-index:2">&#9208; figer</button>'
-              f'<div style="position:absolute;top:12px;left:14px;font-size:11.5px;color:#6e7681">'
-              f'clique un agent pour ouvrir sa page</div>'
-              f'<canvas id="cerveau3d" style="width:100%;height:440px;display:block"></canvas></div>'
-              f'<script id="donnees-cerveau" type="application/json">{donnees_cerveau}</script>'
-              f'<script src="/cerveau.js" defer></script>')
     panneau = _panneau_agents(d)
-    # Anciennes cartes + bloc superviseur retires : les agents live couvrent
-    # tout, et le superviseur notifie ses corrections.
-    bloc_cerveau = (panneau
+    # SPEC_SITE_V3 §6 : le panneau principal est le schema en CASES, fige
+    # et lisible d'un coup d'oeil (la demo 3D est retiree). Le graphe
+    # force-directed mesure reste en dessous pour explorer les relations.
+    bloc_cerveau = (_cases_agents(d)
+                    + panneau
                     + '<div style="font-size:11px;color:#6e7681;margin:10px 0 6px">'
-                      'Le réseau des agents — tout ce qui est visible est mesuré '
-                      'à l&#39;instant du rendu (taille = conviction, rouge animé = blocage, '
-                      'gris = agent muet) :</div>'
-                    + _fragment_graphe()
-                    + '<div style="font-size:11px;color:#6e7681;margin:14px 0 6px">'
-                      'Démonstration — les agents et leurs liaisons en 3D :</div>'
-                    + canvas)
+                      'Exploration — le réseau mesuré (taille = conviction, '
+                      'rouge animé = blocage, gris = agent muet) :</div>'
+                    + _fragment_graphe())
 
     u = d.get("usage") or {}
     if u.get("limite"):

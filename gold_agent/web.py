@@ -29,7 +29,6 @@ from .blocs import (_boule, _carte, _fragment_graphe,  # noqa: F401
 from .onglets import (_bloc_constellation, _bloc_marches,  # noqa: F401
                       _blocs_onglets)
 from .blocs import WIDGET_TV  # noqa: F401
-from .cerveau_js import CERVEAU_JS  # noqa: F401
 
 from .rendu import rendre, surveiller  # noqa: F401
 
@@ -158,14 +157,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._repondre(corps, "application/json; charset=utf-8")
             return
 
-        if self.path.startswith("/cerveau.js"):
-            corps = CERVEAU_JS.encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/javascript; charset=utf-8")
-            self.send_header("Content-Length", str(len(corps)))
-            self.end_headers()
-            self.wfile.write(corps)
-            return
         if self.path.startswith("/json"):
             # On renvoie les donnees ET le HTML des cartes dans la meme reponse :
             # une seule requete, et le rendu reste ecrit a un seul endroit
