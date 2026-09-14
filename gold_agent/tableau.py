@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import avocat, config, datasource as ds, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
+from . import avis as avis_agents, avocat, config, datasource as ds, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
 from .cerveau import (_consensus, _notifier_reparations, _sante,  # noqa: F401
                       agents_live, grille_conviction)
 
@@ -36,9 +36,9 @@ def _evt(agent: str, texte: str, niveau: str = "info") -> None:
 def evenements() -> list:
     with _EV_VERROU:
         return list(_EVENEMENTS)
-from .quota import (PROFILS, TTL_PLANCHER, _avec_prix_direct,  # noqa: F401
-                    _bars_caches, _ttl, budget, definir_profil,
-                    ttl_effectifs)
+from .quota import (FIABILITE, PROFILS, TTL_PLANCHER,  # noqa: F401
+                    _avec_prix_direct, _bars_caches, _ttl, budget,
+                    definir_profil, ttl_effectifs)
 
 
 TIMEFRAMES = [
@@ -57,22 +57,6 @@ TIMEFRAMES = [
     {"tf": "5", "nom": "M5", "role": "Scalp", "mtf": 12,
      "params": dict(ema_fast=20, ema_slow=50, pivot_span=2, delai_max=60)},
 ]
-
-# Fiabilité mesurée par backtest — affichée à côté de chaque signal pour que
-# la confiance accordée soit proportionnée aux preuves.
-FIABILITE = {
-    "H4": {"trades": 19, "esperance": 1.117, "pf": None, "creux": None,
-           "note": "3 ans, stop 1,5 ATR : +1,12R", "niveau": "mesuré"},
-    "H1": {"trades": 10, "esperance": 0.583, "pf": None, "creux": None,
-           "note": "stop 1,5 ATR : +0,58R, échantillon faible", "niveau": "indicatif"},
-    "M30": {"trades": 25, "esperance": 0.626, "pf": 2.38, "creux": -3.13,
-            "note": "104 j, +0,63R", "niveau": "indicatif"},
-    "M15": {"trades": 28, "esperance": 0.058, "pf": 1.09, "creux": -11.37,
-            "note": "espérance ~0, creux −11R", "niveau": "déconseillé"},
-    "M5": {"trades": 21, "esperance": 0.340, "pf": 1.60, "creux": -4.33,
-           "note": "17 j seulement", "niveau": "non mesuré"},
-}
-
 
 def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     if symbole is None:
@@ -373,6 +357,34 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     chrono["constellation"] = chrono.get("constellation", 0.0) + (_tps.perf_counter() - d0)
     paquet["chrono"]["constellation"] = round(chrono["constellation"] * 1000, 1)
 
+    # --- les 4 marches + matrice intermarches (AG-11..15) -----------------
+    # INTEGRATION_MARCHES.md : meme cache disque que la constellation,
+    # jamais de telechargement au rendu, jamais Twelve Data.
+    d0 = _tps.perf_counter()
+    paquet["marches"] = None
+    try:
+        from . import constellation_source
+        from agents_marches import MatriceMarches, CODES
+        px = constellation_source.prix()
+        if px is not None:
+            mm = MatriceMarches(px)
+            paquet["marches"] = {
+                "tuiles": mm.tuiles(),
+                "grilles": {k: [vars(c) for c in a.etat().carreaux]
+                            for k, a in mm.agents.items()},
+                "etats": {k: {x: v for x, v in vars(a.etat()).items()
+                              if x != "carreaux"}
+                          for k, a in mm.agents.items()},
+                "correlations": mm.correlations().round(3).to_dict(),
+                "avances": mm.avance_retard(),
+                "graphe": mm.graphe(),
+                "cartes": [mm.agents[k].carte_agent(CODES[k]) for k in mm.agents]
+                          + [mm.carte_agent("AG-15")],
+            }
+    except Exception as e:
+        _evt("marches", f"indisponible : {str(e)[:80]}", "warn")
+    paquet["chrono"]["marches"] = round((_tps.perf_counter() - d0) * 1000, 1)
+
     # --- Etape 5 (validee par l'utilisateur) : le Miroir agit sur les
     #     signaux. Sens conteste + score bloque -> suspension ; sinon le
     #     facteur et le score sont attaches au setup et au journal.
@@ -422,40 +434,24 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
                     _evt("Avocat", f"{r['nom']} {st['setup']} BLOQUÉ — "
                          f"{verdict['motif_blocage'][:70]}", "veto")
         if not st.get("suspendu"):
+            # Calibration du Chef : le signal emporte l'avis directionnel
+            # des agents au moment de l'emission — a sa resolution, chaque
+            # avis devient un point de mesure du score de Brier.
+            try:
+                st["avis"] = avis_agents.directions(paquet, r)
+            except Exception:
+                st["avis"] = {}
             journal.enregistrer(r["nom"], st, prix_actuel or 0,
                                 (r.get("fiabilite") or {}).get("niveau", "?"))
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
+    try:
+        paquet["calibration"] = avis_agents.evaluer(_sig_journal)
+    except Exception:
+        paquet["calibration"] = {}
     paquet["grille"] = grille_conviction(_sig_journal,
                                          [t["nom"] for t in TIMEFRAMES])
 
-    # --- les 4 marches + matrice intermarches (AG-11..15) -----------------
-    # INTEGRATION_MARCHES.md : meme cache disque que la constellation,
-    # jamais de telechargement au rendu, jamais Twelve Data.
-    d0 = _tps.perf_counter()
-    paquet["marches"] = None
-    try:
-        from . import constellation_source
-        from agents_marches import MatriceMarches, CODES
-        px = constellation_source.prix()
-        if px is not None:
-            mm = MatriceMarches(px)
-            paquet["marches"] = {
-                "tuiles": mm.tuiles(),
-                "grilles": {k: [vars(c) for c in a.etat().carreaux]
-                            for k, a in mm.agents.items()},
-                "etats": {k: {x: v for x, v in vars(a.etat()).items()
-                              if x != "carreaux"}
-                          for k, a in mm.agents.items()},
-                "correlations": mm.correlations().round(3).to_dict(),
-                "avances": mm.avance_retard(),
-                "graphe": mm.graphe(),
-                "cartes": [mm.agents[k].carte_agent(CODES[k]) for k in mm.agents]
-                          + [mm.carte_agent("AG-15")],
-            }
-    except Exception as e:
-        _evt("marches", f"indisponible : {str(e)[:80]}", "warn")
-    paquet["chrono"]["marches"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
     paquet["agents"] = agents_live(paquet)
 

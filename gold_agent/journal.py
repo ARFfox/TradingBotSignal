@@ -68,6 +68,9 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str) -> bool:
             # Trace du Miroir (AG-10) : indispensable pour mesurer un jour
             # si la confirmation intermarche ameliore reellement les resultats.
             "intermarche": s.get("intermarche"),
+            # Avis directionnels des agents a l'emission — la matiere du
+            # score de Brier du Chef d'orchestre (poids calcules).
+            "avis": s.get("avis") or {},
         })
         _sauver(signaux)
     return True

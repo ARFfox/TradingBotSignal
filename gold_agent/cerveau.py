@@ -466,6 +466,13 @@ def agents_live(d: dict) -> list:
             lignes.append(f"VALIDÉ {nt} : {st_['entree']} / SL {st_['stop']} / TP {st_['objectif']}")
     for p_ in probs[:2]:
         lignes.append(f"⚠ {p_[:80]}")
+    # Calibration Brier : les poids des agents se CALCULENT sur leurs avis
+    # resolus — jamais choisis a la main (SPEC_V2 §4).
+    try:
+        from . import avis as _avis
+        lignes += _avis.resume(d.get("calibration") or {})[:3]
+    except Exception:
+        pass
     autres = sum(charge(k) for k in ("vigie", "structure", "stratege", "traceur",
                                      "minieres", "probabilite", "journal"))
     agents.append({"code": "AG-00", "nom": "Superviseur", "role": "Synthèse — niveaux par timeframe",

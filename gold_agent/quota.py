@@ -106,3 +106,21 @@ def _avec_prix_direct(bars: list[dict], prix: float) -> list[dict]:
     return copie
 
 
+
+
+# Fiabilité mesurée par backtest — affichée à côté de chaque signal pour que
+# la confiance accordée soit proportionnée aux preuves.
+FIABILITE = {
+    "H4": {"trades": 19, "esperance": 1.117, "pf": None, "creux": None,
+           "note": "3 ans, stop 1,5 ATR : +1,12R", "niveau": "mesuré"},
+    "H1": {"trades": 10, "esperance": 0.583, "pf": None, "creux": None,
+           "note": "stop 1,5 ATR : +0,58R, échantillon faible", "niveau": "indicatif"},
+    "M30": {"trades": 25, "esperance": 0.626, "pf": 2.38, "creux": -3.13,
+            "note": "104 j, +0,63R", "niveau": "indicatif"},
+    "M15": {"trades": 28, "esperance": 0.058, "pf": 1.09, "creux": -11.37,
+            "note": "espérance ~0, creux −11R", "niveau": "déconseillé"},
+    "M5": {"trades": 21, "esperance": 0.340, "pf": 1.60, "creux": -4.33,
+           "note": "17 j seulement", "niveau": "non mesuré"},
+}
+
+
