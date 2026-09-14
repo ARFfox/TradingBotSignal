@@ -4,13 +4,15 @@ montre-moi la sortie. N'annonce pas que c'est fini tant que
 la sortie n'est pas verte.
 
 ## AVERTISSEMENTS (non bloquants, a traiter ensuite)
-- **gold_agent/instruments.py:15** — symbole cable en dur : symbole: str          # identifiant canonique (ex : "XAU/USD")
+- **gold_agent/instruments.py:26** — symbole cable en dur : symbole: str          # identifiant canonique AFFICHÉ (ex : "XAU/USD")
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:35** — symbole cable en dur : "XAU/USD": Instrument("XAU/USD", "Or spot", 100.0, 2, cout_pct=0.007,
+- **gold_agent/instruments.py:67** — symbole cable en dur : _i("XAU/USD", "Or spot", "matieres", "OANDA:XAUUSD", "GC=F",
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:52** — symbole cable en dur : return REGISTRE["XAU/USD"]
+- **gold_agent/instruments.py:68** — symbole cable en dur : td="XAU/USD", point=100.0, dec=2, cout=0.007),
   - piste : la fonction doit recevoir un Instrument en parametre
-- **gold_agent/instruments.py:62** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
+- **gold_agent/instruments.py:170** — symbole cable en dur : return REGISTRE["XAU/USD"]
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **gold_agent/instruments.py:191** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre

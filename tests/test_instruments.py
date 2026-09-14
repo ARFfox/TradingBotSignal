@@ -57,3 +57,29 @@ def test_le_cout_est_porte_par_l_instrument():
     assert instruments.REGISTRE["BTC/USD"].cout_pct > 0
     assert (instruments.REGISTRE["BTC/USD"].cout_pct
             != instruments.REGISTRE["EUR/USD"].cout_pct)
+
+
+def test_le_registre_couvre_les_quatre_marches():
+    """SPEC_SITE_V3 §1 : ~56 instruments, chaque marche peuple, et chaque
+    instrument porte son symbole TradingView PREFIXE par la place."""
+    assert len(instruments.REGISTRE) >= 50
+    for m in instruments.MARCHES_ORDRE:
+        assert len(instruments.par_marche(m)) >= 10
+    for inst in instruments.REGISTRE.values():
+        assert ":" in inst.code_pour("tv"), f"{inst.symbole} : tv sans place"
+
+
+def test_sizing_refuse_sans_valeur_de_point_verifiee():
+    """Regle 13 : point_par_lot=0 (non verifie) -> refus, jamais un volume
+    faux d'un facteur 100."""
+    import pytest
+    from gold_agent import risk
+    inconnu = instruments.REGISTRE["XAG/USD"]      # pas encore verifie
+    assert inconnu.point_par_lot == 0.0
+    with pytest.raises(ValueError):
+        risk.calculer(4400.0, 4390.0, 10000.0, instrument=inconnu)
+
+
+def test_par_cle_retrouve_l_instrument_des_urls():
+    assert instruments.par_cle("EURUSD").symbole == "EUR/USD"
+    assert instruments.par_cle("INCONNU") is None

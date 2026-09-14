@@ -35,6 +35,8 @@ def taille_position(entree: float, stop: float,
         return None
     montant = capital * risque_pct / 100.0
     instrument = instrument or _instr.par_defaut()
+    if instrument.point_par_lot <= 0:
+        return None      # valeur du point non verifiee : pas de taille affichee
     lots = montant / (distance * instrument.point_par_lot)
     return {"lots": round(lots, 2), "lots_precis": round(lots, 4),
             "risque_montant": round(montant, 2), "capital": capital,

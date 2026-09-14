@@ -69,6 +69,9 @@ def calculer(entree: float, stop: float, capital: float, risque_pct: float = 1.0
     distance = abs(entree - stop)
     risque_eur = capital * risque_pct / 100.0
     instrument = instrument or _instr.par_defaut()
+    if instrument.point_par_lot <= 0:
+        raise ValueError(f"valeur du point NON VERIFIEE pour {instrument.symbole} "
+                         "— sizing refuse (regle 13), a mesurer sur le compte reel")
     lots = risque_eur / (distance * instrument.point_par_lot)
 
     niveaux, rep = charger_niveaux()
