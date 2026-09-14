@@ -449,6 +449,13 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         paquet["calibration"] = avis_agents.evaluer(_sig_journal)
     except Exception:
         paquet["calibration"] = {}
+    # SPEC_SITE_V3 §4 : LA liste unique dont derivent toutes les pastilles.
+    try:
+        from . import site as _site
+        paquet["signaux_actifs"] = _site.signaux_actifs(resultats, symbole)
+        paquet["marches_site"] = _site.grilles_instruments()
+    except Exception:
+        paquet["signaux_actifs"], paquet["marches_site"] = [], {}
     paquet["grille"] = grille_conviction(_sig_journal,
                                          [t["nom"] for t in TIMEFRAMES])
 

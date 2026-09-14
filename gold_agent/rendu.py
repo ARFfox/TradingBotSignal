@@ -10,10 +10,11 @@ import time
 from datetime import datetime
 
 from . import config as _cfg, datasource as ds, notify, tableau
-from .blocs import (_boule, _carte, _cases_agents, _fragment_graphe, _grille,
+from .blocs import (_bloc_navigation, _boule, _carte, _cases_agents,
+                    _fragment_graphe, _grille,
                     _panneau_agents, WIDGET_TV)
 from .onglets import _bloc_constellation, _bloc_marches, _blocs_onglets
-from .pages import CSS
+from .pages import CSS, NAV_JS
 
 
 def rendre(d: dict) -> str:
@@ -66,6 +67,7 @@ def rendre(d: dict) -> str:
     if recos:
         diag += ('<br><br><b>Recommandations</b> (à mesurer avant application — le système '
                  'ne se modifie jamais seul) :<br>' + "<br>".join(f"→ {x}" for x in recos))
+    bloc_nav = _bloc_navigation(d)
     panneau = _panneau_agents(d)
     # SPEC_SITE_V3 §6 : le panneau principal est le schema en CASES, fige
     # et lisible d'un coup d'oeil (la demo 3D est retiree). Le graphe
@@ -89,8 +91,9 @@ def rendre(d: dict) -> str:
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Or — Tableau de bord</title><style>{CSS}</style></head><body><div class="wrap">
-<header><h1>XAU/USD</h1><div class="prix">{d.get('prix') or '—'}</div>
+<header><h1 id="titre-inst">XAU/USD</h1><div class="prix" id="grand-prix">{d.get('prix') or '—'}</div>
 <div class="var {var_cls}" id="variation">{var_txt}</div>
+<div style="font-size:10.5px;color:#8b949e" id="source-prix"></div>
 <div class="meta"><span class="pastille" id="pastille"></span><span id="horodatage">{gen:%d/%m/%Y %H:%M:%S}</span>
  · <span id="compte">{d['nb_setups']}</span> signal(aux) actif(s)
  · <span class="direct" id="fraicheur">{frais}</span></div>
@@ -124,6 +127,7 @@ def rendre(d: dict) -> str:
 Les niveaux découlent des paramètres de la règle : support confirmé = entrée, −1&nbsp;ATR = stop,
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement
 mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuve derrière lui.</div>
+{bloc_nav}
 <div class="haut-page">{boule}{widget}</div>
 <div class="onglets">
 <button class="onglet actif" data-p="p-risque">Risque événementiel</button>
@@ -204,7 +208,8 @@ async function rafraichir(manuel) {{
         const nc = document.querySelector("#sys-agents .console");
         if (nc) nc.scrollTop = nc.scrollHeight; }}
     }}
-    document.querySelector(".prix").textContent = d.prix ?? "—";
+    if ((window.INSTRUMENT_ACTIF || "XAUUSD") === "XAUUSD")
+      document.querySelector(".prix").textContent = d.prix ?? "—";
     document.getElementById("compte").textContent = d.nb_setups;
     document.getElementById("horodatage").textContent =
       new Date(d.genere_le).toLocaleString("fr-FR");
@@ -360,7 +365,7 @@ fetch("/json", {{ cache: "no-store" }}).then(r => r.json()).then(d => {{
   if (d.signaux) connus = new Set(d.signaux.map(cle));
 }}).catch(() => {{}});
 </script>
-</body></html>"""
+<script>{NAV_JS}</script></body></html>"""
 
 
 def _cle_signal(r: dict) -> str:

@@ -157,7 +157,7 @@ def _boule(c: dict) -> str:
 # Widget officiel TradingView — construit HORS f-string : son JSON de config
 # est plein d'accolades qui entreraient en collision avec le gabarit.
 WIDGET_TV = """<div class="tv-cadre"><h3>Graphique en direct — TradingView</h3>
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=30&theme=dark&style=1&locale=fr&hide_side_toolbar=0&allow_symbol_change=0&timezone=Etc%2FUTC"
+<iframe id="tv-iframe" src="https://s.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=30&theme=dark&style=1&locale=fr&hide_side_toolbar=0&allow_symbol_change=0&timezone=Etc%2FUTC"
  style="width:100%;height:430px;border:0;display:block" loading="lazy"
  title="TradingView XAUUSD"></iframe>
 <div style="padding:8px 16px;font-size:11.5px;color:#6e7681">Si ce cadre reste noir,
@@ -366,3 +366,51 @@ def _cases_agents(d: dict) -> str:
         f'border:1px solid {coul_sig};border-radius:10px;padding:9px;'
         f'color:{coul_sig};font-size:12.5px;background:#0d1117">'
         f'<b>SIGNAL ÉMIS</b> — {signal_txt}</div></div>')
+
+
+def _bloc_navigation(d: dict) -> str:
+    """SPEC_SITE_V3 §2 : niveau 1 (barre de marches) + niveau 2 (grilles
+    d'instruments, prix DIFFERES et annonces comme tels). Les pastilles ne
+    sont PAS calculees ici : le JS les derive de la liste unique
+    d.signaux_actifs — jamais deux compteurs separes."""
+    import json as _json
+    from . import instruments as _inst
+    ms = d.get("marches_site") or {}
+    age = ms.get("age_heures")
+
+    barre, grilles, dico = "", "", {}
+    for m in _inst.MARCHES_ORDRE:
+        emoji, libelle = _inst.MARCHES_LIBELLES[m]
+        barre += (f'<button class="m-btn" data-m="{m}">{emoji} {libelle} '
+                  f'<span class="badge" hidden></span></button>')
+        tuiles = ""
+        for t in ms.get(m, []):
+            dico[t["cle"]] = t
+            if t["prix"] is not None:
+                fmt = f'{{:.{t["decimales"]}f}}'
+                prix_txt = fmt.format(t["prix"])
+                v = t.get("variation_pct")
+                var_txt = (f'<span style="color:{"#3fb950" if v >= 0 else "#f85149"}">'
+                           f'{"▲" if v >= 0 else "▼"} {abs(v):.2f}%</span>'
+                           if v is not None else "")
+            else:
+                prix_txt, var_txt = "—", ""
+            tuiles += (f'<div class="tuile-inst" data-cle="{t["cle"]}" data-m="{m}">'
+                       f'<b>{t["libelle"]}</b> <span class="badge" hidden></span>'
+                       f'<div style="font-size:15px;font-weight:700">{prix_txt}</div>'
+                       f'<div style="font-size:11px">{var_txt}</div>'
+                       f'<div style="font-size:9.5px;color:#6e7681">{t["nom"]}</div></div>')
+        note_age = f"prix différés · cache yfinance ({age} h)" if age is not None else "cache en construction"
+        grilles += (f'<div id="mg2-{m}" class="m-grille" hidden>'
+                    f'<div style="font-size:10.5px;color:#6e7681;margin:2px 0 6px">'
+                    f'{note_age} — seul l&#39;instrument actif a un prix en direct</div>'
+                    f'<div class="m-tuiles">{tuiles}</div></div>')
+
+    donnees = _json.dumps({"instruments": dico,
+                           "signaux": d.get("signaux_actifs") or []},
+                          ensure_ascii=False)
+    return (f'<div class="marches-nav">{barre}</div>{grilles}'
+            f'<div id="note-instrument" class="bandeau" hidden '
+            f'style="border-color:#d29922"></div>'
+            f'<script type="application/json" id="donnees-instruments">'
+            f'{donnees}</script>')

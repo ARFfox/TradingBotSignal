@@ -145,6 +145,15 @@ font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .cl b{color:#58a6ff;font-weight:600}
 .cl.signal{color:#3fb950}.cl.veto{color:#f85149}.cl.alerte{color:#d29922}
 .tf-nav{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.marches-nav{display:flex;gap:10px;margin:0 0 12px;flex-wrap:wrap}
+.m-btn{background:#161b22;border:1px solid #30363d;color:#c9d1d9;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;position:relative}
+.m-btn:hover{border-color:#58a6ff}
+.badge{background:#f85149;color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;vertical-align:top}
+.m-grille{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.m-tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.tuile-inst{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12px}
+.tuile-inst:hover{border-color:#58a6ff}
+.tuile-inst.actif{border-color:#1f6feb;box-shadow:0 0 0 1px #1f6feb}
 .tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:8px;
 padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .tfb.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
@@ -240,3 +249,111 @@ de passe dédié à ce site — ton adresse Gmail ne sert que d'identifiant.</di
 </form></body></html>"""
 
 
+
+
+# JavaScript de navigation (SPEC_SITE_V3 §2-§5). Constante BRUTE, jamais
+# interpolee dans une f-string : pleine d'accolades.
+NAV_JS = r"""
+(() => {
+  const bloc = document.getElementById('donnees-instruments');
+  if (!bloc) return;
+  const D = JSON.parse(bloc.textContent);
+  const INSTRUMENTS = D.instruments, SIGNAUX = D.signaux;
+  const TV_INT = {H4:'240', H1:'60', M30:'30', M15:'15', M5:'5'};
+  let TF_ACTIF = '30', WS = null;
+  window.INSTRUMENT_ACTIF = 'XAUUSD';
+
+  // §4 : les pastilles DERIVENT toutes de la meme liste, par calcul.
+  const badgeMarche = m => SIGNAUX.filter(s => s.marche === m).length;
+  const badgeInstrument = c => SIGNAUX.filter(s => s.instrument === c).length;
+  document.querySelectorAll('.m-btn').forEach(b => {
+    const n = badgeMarche(b.dataset.m);
+    if (n) { const e = b.querySelector('.badge'); e.textContent = n; e.hidden = false; }
+    b.onclick = () => document.querySelectorAll('.m-grille').forEach(g =>
+      g.hidden = (g.id !== 'mg2-' + b.dataset.m) || !g.hidden);
+  });
+  document.querySelectorAll('.tuile-inst').forEach(t => {
+    const n = badgeInstrument(t.dataset.cle);
+    if (n) { const e = t.querySelector('.badge'); e.textContent = n; e.hidden = false; }
+    t.onclick = () => location.hash = '#/' + t.dataset.m + '/' + t.dataset.cle;
+  });
+
+  // §3 : recreer le widget = changer la source de l'iframe. setSymbol se
+  // comporte mal quand l'intervalle change en meme temps.
+  function majGraphique(inst) {
+    const f = document.getElementById('tv-iframe');
+    if (!f) return;
+    f.src = 'https://s.tradingview.com/widgetembed/?symbol='
+      + encodeURIComponent(inst.tv) + '&interval=' + TF_ACTIF
+      + '&theme=dark&style=1&locale=fr&hide_side_toolbar=0'
+      + '&allow_symbol_change=0&timezone=Etc%2FUTC';
+  }
+  function fermerFlux() { if (WS) { try { WS.close(); } catch (e) {} WS = null; } }
+
+  function majEnTete(inst) {
+    document.getElementById('titre-inst').textContent = inst.libelle;
+    const gp = document.getElementById('grand-prix');
+    const va = document.getElementById('variation');
+    const src = document.getElementById('source-prix');
+    fermerFlux();
+    if (inst.cle === 'XAUUSD') { if (src) src.textContent = ''; return; }
+    if (inst.prix != null) gp.textContent = inst.prix.toFixed(inst.decimales);
+    if (inst.variation_pct != null) {
+      va.textContent = (inst.variation_pct >= 0 ? '+' : '') + inst.variation_pct.toFixed(2) + '%';
+      va.className = 'var ' + (inst.variation_pct >= 0 ? 'hausse' : 'baisse');
+    }
+    if (inst.binance) {
+      // crypto : temps reel gratuit, un seul flux a la fois (§3)
+      if (src) src.textContent = 'connexion Binance…';
+      try {
+        WS = new WebSocket('wss://stream.binance.com:9443/ws/'
+                           + inst.binance.toLowerCase() + '@miniTicker');
+        WS.onmessage = ev => {
+          const t = JSON.parse(ev.data);
+          gp.textContent = parseFloat(t.c).toFixed(inst.decimales);
+          const v = (parseFloat(t.c) / parseFloat(t.o) - 1) * 100;
+          va.textContent = (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+          va.className = 'var ' + (v >= 0 ? 'hausse' : 'baisse');
+          if (src) src.textContent = 'prix en direct (Binance)';
+        };
+        WS.onerror = () => { if (src) src.textContent = 'différé (cache 6 h)'; };
+      } catch (e) { if (src) src.textContent = 'différé (cache 6 h)'; }
+    } else if (src) src.textContent = 'différé (cache 6 h)';
+    const note = document.getElementById('note-instrument');
+    if (note) {
+      note.hidden = false;
+      note.innerHTML = '<b>' + inst.libelle + '</b> — graphique et prix ci-dessus. '
+        + "L'analyse 5 timeframes reste celle de XAU/USD (l'instrument du compte) : "
+        + 'les autres instruments passeront par le walk-forward avant toute analyse émise.';
+    }
+  }
+
+  // §2 : un seul etat, dans le hash — retour navigateur et lien partageable.
+  function appliquerHash() {
+    const p = location.hash.split('/');
+    if (p.length < 3) return;
+    const inst = INSTRUMENTS[p[2]];
+    if (!inst) return;
+    window.INSTRUMENT_ACTIF = inst.cle;
+    majEnTete(inst); majGraphique(inst);
+    document.querySelectorAll('.tuile-inst').forEach(t =>
+      t.classList.toggle('actif', t.dataset.cle === inst.cle));
+    if (inst.cle === 'XAUUSD') {
+      const note = document.getElementById('note-instrument');
+      if (note) note.hidden = true;
+    }
+  }
+  addEventListener('hashchange', appliquerHash);
+  if (location.hash) appliquerHash();
+
+  // §5 : un clic timeframe met aussi a jour l'intervalle TradingView.
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.tfb');
+    if (!b || !b.dataset.tf || !TV_INT[b.dataset.tf]) return;
+    TF_ACTIF = TV_INT[b.dataset.tf];
+    const p = location.hash.split('/');
+    const inst = (p.length >= 3 && INSTRUMENTS[p[2]]) || INSTRUMENTS['XAUUSD'];
+    if (inst) majGraphique(inst);
+  });
+})();
+"""

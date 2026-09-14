@@ -41,6 +41,16 @@ def _univers() -> list[str]:
             tickers |= set(m["tickers"])
     except Exception:
         pass          # les marches sont optionnels, la constellation jamais
+    try:
+        # SPEC_SITE_V3 : la grille des 56 instruments lit ce meme cache
+        # (prix differes) — une seule requete yfinance pour tout le monde.
+        from gold_agent import instruments
+        for inst in instruments.REGISTRE.values():
+            code = inst.code_pour("yahoo")
+            if code != inst.symbole:
+                tickers.add(code)
+    except Exception:
+        pass
     return sorted(tickers)
 
 
