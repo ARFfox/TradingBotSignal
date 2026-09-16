@@ -100,6 +100,16 @@ def bars_instrument(inst, tf_code: str, nombre: int = 600) -> list[dict]:
     """Bougies via l'adapter du registre : Binance (crypto), Yahoo sinon.
     L'or ne passe PAS ici — il garde son chemin Twelve Data historique."""
     if inst.code_pour("binance") != inst.symbole:
+        # CHANTIER #10 : CCXT en premier (pagination et limites gérées par
+        # une bibliothèque maintenue), l'adaptateur maison en repli — le
+        # remplacement reste réversible par construction.
+        try:
+            from feeds.ccxt_feed import CcxtFeed
+            bars = CcxtFeed().bars(inst.code_pour("binance"), tf_code, nombre)
+            if bars:
+                return bars
+        except Exception:
+            pass
         from feeds.binance import Binance
         return Binance().bars(inst.code_pour("binance"), tf_code, nombre)
     from feeds.yahoo import Yahoo

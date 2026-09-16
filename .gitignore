@@ -8,3 +8,4 @@ TradingBotSignal/
 bundle/
 trading_claude_complet.zip
 Claude outputs/
+.venv-recherche/

@@ -83,6 +83,14 @@ COMPRENDRE → ÉCRIRE (une chose à la fois) → python3 verif.py → CORRIGER 
   incluses). Rapports quotidiens : `~/.gold_agent_rapports/`.
 - Rapports d'edge : `python3 -m research.rapport_edge` et
   `python3 -m research.rapport_strategies` (relancer périodiquement).
+- Apprentissage (16/09) : la boucle 24 h / 20 résolus écrit les rapports
+  racine (superviseur, sous-ensembles, pips, avocats) et persiste la
+  calibration appliquée à l'émission (poids ×0,1–×3, couples COUPE,
+  seuil mesuré s'il est rentable) — historique_calibration.json trace
+  chaque changement. `python3 -m gold_agent.reglage` : propositions du
+  Tuner (jamais appliquées seules). `python3 -m research.balayage` :
+  balayage VectorBT (tourne dans `.venv-recherche`, Python 3.12 — numba
+  n'existe pas pour le 3.14 de ce Mac ; ccxt est dans le 3.14 principal).
 - Décisions en attente de Mushine : « affine verif » (faux positifs du
-  registre) · « câble la règle 3 » (grille → émission) — les poids Brier
-  sont déjà appliqués à la note du Superviseur (14/09).
+  registre et des tests) — la règle 3 est câblée depuis le 16/09 via les
+  couples COUPE du calibrage.
