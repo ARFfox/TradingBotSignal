@@ -53,7 +53,8 @@ FENETRE_ANTIRAFALE_H = 12   # pas deux enregistrements du meme groupe sous 12 h
 
 
 def enregistrer(tf: str, s: dict, prix: float, fiabilite: str,
-                instrument: str | None = None) -> bool:
+                instrument: str | None = None,
+                atr: float | None = None, spread: float | None = None) -> bool:
     """Ajoute un signal s'il n'est pas déjà connu. Renvoie True si nouveau."""
     instrument = instrument or _defaut()
     k = cle_signal(tf, s, instrument)
@@ -84,6 +85,12 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str,
             "avis": s.get("avis") or {},
             # La decision chiffree du Superviseur au moment de l'emission
             "decision_chef": (s.get("decision_chef") or {}).get("pct"),
+            # CHANTIER etape 1 : sans atr aucun stop ne peut etre juge ;
+            # sans tp_atteint_apres_sl les deux causes de SL sont
+            # indiscernables (stop trop serre vs direction fausse).
+            "atr": atr, "spread": spread,
+            "extreme_favorable": None, "tp_atteint_apres_sl": False,
+            "r_realise": None,
             # SPEC_SITE_V3 §7 : le journal ne contient QUE des signaux
             # emis (les suspendus n'y entrent jamais) — le champ le grave.
             "emis": True,
@@ -114,38 +121,34 @@ def resoudre(bars_par_tf: dict, instrument: str | None = None) -> int:
             apres = [b for b in bars if b["time"] > s["cree_ts"]]
             if not apres:
                 continue
-            achat = s["sens"] == "achat"
-
-            if s["statut"] == "en_attente":
-                for b in apres:
-                    touche = (b["low"] <= s["entree"]) if achat else (b["high"] >= s["entree"])
-                    if touche:
-                        s["statut"] = "ouvert"
-                        s["ouvert_ts"] = b["time"]
-                        modifies += 1
-                        break
-                if s["statut"] == "en_attente" and \
-                        maintenant - s["cree_ts"] > DELAI_EXECUTION_H * 3600:
-                    s["statut"] = "non_execute"
-                    s["resolu_le"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-                    modifies += 1
-                    continue
-
-            if s["statut"] == "ouvert":
-                for b in apres:
-                    if b["time"] < s.get("ouvert_ts", s["cree_ts"]):
-                        continue
-                    stop = (b["low"] <= s["stop"]) if achat else (b["high"] >= s["stop"])
-                    obj = (b["high"] >= s["objectif"]) if achat else (b["low"] <= s["objectif"])
-                    if stop:        # bougie ambigue -> perte, comme au backtest
-                        s["statut"], s["r_obtenu"] = "perdant", -1.0
-                    elif obj:
-                        s["statut"], s["r_obtenu"] = "gagnant", s.get("rr_prevu")
-                    else:
-                        continue
-                    s["resolu_le"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-                    modifies += 1
-                    break
+            # CHANTIER etape 1 : la resolution passe par garde_fous.suivre —
+            # meme convention pessimiste (SL d'abord sur bougie ambigue),
+            # PLUS le suivi apres SL qui distingue « stop trop serre »
+            # (tp_atteint_apres_sl) de « direction fausse »
+            # (extreme_favorable proche de l'entree).
+            from garde_fous import suivre
+            res = suivre({"entree": s["entree"], "sl": s["stop"],
+                          "tp": s["objectif"], "sens": s["sens"]}, apres)
+            correspondance = {"TP": "gagnant", "SL": "perdant",
+                              "expire": "non_execute"}
+            nouveau = correspondance.get(res.statut)
+            if res.statut == "en_attente" and res.entree_touchee \
+                    and s["statut"] == "en_attente":
+                s["statut"] = "ouvert"
+                modifies += 1
+            # l'expiration reste TEMPORELLE (48 h sans entree), pas en
+            # nombre de bougies : suivre dit « pas encore », l'horloge tranche
+            if nouveau == "non_execute" \
+                    and maintenant - s["cree_ts"] <= DELAI_EXECUTION_H * 3600:
+                nouveau = None
+            if nouveau and nouveau != s["statut"]:
+                s["statut"] = nouveau
+                s["r_obtenu"] = res.r_realise
+                s["r_realise"] = res.r_realise
+                s["extreme_favorable"] = res.extreme_favorable
+                s["tp_atteint_apres_sl"] = bool(res.tp_atteint_apres_sl)
+                s["resolu_le"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+                modifies += 1
         if modifies:
             _sauver(signaux)
     return modifies

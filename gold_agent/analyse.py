@@ -24,7 +24,8 @@ from . import ict, indicators as ind, instruments, patterns as pat, \
 def analyser_tf(bars: list[dict], spec: dict, fiabilite: dict,
                 prix_direct: float | None = None,
                 chrono: dict | None = None,
-                cout_pts: float = 0.3) -> dict:
+                cout_pts: float = 0.3,
+                decimales: int = 2) -> dict:
     """Le coeur : indicateurs, setup, ICT, ABC, jauge — pour UN timeframe.
 
     `chrono` (optionnel) recoit les temps par agent, comme dans collecter.
@@ -42,7 +43,7 @@ def analyser_tf(bars: list[dict], spec: dict, fiabilite: dict,
     o = [b["open"] for b in bars]
     p = sg.Params(k_stop=spec.get("k_stop", 1.0), rr_min=1.5,
                   cout_pts=cout_pts, facteur_superieur=spec["mtf"],
-                  **spec["params"])
+                  decimales=decimales, **spec["params"])
     d0 = time.perf_counter()
     entree["setup"] = sg.setup_actuel(bars, p)
     _chr["stratege"] = _chr.get("stratege", 0.0) + (time.perf_counter() - d0)
@@ -154,8 +155,9 @@ def analyse_instrument(cle: str, bougies: int = 600,
                 or bars_instrument(inst, spec["tf"], bougies)
             if len(bars) < 120:
                 raise RuntimeError(f"{len(bars)} bougies seulement")
-            entree = analyser_tf(bars, spec, fiab,
-                                 cout_pts=0.0)   # le cout vit dans le verdict
+            cout = (bars[-1]["close"] * inst.cout_pct / 100) if bars else 0.0
+            entree = analyser_tf(bars, spec, fiab, cout_pts=cout,
+                                 decimales=inst.decimales)
             st = entree.get("setup") or {}
             if st.get("setup"):
                 if v and v.get("autorise"):

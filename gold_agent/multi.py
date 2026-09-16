@@ -61,7 +61,7 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
         _dp = None
     calibration = (_dp or {}).get("calibration") if isinstance(_dp, dict) else None
 
-    actifs, bars_par_tf = [], {}
+    actifs, bars_par_tf, candidats = [], {}, []
     for spec in tableau.TIMEFRAMES:
         if spec["nom"] == "H4" and not est_crypto:
             continue                      # pas de 4 h mensonger via Yahoo
@@ -78,7 +78,12 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
             if len(bars) < 120:
                 continue
             bars_par_tf[spec["nom"]] = bars
-            r = analyse.analyser_tf(bars, spec, fiab, cout_pts=0.0)
+            # spread estime = cout du registre au prix courant : c'est lui
+            # qui arme le garde-fou « stop >= 2 spreads » (cas cuivre)
+            spread = bars[-1]["close"] * inst.cout_pct / 100
+            r = analyse.analyser_tf(bars, spec, fiab, cout_pts=spread,
+                                    decimales=inst.decimales)
+            r["spread"] = spread
         except Exception:
             continue
         st = r.get("setup") or {}
@@ -93,16 +98,37 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
         st["decision_chef"] = decision.noter(
             st, fiab, None, False, None,
             carreau=carreau, calibration=calibration)
-        nouveau = journal.enregistrer(spec["nom"], st, r.get("prix") or 0,
-                                      fiab["niveau"], instrument=inst.symbole)
+        candidats.append({"instrument": inst.symbole, "tf": spec["nom"],
+                          "sens": st["setup"],
+                          "note": st["decision_chef"]["pct"],
+                          "cree_ts": int(time.time()),
+                          "_st": st, "_r": r, "_fiab": fiab})
+
+    # CHANTIER etape 3 : anti-contradiction/anti-doublon sur le LOT des
+    # timeframes de CET instrument — le meilleur survit, les refus sont
+    # traces (console) mais jamais journalises ni notifies.
+    from garde_fous import filtrer_lot
+    gardes, refuses = filtrer_lot(candidats)
+    for c in refuses:
+        c["_st"]["refus_emission"] = c["motif"]
+        try:
+            tableau._evt("Superviseur", f"{inst.symbole} {c['tf']} {c['sens']} "
+                         f"NON émis — {c['motif']}", "veto")
+        except Exception:
+            pass
+    for c in gardes:
+        st, r, fiab = c["_st"], c["_r"], c["_fiab"]
+        nouveau = journal.enregistrer(c["tf"], st, r.get("prix") or 0,
+                                      fiab["niveau"], instrument=inst.symbole,
+                                      atr=r.get("atr"), spread=r.get("spread"))
         actifs.append({"instrument": inst.cle, "libelle": inst.symbole,
-                       "marche": inst.marche, "tf": spec["nom"],
+                       "marche": inst.marche, "tf": c["tf"],
                        "sens": st["setup"], "entree": st.get("entree"),
                        "sl": st.get("stop"), "tp1": st.get("objectif"),
                        "rr": st.get("rr"),
                        "note": st["decision_chef"]["pct"]})
         if nouveau and notifier and st["decision_chef"]["notifiable"]:
-            notifier(inst, spec["nom"], st, r.get("prix"))
+            notifier(inst, c["tf"], st, r.get("prix"))
 
     # resolution des signaux en cours de CET instrument, bougies fraiches
     try:

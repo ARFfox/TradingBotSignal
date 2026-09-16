@@ -328,6 +328,22 @@ def _blocs_onglets(d: dict) -> dict:
     else:
         taux_txt = "—"
         taux_sous = "aucun signal résolu encore"
+    # SPEC_SUPERVISEUR_AUTONOME : la LIGNE D'EQUILIBRE — la reference n'est
+    # jamais 50 % mais 100/(1+gain moyen). C'est elle qui dit si le taux
+    # affiche gagne ou perd de l'argent.
+    try:
+        from .apprentissage import equilibre as _equilibre
+        eq_ = _equilibre()
+    except Exception:
+        eq_ = None
+    if eq_:
+        eq_txt = f'{eq_["equilibre_pct"]}%'
+        manque_ = round(eq_["equilibre_pct"] - eq_["taux_pct"], 1)
+        eq_sous = (f'gain moyen +{eq_["gain_moyen"]}R — '
+                   + (f'il manque {manque_} points'
+                      if manque_ > 0 else f'{-manque_} points au-dessus'))
+    else:
+        eq_txt, eq_sous = "—", "pas encore de signaux résolus"
     rs_ = [x.get("r_obtenu") or 0 for x in hi.get("derniers", [])
            if x.get("statut") in ("gagnant", "perdant")]
     gains_ = sum(r for r in rs_ if r > 0)
@@ -346,6 +362,7 @@ def _blocs_onglets(d: dict) -> dict:
                 + _stat(f'{hi.get("cumul_R", 0):+.2f}R', "R cumulé",
                         "la mesure qui compte")
                 + _stat(taux_txt, "signaux validés par les agents", taux_sous)
+                + _stat(eq_txt, "équilibre à atteindre", eq_sous)
                 + _stat(f'{resolus} / {hi.get("total_emis", 0)}', "résolus / émis")
                 + _stat(pf_txt, "profit factor") + '</div>')
 

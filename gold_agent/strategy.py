@@ -43,6 +43,9 @@ class Params:
     ecart_max_pct: float = 5.0   # veto d'extension
     sens: str = "les_deux"       # achat | vente | les_deux
     cout_pts: float = 0.0        # spread + commission + glissement, en points
+    decimales: int = 2           # arrondi d'affichage/journal — PAR INSTRUMENT :
+                                 # arrondir DOGE a 2 decimales ecrasait entree,
+                                 # stop et TP sur la meme valeur (bug reel)
     facteur_superieur: int = 0   # 0 = desactive ; 12 = agrege 12 bougies (M5 -> H1)
     # Filtres de surachat / survente, actifs par defaut : sur H4 et H1 ils
     # ameliorent l'esperance ET reduisent le pire creux d'environ 25 %.
@@ -424,7 +427,24 @@ def setup_actuel(bars: list[dict], p: Params) -> dict:
     if risque <= 0 or gain <= 0:
         return {"setup": None, "raison": "geometrie invalide (risque ou gain negatif)"}
 
-    rr = gain / risque
+    # CHANTIER etape 2 — garde-fou d'EMISSION (detecter/simuler, la voie du
+    # backtest, ne bouge pas) : le stop doit depasser 1 ATR ET 2 spreads.
+    # Sur un M5 endormi, 1 ATR peut etre SOUS le spread (cas cuivre reel) :
+    # ce n'est pas une invalidation, c'est du bruit. L'ORDRE COMPTE : on
+    # elargit d'abord, on verifie le R:R ensuite — un setup qui ne tenait
+    # que par un stop irrealiste doit etre refuse.
+    import sys as _sys
+    from pathlib import Path as _P
+    _rac = str(_P(__file__).resolve().parent.parent)
+    if _rac not in _sys.path:
+        _sys.path.insert(0, _rac)
+    from garde_fous import valider_signal
+    v = valider_signal(entree, stop, objectif, sens, at, spread=p.cout_pts)
+    if not v["ok"]:
+        return {"setup": None, "raison": f"garde-fou : {v['motif']}"}
+    stop = v["sl"]
+    risque = abs(entree - stop)
+    rr = v["rr"]
     if rr < p.rr_min:
         return {"setup": None,
                 "raison": f"R:R {rr:.2f} sous le minimum de {p.rr_min}"}
@@ -438,22 +458,22 @@ def setup_actuel(bars: list[dict], p: Params) -> dict:
     return {
         "setup": sens,
         "declenche": atteint,
-        "entree": round(entree, 2),
-        "entree_zone": [round(entree - tol, 2), round(entree + tol, 2)],
-        "stop": round(stop, 2),
-        "stop_zone": [round(min(stop, entree - risque * 0.85), 2),
-                      round(max(stop, entree - risque * 0.85), 2)] if sens == "achat"
-                     else [round(min(stop, entree + risque * 0.85), 2),
-                           round(max(stop, entree + risque * 0.85), 2)],
-        "objectif": round(objectif, 2),
-        "objectif_zone": [round(objectif - tol, 2), round(objectif + tol, 2)],
+        "entree": round(entree, p.decimales),
+        "entree_zone": [round(entree - tol, p.decimales), round(entree + tol, p.decimales)],
+        "stop": round(stop, p.decimales),
+        "stop_zone": [round(min(stop, entree - risque * 0.85), p.decimales),
+                      round(max(stop, entree - risque * 0.85), p.decimales)] if sens == "achat"
+                     else [round(min(stop, entree + risque * 0.85), p.decimales),
+                           round(max(stop, entree + risque * 0.85), p.decimales)],
+        "objectif": round(objectif, p.decimales),
+        "objectif_zone": [round(objectif - tol, p.decimales), round(objectif + tol, p.decimales)],
         "rr": round(rr, 2),
         "rr_suffisant": rr >= p.rr_min,
-        "risque_pts": round(risque, 2),
-        "gain_pts": round(gain, 2),
-        "prix_actuel": round(prix, 2),
-        "distance_a_entree": round(distance, 2),
-        "atr": round(at, 2),
+        "risque_pts": round(risque, p.decimales),
+        "gain_pts": round(gain, p.decimales),
+        "prix_actuel": round(prix, p.decimales),
+        "distance_a_entree": round(distance, p.decimales),
+        "atr": round(at, p.decimales),
         "rsi": round(rs, 1),
         "ecart_ema_pct": round(ecart, 2),
     }

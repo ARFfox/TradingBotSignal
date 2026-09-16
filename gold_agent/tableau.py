@@ -436,8 +436,33 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
                  f"{st['decision_chef']['pct']} % malgré des objections — "
                  f"décision pesée, pas bloquée", "alerte")
 
-        journal.enregistrer(r["nom"], st, prix_actuel or 0,
-                            (r.get("fiabilite") or {}).get("niveau", "?"))
+    # CHANTIER etape 3 : le LOT des 5 timeframes passe par l'anti-
+    # contradiction avant d'entrer au journal. Un refus reste VISIBLE
+    # (motif sur la carte + console) mais n'est ni journalise ni notifie —
+    # GDX achete en M5 et vendu en M15 la meme minute ne se reproduit plus.
+    from garde_fous import filtrer_lot
+    _maintenant_ts = int(time.time())
+    _candidats = []
+    for r in resultats:
+        st = r.get("setup") or {}
+        if st.get("setup"):
+            _candidats.append({"instrument": symbole, "tf": r["nom"],
+                               "sens": st["setup"],
+                               "note": (st.get("decision_chef") or {}).get("pct", 0),
+                               "cree_ts": _maintenant_ts, "_r": r})
+    _gardes, _refuses = filtrer_lot(_candidats)
+    for c in _refuses:
+        st = c["_r"]["setup"]
+        st["refus_emission"] = c["motif"]
+        _evt("Superviseur", f"{c['tf']} {c['sens']} NON émis — {c['motif']}",
+             "veto")
+    for c in _gardes:
+        r = c["_r"]
+        journal.enregistrer(r["nom"], r["setup"], prix_actuel or 0,
+                            (r.get("fiabilite") or {}).get("niveau", "?"),
+                            atr=r.get("atr"),
+                            spread=(prix_actuel or 0)
+                            * instruments.par_defaut().cout_pct / 100)
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
     # SPEC_SITE_V3 §4 : LA liste unique dont derivent toutes les pastilles.
@@ -488,6 +513,17 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         chemin_r = rapport_chef.quotidien(paquet)
         if chemin_r:
             _evt("Superviseur", f"rapport quotidien écrit : {chemin_r}", "alerte")
+    except Exception:
+        pass
+
+    # CHANTIER etapes 4-5 : le Superviseur apprenant relit tout le journal
+    # (audit des stops, calibration, poids, sous-ensembles) une fois par
+    # jour OU des 20 nouveaux resolus — jamais bloquant pour la page.
+    try:
+        from . import apprentissage
+        for chemin_a in apprentissage.rapports_si_du():
+            _evt("Superviseur", f"rapport d'apprentissage écrit : {chemin_a}",
+                 "alerte")
     except Exception:
         pass
 

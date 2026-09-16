@@ -14,6 +14,14 @@ la sortie n'est pas verte.
   - piste : la fonction doit recevoir un Instrument en parametre
 - **gold_agent/instruments.py:193** — symbole cable en dur : ALIAS = {"XAUUSD": "XAU/USD", "GOLD": "XAU/USD"}
   - piste : la fonction doit recevoir un Instrument en parametre
+- **gold_agent/tableau.py** — 533 lignes (max 500)
+  - piste : a decouper (regle 16 du CLAUDE.md)
+- **superviseur_apprenant.py** — 552 lignes (max 500)
+  - piste : a decouper (regle 16 du CLAUDE.md)
+- **tests/test_apprentissage.py:11** — symbole cable en dur : def _entree(statut="gagnant", instrument="XAU/USD", tf="H1", sens="ach
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_apprentissage.py:40** — symbole cable en dur : assert journal.resoudre({"H1": bars}, instrument="XAU/USD") >= 1
+  - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:40** — symbole cable en dur : assert instruments.depuis_alias("OANDA:XAUUSD").symbole == "XAU/USD"
