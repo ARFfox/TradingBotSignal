@@ -1,17 +1,17 @@
 # Bilan en pips
 
-généré le 2026-09-16 16:28 UTC · 551 signaux au journal · 353 résolus
+généré le 2026-09-16 16:39 UTC · 553 signaux au journal · 355 résolus
 
 ```
 # Pips gagnés / perdus
 
-**−12 350 pips/points ≠ · 83/353 TP · -96.0R**
+**−12 543 pips/points ≠ · 84/355 TP · -95.1R**
 
 | instrument | unité | n | TP | gagnés | perdus | **net** | taux |
 |---|---|---:|---:|---:|---:|---:|---:|
 | XAU/USD | pips | 39 | 7 | +15 805 | −21 891 | **−6 086** | 18% |
 | ETH/USD | points | 19 | 3 | +566 | −2 262 | **−1 696** | 16% |
-| XPD/USD | pips | 11 | 3 | +1 290 | −2 678 | **−1 388** | 27% |
+| XPD/USD | pips | 12 | 3 | +1 290 | −2 902 | **−1 612** | 25% |
 | XAG/USD | pips | 11 | 3 | +780 | −1 740 | **−960** | 27% |
 | CUIVRE | pips | 5 | 0 | +0 | −800 | **−800** | 0% |
 | SOL/USD | points | 18 | 4 | +309 | −675 | **−366** | 22% |
@@ -20,8 +20,8 @@ généré le 2026-09-16 16:28 UTC · 551 signaux au journal · 353 résolus
 | BRENT | pips | 5 | 1 | +37 | −289 | **−252** | 20% |
 | BTC/USD | points | 22 | 6 | +2 577 | −2 801 | **−224** | 27% |
 | XRP/USD | points | 8 | 3 | +800 | −600 | **+200** | 38% |
-| NEAR/USD | points | 15 | 3 | +110 | −260 | **−150** | 20% |
 | BNB/USD | points | 8 | 5 | +201 | −53 | **+148** | 62% |
+| NEAR/USD | points | 16 | 4 | +141 | −260 | **−119** | 25% |
 | ATOM/USD | points | 10 | 6 | +140 | −40 | **+100** | 60% |
 | LTC/USD | points | 15 | 2 | +81 | −174 | **−93** | 13% |
 | LINK/USD | points | 16 | 9 | +103 | −32 | **+71** | 56% |
@@ -55,8 +55,8 @@ généré le 2026-09-16 16:28 UTC · 551 signaux au journal · 353 résolus
 | NFLX | points | 2 | 1 | +0 | −0 | **+0** | 50% |
 | XLF | points | 3 | 0 | +0 | −0 | **−0** | 0% |
 
-Total : **−12 350** (+24 578 gagnés  −36 929 perdus) sur 353 signaux résolus.
+Total : **−12 543** (+24 609 gagnés  −37 153 perdus) sur 355 signaux résolus.
 
-> ⚠️ **Ce total additionne des unités différentes.** 1 pip d'EUR/USD ≈ 10 $, 1 pip d'or ≈ 1 $. +500 pips sur l'or et −500 sur EUR/USD ne s'annulent pas : c'est une perte nette. Le total ci-dessus montre le SENS, pas une somme d'argent. Le chiffre comparable est le **R : -96.0R**.
+> ⚠️ **Ce total additionne des unités différentes.** 1 pip d'EUR/USD ≈ 10 $, 1 pip d'or ≈ 1 $. +500 pips sur l'or et −500 sur EUR/USD ne s'annulent pas : c'est une perte nette. Le total ci-dessus montre le SENS, pas une somme d'argent. Le chiffre comparable est le **R : -95.1R**.
 
 ```

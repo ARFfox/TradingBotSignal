@@ -430,7 +430,8 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         st["decision_chef"] = noter_decision(
             st, r.get("fiabilite"), suspension, miroir_contre, verdict,
             carreau=_carreaux_tf.get(r["nom"]),
-            calibration=paquet.get("calibration"))
+            calibration=paquet.get("calibration"),
+            poids_mesures=_emission.poids_note())
         if miroir_contre or (verdict and verdict["verdict"] == "non_refute"):
             _evt("Superviseur", f"{r['nom']} {st['setup']} émis à "
                  f"{st['decision_chef']['pct']} % malgré des objections — "
@@ -440,9 +441,8 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         _emission.debattre(st, r, resultats, symbole, prix_actuel,
                            _evts_agenda, _carreaux_tf.get(r["nom"]), _evt)
 
-    # APPLIQUER étape 3 : anti-contradiction sur le LOT des 5 timeframes
-    # (gold_agent/emission.py) — GDX acheté en M5 et vendu en M15 la même
-    # minute ne se reproduit plus.
+    # APPLIQUER étape 3 : anti-contradiction + calibrage sur le LOT des
+    # 5 timeframes (gold_agent/emission.py) — refus motivés, visibles.
     _emission.emettre_lot(resultats, symbole, prix_actuel, _evt)
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 

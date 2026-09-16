@@ -38,6 +38,23 @@ def debattre(st: dict, r: dict, resultats: list, symbole: str,
         evt("Superviseur", f"débat indisponible : {str(e)[:60]}", "warn")
 
 
+_CACHE_POIDS = {"t": 0.0, "poids": {}}
+
+
+def poids_note() -> dict:
+    """CHANTIER #7 : les poids mesurés (calibrage persisté) pour
+    decision.noter — relus du disque au plus toutes les 60 s."""
+    import time as _t
+    if _t.time() - _CACHE_POIDS["t"] > 60:
+        try:
+            from .apprentissage import calibrage_actuel
+            _CACHE_POIDS["poids"] = calibrage_actuel().get("poids_agents") or {}
+        except Exception:
+            pass
+        _CACHE_POIDS["t"] = _t.time()
+    return _CACHE_POIDS["poids"]
+
+
 def emettre_lot(resultats: list, symbole: str, prix_actuel: float | None,
                 evt) -> None:
     """APPLIQUER étape 3 : le LOT des timeframes passe par l'anti-
@@ -47,13 +64,23 @@ def emettre_lot(resultats: list, symbole: str, prix_actuel: float | None,
     from . import instruments, journal
     maintenant_ts = int(time.time())
     candidats = []
+    from .apprentissage import refus_calibrage
     for r in resultats:
         st = r.get("setup") or {}
-        if st.get("setup") and not st.get("refus_emission"):
-            candidats.append({"instrument": symbole, "tf": r["nom"],
-                              "sens": st["setup"],
-                              "note": (st.get("decision_chef") or {}).get("pct", 0),
-                              "cree_ts": maintenant_ts, "_r": r})
+        if not st.get("setup") or st.get("refus_emission"):
+            continue
+        # CHANTIER #8-9 : couple à espérance mesurée négative, ou note sous
+        # le seuil mesuré (s'il existe — « aucun seuil » ne filtre rien).
+        note_pct = (st.get("decision_chef") or {}).get("pct", 0)
+        motif = refus_calibrage(symbole, r["nom"], note_pct)
+        if motif:
+            st["refus_emission"] = motif
+            evt("Superviseur", f"{r['nom']} {st['setup']} NON émis — {motif}",
+                "veto")
+            continue
+        candidats.append({"instrument": symbole, "tf": r["nom"],
+                          "sens": st["setup"], "note": note_pct,
+                          "cree_ts": maintenant_ts, "_r": r})
     gardes, refuses = filtrer_lot(candidats)
     for c in refuses:
         st = c["_r"]["setup"]

@@ -1,32 +1,33 @@
 # Rapport du Superviseur apprenant
 
-généré le 2026-09-16 16:28 UTC · 655 signaux au journal · 405 résolus
+généré le 2026-09-16 16:39 UTC · 553 signaux au journal · 355 résolus
 
 ```
 ==========================================================================
   SUPERVISEUR — AUTO-DIAGNOSTIC
 ==========================================================================
 
-  -143.0R sur 405 résolus (655 émis, 250 jamais entrés)
-  taux 21.7% · gain moyen +1.98R · équilibre à 33.6%
-  ⚠ espérance -0.353R — il manque 11.9% points de réussite pour l'équilibre
+  -95.1R sur 355 résolus (553 émis, 198 jamais entrés)
+  taux 23.7% · gain moyen +2.09R · équilibre à 32.3%
+  ⚠ espérance -0.268R — il manque 8.6% points de réussite pour l'équilibre
 
   STOPS
-    317 stops touchés · 0% par stop trop serré
-      indetermine          314
+    271 stops touchés · 1% par stop trop serré
+    stop médian : 1.00 ATR · 100% sous 1.0 ATR
+      indetermine          267
+      stop_trop_serre      2
       direction_fausse     2
-      stop_trop_serre      1
 
   CALIBRATION DE LA NOTE
-    0%–20%     n=37   annoncé 11% → réel 22% · -0.44R
-    20%–40%    n=224  annoncé 31% → réel 25% · -0.27R
-    40%–60%    n=144  annoncé 44% → réel 17% · -0.45R
-    écart moyen 14.1% — exploitable
+    0%–20%     n=34   annoncé 11% → réel 21% · -0.42R
+    20%–40%    n=192  annoncé 31% → réel 28% · -0.16R
+    40%–60%    n=129  annoncé 44% → réel 19% · -0.39R
+    écart moyen 12.0% — exploitable
 
   AGENTS (poids mesuré, pas choisi)
-    AG-01  n=403  poids ×0.10   discr. +0.35   vote quasiment toujours pareil — sans valeur
-    AG-05  n=403  poids ×0.10   discr. -0.35   vote quasiment toujours pareil — sans valeur
-    AG-10  n=403  poids ×0.10   discr. -0.35   vote quasiment toujours pareil — sans valeur
+    AG-01  n=354  poids ×0.10   discr. +0.38   vote quasiment toujours pareil — sans valeur
+    AG-10  n=354  poids ×0.10   discr. -0.38   vote quasiment toujours pareil — sans valeur
+    AG-05  n=354  poids ×0.10   discr. -0.42   vote quasiment toujours pareil — sans valeur
 
   COUPLES INSTRUMENT × TIMEFRAME
     XAU/USD    M5    n=20   -0.562R  COUPE

@@ -60,10 +60,43 @@ def _composante_brier(st: dict, calibration: dict | None,
     return delta, f"Brier {votants} agent(s) calibré(s) {delta:+d}"
 
 
+def _composante_poids(st: dict, poids_mesures: dict | None) -> tuple[int, str | None]:
+    """CHANTIER #7 — les poids MESURÉS du Superviseur apprenant (0,1x-3x,
+    superviseur_apprenant.poids_agents) entrent dans le vote. Un
+    contre-indicateur avéré vote À L'ENVERS : un agent qui a tort de façon
+    fiable porte de l'information (SPEC §2.3)."""
+    avis = st.get("avis") or {}
+    sens = st.get("setup")
+    if not avis or not poids_mesures or sens not in ("achat", "vente"):
+        return 0, None
+    total, votants, inverses = 0.0, 0, 0
+    for code, direction in avis.items():
+        p = poids_mesures.get(code) or {}
+        if not p.get("fiable") or p.get("poids") is None:
+            continue                    # < 30 résolus : poids neutre, silence
+        poids = p["poids"]
+        if "contre-indicateur" in (p.get("note") or ""):
+            direction = "vente" if direction == "achat" else "achat"
+            poids = min(3.0, 1.0 + abs(p.get("discrimination") or 0.0))
+            inverses += 1
+        votants += 1
+        total += poids if direction == sens else -poids
+    if not votants:
+        return 0, None
+    delta = int(max(-20, min(20, round(total * 8))))
+    if not delta:
+        return 0, None
+    texte = f"poids mesurés {votants} agent(s) {delta:+d}"
+    if inverses:
+        texte += f" (dont {inverses} inversé(s))"
+    return delta, texte
+
+
 def noter(st: dict, fiabilite: dict, suspension: str | None,
           miroir_contre: bool, verdict: dict | None,
           carreau: dict | None = None,
-          calibration: dict | None = None) -> dict:
+          calibration: dict | None = None,
+          poids_mesures: dict | None = None) -> dict:
     """{pct, composantes, notifiable} — la note du Superviseur."""
     note, composantes = 50.0, []
 
@@ -110,6 +143,10 @@ def noter(st: dict, fiabilite: dict, suspension: str | None,
     if t_b:
         note += d_b
         composantes.append(t_b)
+    d_p, t_p = _composante_poids(st, poids_mesures)
+    if t_p:
+        note += d_p
+        composantes.append(t_p)
 
     pct = int(max(5, min(95, round(note))))
     return {"pct": pct, "composantes": composantes,

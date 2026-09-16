@@ -25,6 +25,8 @@ RAPPORT_SOUS_ENSEMBLES = RACINE / "rapport_sous_ensembles.md"
 RAPPORT_PIPS = RACINE / "rapport_pips.md"
 RAPPORT_AVOCATS = RACINE / "rapport_avocats.md"
 POIDS_AVOCATS = Path.home() / ".gold_agent_poids_avocats.json"
+CALIBRAGE = Path.home() / ".gold_agent_calibrage.json"
+HISTORIQUE_CALIBRATION = RACINE / "historique_calibration.json"
 ETAT = Path.home() / ".gold_agent_apprentissage.json"
 NOUVEAUX_RESOLUS_MIN = 20
 
@@ -129,6 +131,80 @@ def _calibration_avocats(entrees: list[dict]) -> tuple[str, dict] | None:
     return rapport_calibration(poids), {k: v.poids for k, v in poids.items()}
 
 
+def calibrage_actuel() -> dict:
+    """La dernière calibration persistée par la boucle 24 h : poids des
+    agents (0,1×–3×), verdicts par couple (AUTORISE/COUPE/OBSERVATION),
+    seuil d'émission mesuré. Vide tant que rien n'a tourné."""
+    if CALIBRAGE.exists():
+        try:
+            return json.loads(CALIBRAGE.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def refus_calibrage(instrument: str, tf: str, note_pct: float) -> str | None:
+    """SPEC §2.5 règles 1-2, sur la calibration MESURÉE : couple à
+    espérance négative (>= 20 résolus) refusé ; note sous le seuil refusée
+    UNIQUEMENT si `seuil_optimal` a trouvé un seuil rentable — il a le
+    droit de répondre « aucun », et alors rien ne filtre sur la note."""
+    c = calibrage_actuel()
+    combo = (c.get("combos") or {}).get(f"{instrument}|{tf}")
+    if combo and combo.get("verdict") == "COUPE":
+        return (f"couple coupé : {combo.get('esperance'):+.2f}R mesuré "
+                f"sur {combo.get('n')} résolus")
+    seuil = c.get("seuil") or {}
+    if seuil.get("assez_de_donnees") and seuil.get("rentable") \
+            and note_pct / 100.0 < seuil.get("seuil", 0.0):
+        return (f"note {note_pct:.0f}% sous le seuil mesuré "
+                f"{seuil['seuil']:.0%} ({seuil.get('message', '')[:40]})")
+    return None
+
+
+def _persister_calibrage(sig: list, resolus: int) -> None:
+    """Étapes 4-6 de la boucle (SPEC §4) : poids, couples, seuil — bornés
+    par les modules eux-mêmes. Chaque changement part dans
+    historique_calibration.json (avant, après, effectif) : réversible."""
+    import superviseur_apprenant as sup
+    poids = sup.poids_agents(sig)
+    combos = {f"{k[0]}|{k[1]}": v for k, v in sup.esperance_par_combo(sig).items()}
+    seuil = sup.seuil_optimal(sig)
+    seuil.pop("courbe", None)                    # trop lourd pour l'état
+    nouveau = {"jour": dt.date.today().isoformat(), "resolus": resolus,
+               "poids_agents": poids, "combos": combos, "seuil": seuil}
+    ancien = calibrage_actuel()
+
+    changements = []
+    for code, p in poids.items():
+        av = ((ancien.get("poids_agents") or {}).get(code) or {}).get("poids")
+        if av != p["poids"]:
+            changements.append({"quoi": f"poids {code}", "avant": av,
+                                "apres": p["poids"], "effectif": p["n"]})
+    for cle, v in combos.items():
+        av = ((ancien.get("combos") or {}).get(cle) or {}).get("verdict")
+        if av != v["verdict"]:
+            changements.append({"quoi": f"couple {cle}", "avant": av,
+                                "apres": v["verdict"], "effectif": v["n"]})
+    av_s = (ancien.get("seuil") or {}).get("seuil")
+    if av_s != seuil.get("seuil"):
+        changements.append({"quoi": "seuil d'émission", "avant": av_s,
+                            "apres": seuil.get("seuil"),
+                            "effectif": seuil.get("n",
+                                                  seuil.get("signaux_total"))})
+    if changements:
+        histo = []
+        if HISTORIQUE_CALIBRATION.exists():
+            try:
+                histo = json.loads(HISTORIQUE_CALIBRATION.read_text())
+            except Exception:
+                histo = []
+        horodate = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        histo.extend({**c, "date": horodate} for c in changements)
+        HISTORIQUE_CALIBRATION.write_text(
+            json.dumps(histo, ensure_ascii=False, indent=1))
+    CALIBRAGE.write_text(json.dumps(nouveau, ensure_ascii=False, indent=1))
+
+
 def _charger_etat() -> dict:
     if ETAT.exists():
         try:
@@ -192,6 +268,13 @@ def rapports_si_du(force: bool = False) -> list[str]:
                 "# Calibration du débat contradictoire\n\n" + entete + texte_cal)
             POIDS_AVOCATS.write_text(json.dumps(poids))
             ecrits.append(str(RAPPORT_AVOCATS))
+    except Exception:
+        pass
+    # SPEC §4 étapes 4-6 : la calibration (poids, couples, seuil) est
+    # recalculée et persistée à la même cadence que les rapports — c'est
+    # elle que decision.noter et l'émission relisent.
+    try:
+        _persister_calibrage(sig, resolus)
     except Exception:
         pass
     if ecrits:

@@ -28,6 +28,18 @@ la sortie n'est pas verte.
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_apprentissage.py:40** — symbole cable en dur : assert journal.resoudre({"H1": bars}, instrument="XAU/USD") >= 1
   - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:52** — symbole cable en dur : motif = apprentissage.refus_calibrage("XAU/USD", "M5", 80)
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:54** — symbole cable en dur : assert apprentissage.refus_calibrage("XAU/USD", "H1", 80) is None
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:65** — symbole cable en dur : assert apprentissage.refus_calibrage("XAU/USD", "M5", 5) is None
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:74** — symbole cable en dur : assert apprentissage.refus_calibrage("XAU/USD", "M5", 35)
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:75** — symbole cable en dur : assert apprentissage.refus_calibrage("XAU/USD", "M5", 55) is None
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_calibrage_applique.py:84** — symbole cable en dur : "cle": f"XAU/USD|M5|achat|{100 + i}", "instrument": "XAU/USD",
+  - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_debat_pont.py:16** — symbole cable en dur : v = examiner_setup(st, instrument="XAU/USD", tf="M5", atr=2.0, spread=
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_debat_pont.py:25** — symbole cable en dur : v = examiner_setup(st, instrument="XAU/USD", tf="H1", atr=2.0, spread=

@@ -47,7 +47,8 @@ def _plan_tour() -> list:
 def analyser_et_emettre(inst, notifier=None) -> list[dict]:
     """Analyse un instrument, note, journalise, resout, notifie.
     Retourne les setups actifs (pour les pastilles)."""
-    from . import analyse, avis as avis_agents, decision, journal, tableau
+    from . import analyse, avis as avis_agents, decision, emission, journal, tableau
+    from .apprentissage import refus_calibrage
     from research import livetest
 
     est_crypto = inst.code_pour("binance") != inst.symbole
@@ -97,7 +98,8 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
             st["avis"] = {}
         st["decision_chef"] = decision.noter(
             st, fiab, None, False, None,
-            carreau=carreau, calibration=calibration)
+            carreau=carreau, calibration=calibration,
+            poids_mesures=emission.poids_note())
         # APPLIQUER étape 6 : le débat plaide aussi sur le multi — mêmes
         # avocats, mêmes poids. Sans lecture intermarché ici : la défense
         # reste plafonnée (une base mince ne rassure jamais).
@@ -120,6 +122,18 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
                 continue
         except Exception:
             pass
+        # CHANTIER #8-9 : couple coupé (espérance mesurée négative) ou note
+        # sous le seuil mesuré — refus motivé AVANT le lot.
+        motif_cal = refus_calibrage(inst.symbole, spec["nom"],
+                                    st["decision_chef"]["pct"])
+        if motif_cal:
+            st["refus_emission"] = motif_cal
+            try:
+                tableau._evt("Superviseur", f"{inst.symbole} {spec['nom']} "
+                             f"{st['setup']} NON émis — {motif_cal}", "veto")
+            except Exception:
+                pass
+            continue
         candidats.append({"instrument": inst.symbole, "tf": spec["nom"],
                           "sens": st["setup"],
                           "note": st["decision_chef"]["pct"],
