@@ -55,23 +55,29 @@ def test_sous_20_resolus_texte_insuffisant(tmp_path, monkeypatch):
     d = fiche_instrument.json_fiche("XAUUSD")
     assert d["global"]["taux"] is None
     assert "insuffisant (3/20)" in d["global"]["texte"]
-    html = fiche_instrument.bloc_html("XAUUSD")
-    assert "insuffisant (3/20)" in html
+    assert "insuffisant (3/20)" in d["html_haut"]
+    # le texte REMPLACE le pourcentage : aucune jauge, aucun % avant lui
+    assert "dansbarre" not in d["html_haut"]
     assert "%" not in d["global"]["texte"].split("insuffisant")[0]
 
 
 def test_html_montre_verdicts_et_filtre(tmp_path, monkeypatch):
     _journal(tmp_path, monkeypatch)
-    html = fiche_instrument.bloc_html("BTCUSD")
-    assert "BTC/USD" in html and "signal sur H4" in html
-    # 8.3 : les 5 boutons, verdict + effectif dessus
-    for tf in ("H4", "H1", "M30", "M15", "M5"):
-        assert f'data-tf="{tf}"' in html
-    assert "n=25" in html
-    # M15 : 5 TP / 25 a RR 2 -> R moyen -0.4 : COUPÉ, grisé mais present
-    assert "COUPÉ" in html
-    # l'historique porte data-tf pour le sélecteur
-    assert 'tr data-tf="M15"' in html
+    d = fiche_instrument.json_fiche("BTCUSD")
+    haut, bas = d["html_haut"], d["html_bas"]
+    # 8.3 : les 6 boutons pleine largeur, verdict + effectif dessus
+    for tf in ("TOUS", "H4", "H1", "M30", "M15", "M5"):
+        assert f'data-tf="{tf}"' in haut
+    assert "n=25" in haut and 'class="pastille"' in haut     # signal H4 visible
+    # M15 : 5 TP / 25 a RR 2 -> R moyen -0.4 : coupé, atténué mais cliquable
+    assert "coupé" in haut and 'class="tfx coupe"' in haut
+    # la jauge oppose taux et équilibre, l'écart est écrit
+    assert "équilibre" in haut and "dansbarre" in haut
+    # 8.4 : tables avec signes, icône+mot, cause du SL, data-tf/data-etat
+    assert "✗ non validé (SL)" in bas and "✓ validé (TP)" in bas
+    assert 'data-tf="M15" data-etat="SL"' in bas
+    assert "−1.00" in bas and "+2.00" in bas                 # le signe, toujours
+    assert "Historique complet" in bas and "Risque événementiel" in bas
 
 
 def test_sous_le_hasard_annonce(tmp_path, monkeypatch):
@@ -79,4 +85,4 @@ def test_sous_le_hasard_annonce(tmp_path, monkeypatch):
     _journal(tmp_path, monkeypatch)
     d = fiche_instrument.json_fiche("BTCUSD")
     assert d["sous_hasard"] is True
-    assert "pièce lancée" in fiche_instrument.bloc_html("BTCUSD")
+    assert "pièce lancée" in d["html_haut"]

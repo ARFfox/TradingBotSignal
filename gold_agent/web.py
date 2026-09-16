@@ -167,8 +167,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             cle = self.path.rsplit("/", 1)[-1].split("?")[0]
             try:
                 from . import fiche_instrument as _fi
-                corps = json.dumps({**_fi.json_fiche(cle),
-                                    "html": _fi.bloc_html(cle)},
+                corps = json.dumps(_fi.json_fiche(cle),
                                    ensure_ascii=False).encode()
                 self._repondre(corps, "application/json; charset=utf-8")
             except Exception as e:

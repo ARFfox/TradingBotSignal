@@ -83,16 +83,29 @@ def rendre(d: dict) -> str:
         quota_detail = f"{u['restant']} / {u['limite']}"
     else:
         anneau_coul, anneau_arc, quota_pct_txt, quota_detail = "#8b949e", 0.0, "—", "quota inconnu"
+    # La fiche (stats, jauge, timeframes, historiques) rendue côté serveur
+    # pour le premier affichage — le JS la rafraîchit ensuite par instrument.
+    try:
+        from . import fiche_instrument as _fi
+        fiche_haut = _fi.bloc_haut("XAUUSD")
+        fiche_bas = _fi.bloc_bas("XAUUSD")
+    except Exception:
+        fiche_haut, fiche_bas = "", ""
+
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Or — Tableau de bord</title><style>{CSS}</style></head><body><div class="wrap">
-<header><h1 id="titre-inst">XAU/USD</h1><div class="prix" id="grand-prix">{d.get('prix') or '—'}</div>
-<div class="var {var_cls}" id="variation">{var_txt}</div>
-<div style="font-size:10.5px;color:#8b949e" id="source-prix"></div>
-<div class="meta"><span class="pastille" id="pastille"></span><span id="horodatage">{gen:%d/%m/%Y %H:%M:%S}</span>
+<title>Tableau de bord</title><style>{CSS}</style></head><body><div class="wrap">
+<header><div><h1 id="titre-inst">XAU/USD <span style="color:var(--encre-3);font-weight:500" id="nom-inst">· Or spot</span></h1>
+<div style="display:flex;align-items:baseline;gap:9px;margin-top:2px">
+<span class="prix mono" id="grand-prix">{d.get('prix') or '—'}</span>
+<span class="var {var_cls}" id="variation">{var_txt}</span></div>
+<div style="font-size:10.5px;color:var(--encre-3)" id="source-prix"></div></div>
+<span id="chapeau-signal"></span>
+<div class="meta"><span class="pt-etat" id="pastille"></span><span id="horodatage">{gen:%d/%m/%Y %H:%M:%S}</span>
  · <span id="compte">{d['nb_setups']}</span> signal(aux) actif(s)
  · <span class="direct" id="fraicheur">{frais}</span></div>
 <div class="barre">
+<button class="bt-theme" id="bt-theme">◐ thème sombre</button>
 <div class="rondelle" id="quota" title="quota Twelve Data restant aujourd'hui">
   <div class="anneau">
     <svg width="54" height="54" viewBox="0 0 54 54">
@@ -123,16 +136,14 @@ Les niveaux découlent des paramètres de la règle : support confirmé = entré
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement
 mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuve derrière lui.</div>
 {bloc_nav}
-<div class="haut-page">{boule}{widget}</div>
-<div class="onglets">
-<button class="onglet actif" data-p="p-risque">Risque événementiel</button>
-<button class="onglet" data-p="p-histo">Signaux validés</button>
+<div id="fiche-haut">{fiche_haut}</div>
+<div class="duo">
+<div class="col-signal"><div class="grille" style="display:block">{cartes}</div></div>
+{widget}
 </div>
-<div id="p-risque" class="panneau actif">{bloc_news}</div>
-<div id="p-histo" class="panneau">{bloc_histo}</div>
+<div id="fiche-bas">{fiche_bas}</div>
+<div id="bloc-risque" hidden><div class="haut-page">{boule}<div>{bloc_news}</div></div></div>
 <div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
-<div id="fiche-hote"></div>
-<div class="grille">{cartes}</div>
 <footer>
 <span id="etat-cles"></span>Données Twelve Data · filtres : RSI max 70 à l'achat,
 RSI min 30 à la vente, R:R minimum 1,5, contexte du timeframe supérieur.<br>
@@ -279,9 +290,11 @@ window.allerOnglet = id => {{
   if (btn) btn.classList.add("actif");
   p.scrollIntoView({{behavior:"smooth", block:"start"}});
 }};
-document.querySelectorAll(".onglet").forEach(b => b.onclick = () => {{
-  document.querySelectorAll(".onglet").forEach(x => x.classList.remove("actif"));
-  document.querySelectorAll(".panneau").forEach(x => x.classList.remove("actif"));
+// seuls les onglets de PAGE (data-p) passent ici — ceux de la fiche ont
+// leur propre delegation dans NAV_JS (contenu reinjecte par instrument)
+document.querySelectorAll(".onglet[data-p]").forEach(b => b.onclick = () => {{
+  document.querySelectorAll(".onglet[data-p]").forEach(x => x.classList.remove("actif"));
+  document.querySelectorAll(".panneau[id^=p-]").forEach(x => x.classList.remove("actif"));
   b.classList.add("actif");
   document.getElementById(b.dataset.p).classList.add("actif");
 }});
@@ -312,21 +325,43 @@ function majEtatNotif(p) {{
 }}
 
 window.tfActif = window.tfActif || null;
+// La surcouche d'analyse sur le graphique (maquette) : elle reprend les
+// niveaux de la carte VISIBLE — jamais un calcul a part qui divergerait.
+function majSurchart() {{
+  const sur = document.getElementById("surchart");
+  if (!sur) return;
+  const carte = document.querySelector(".carte[data-tf].vue");
+  if (!carte) {{ sur.classList.remove("vue"); return; }}
+  const rr = carte.querySelector(".rr");
+  const zones = [...carte.querySelectorAll(".zone")].map(z =>
+    z.querySelector(".zl").textContent + " " + z.querySelector(".zv").textContent);
+  const ict = [...carte.querySelectorAll(".ict-ligne")]
+    .map(x => x.textContent.trim()).find(t => t.startsWith("ICT"));
+  const aucun = carte.querySelector(".aucun") || carte.querySelector(".avis");
+  let corps = rr ? rr.textContent + (zones.length ? " · " + zones.join(" · ") : "")
+                 : (aucun ? aucun.textContent.replace("Aucun signal", "Aucun signal — ").slice(0, 170) : "");
+  if (ict) corps += " · " + ict;
+  sur.innerHTML = "<b>Analyse " + carte.dataset.tf + " sur le graphique</b>" + corps;
+  sur.classList.add("vue");
+}}
 window.appliquerTf = () => {{
   const cartes = document.querySelectorAll(".carte[data-tf]");
   if (!cartes.length) return;
+  const dispo = [...cartes].map(c => c.dataset.tf);
   let choix = window.tfActif;
-  if (!choix || ![...cartes].some(c => c.dataset.tf === choix)) {{
-    // par defaut : premier TF avec signal actif, sinon H4
-    const avec = [...document.querySelectorAll(".tfb .bip.ok")];
-    choix = avec.length ? avec[0].parentElement.dataset.tf : "H4";
+  if (!choix || choix === "TOUS" || !dispo.includes(choix)) {{
+    // par defaut : premier TF avec signal EN COURS (pastille), sinon le 1er
+    const avec = [...document.querySelectorAll("#tfs-fiche .tfx .pastille")]
+      .map(p => p.closest(".tfx").dataset.tf).filter(t => dispo.includes(t));
+    choix = avec[0] || dispo[0];
   }}
   cartes.forEach(c => c.classList.toggle("vue", c.dataset.tf === choix));
-  document.querySelectorAll(".tfb").forEach(b =>
-    b.classList.toggle("actif", b.dataset.tf === choix));
+  document.querySelectorAll("#tfs-fiche .tfx").forEach(b =>
+    b.classList.toggle("actif", b.dataset.tf === (window.tfActif || choix)));
+  majSurchart();
 }};
 document.addEventListener("click", e => {{
-  const b = e.target.closest(".tfb");
+  const b = e.target.closest(".tfx");
   if (b) {{ window.tfActif = b.dataset.tf; window.appliquerTf(); }}
 }});
 window.appliquerTf();

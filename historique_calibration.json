@@ -964,5 +964,1006 @@
   "apres": null,
   "effectif": 30,
   "date": "2026-09-16T16:42:18+00:00"
+ },
+ {
+  "quoi": "poids AG-01",
+  "avant": null,
+  "apres": 0.1,
+  "effectif": 373,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "poids AG-05",
+  "avant": null,
+  "apres": 0.1,
+  "effectif": 373,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "poids AG-10",
+  "avant": null,
+  "apres": 0.1,
+  "effectif": 373,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XAU/USD|M5",
+  "avant": null,
+  "apres": "COUPE",
+  "effectif": 20,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BTC/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 6,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ETH/USD|H4",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ETH/USD|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ETH/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ETH/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 5,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ETH/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 9,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XRP/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XRP/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AVAX/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AVAX/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AVAX/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 12,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LINK/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LTC/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LTC/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 12,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NEAR/USD|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NEAR/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XAG/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XAG/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPD/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPD/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPD/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 5,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CUIVRE|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CUIVRE|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BRENT|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BLE|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BLE|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BTC/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 15,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XRP/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ATOM/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NEAR/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MAIS|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 5,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SOL/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 11,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DXY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LINK/USD|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AAPL|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AAPL|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MSFT|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MSFT|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MSFT|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NVDA|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GOOGL|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BNB/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple JPM|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple JPM|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple JPM|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLE|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 5,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLK|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLK|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GDX|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GDX|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPT/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPT/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CUIVRE|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple WTI|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BNB/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ATOM/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 6,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LINK/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XAG/USD|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SOL/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 5,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LINK/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 10,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BNB/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BTC/USD|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BTC/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DOT/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple QQQ|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple QQQ|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple QQQ|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple IWM|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GOOGL|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NEAR/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 12,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NFLX|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XOM|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLE|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLE|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLF|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GAZ|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SOL/USD|H4",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple USD/JPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ATOM/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AUD/JPY|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AUD/JPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AAPL|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NVDA|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple TSLA|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AMD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple NFLX|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XOM|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XOM|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AUD/JPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AMZN|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLE|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple WTI|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MAIS|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple USD/JPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DXY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MSFT|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple AMD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLF|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XPT/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple WTI|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BLE|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple EUR/JPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple IWM|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DOT/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple META|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple TSLA|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XLK|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BRENT|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GAZ|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GAZ|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple IWM|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple XAG/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 4,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BRENT|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple EUR/JPY|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple EUR/JPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GBP/JPY|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple SOL/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 3,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GBP/JPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CHF/JPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DXY|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple BRENT|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple MAIS|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GBP/JPY|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CHF/JPY|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple USD/JPY|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple DOT/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple CUIVRE|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple GAZ|H1",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ADA/USD|M15",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple ADA/USD|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "seuil d'émission",
+  "avant": null,
+  "apres": 0.45,
+  "effectif": 375,
+  "date": "2026-09-16T18:02:15+00:00"
+ },
+ {
+  "quoi": "couple LTC/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 2,
+  "date": "2026-09-16T18:16:03+00:00"
+ },
+ {
+  "quoi": "couple DOGE/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:16:03+00:00"
+ },
+ {
+  "quoi": "couple NVDA|M5",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:16:03+00:00"
+ },
+ {
+  "quoi": "couple ADA/USD|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:16:03+00:00"
+ },
+ {
+  "quoi": "couple EUR/GBP|M30",
+  "avant": null,
+  "apres": "OBSERVATION",
+  "effectif": 1,
+  "date": "2026-09-16T18:16:03+00:00"
+ },
+ {
+  "quoi": "seuil d'émission",
+  "avant": 0.45,
+  "apres": null,
+  "effectif": 30,
+  "date": "2026-09-16T18:25:10+00:00"
  }
 ]

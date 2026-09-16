@@ -1,0 +1,508 @@
+<style>
+/* =====================================================================
+   MAQUETTE SITE TRADING — thème clair
+   Claude Code : ces variables sont le thème. Tout le reste s'y réfère.
+   ===================================================================== */
+:root{
+  color-scheme: light;
+  --fond:        #ffffff;
+  --surface:     #fafaf9;
+  --surface-2:   #f4f4f2;
+  --bord:        #e4e3df;
+  --bord-fort:   #cdccc7;
+  --encre:       #17171a;
+  --encre-2:     #52514e;   /* 7.9:1 */
+  --encre-3:     #76746f;   /* 4.7:1 */
+  /* Statuts — TOUJOURS accompagnés d'un signe ou d'une icône.
+     Le rouge et le vert ne se distinguent PAS en deutéranopie
+     (ΔE 4,1 mesuré) : ~8 % des hommes. Le signe porte le sens. */
+  --perte:       #b3261e;   /* 6.5:1 — texte */
+  --perte-marque:#d03b3b;   /* marques */
+  --perte-fond:  #fdf0ef;
+  --gain:        #006300;   /* 7.5:1 — texte */
+  --gain-marque: #0ca30c;
+  --gain-fond:   #edf7ed;
+  --attention:   #8a5a00;   /* 5.9:1 — texte */
+  --attention-marque:#fab219;
+  --attention-fond:#fdf6e6;
+  --accent:      #1c5cab;   /* 6.6:1 — texte */
+  --accent-marque:#2a78d6;
+  --accent-fond: #eef4fd;
+  --neutre-fond: #f0efec;
+  --r: 10px;
+  --ombre: 0 1px 2px rgba(23,23,26,.05), 0 1px 3px rgba(23,23,26,.06);
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --fond:#131316; --surface:#1a1a1e; --surface-2:#232328;
+  --bord:#2c2c32; --bord-fort:#3d3d45;
+  --encre:#f2f2f0; --encre-2:#b9b8b2; --encre-3:#8d8c86;
+  --perte:#ff8a80; --perte-marque:#e66767; --perte-fond:#2a1614;
+  --gain:#6ddc6d; --gain-marque:#0ca30c; --gain-fond:#12240f;
+  --attention:#f5c451; --attention-marque:#fab219; --attention-fond:#2a2210;
+  --accent:#7fb2f5; --accent-marque:#3987e5; --accent-fond:#101d2e;
+  --neutre-fond:#26262b;
+  --ombre: 0 1px 2px rgba(0,0,0,.4);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --fond:#131316; --surface:#1a1a1e; --surface-2:#232328;
+    --bord:#2c2c32; --bord-fort:#3d3d45;
+    --encre:#f2f2f0; --encre-2:#b9b8b2; --encre-3:#8d8c86;
+    --perte:#ff8a80; --perte-marque:#e66767; --perte-fond:#2a1614;
+    --gain:#6ddc6d; --gain-marque:#0ca30c; --gain-fond:#12240f;
+    --attention:#f5c451; --attention-marque:#fab219; --attention-fond:#2a2210;
+    --accent:#7fb2f5; --accent-marque:#3987e5; --accent-fond:#101d2e;
+    --neutre-fond:#26262b;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--fond); color:var(--encre);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.page{max-width:1680px;margin:0 auto;padding:20px 16px 60px}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ---------- barre du haut ---------- */
+.chapeau{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.titre{font-size:17px;font-weight:700}
+.titre .tic{color:var(--encre-3);font-weight:500}
+.prix{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.var{font-size:13px;font-weight:650;padding:3px 8px;border-radius:99px}
+.var.up{color:var(--gain);background:var(--gain-fond)}
+.var.dn{color:var(--perte);background:var(--perte-fond)}
+.pousse{margin-left:auto}
+.bt-theme{background:var(--surface);border:1px solid var(--bord);color:var(--encre-2);
+  border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:12px}
+.bt-theme:hover{background:var(--surface-2)}
+
+/* ---------- marchés + instruments ---------- */
+.marches{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.marche{position:relative;background:var(--surface);border:1px solid var(--bord);
+  border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600;
+  font-size:13px;color:var(--encre-2);display:flex;align-items:center;gap:7px}
+.marche:hover{border-color:var(--bord-fort)}
+.marche[aria-pressed="true"]{background:var(--accent-fond);border-color:var(--accent-marque);
+  color:var(--accent)}
+.pastille{background:var(--perte-marque);color:#fff;font-size:11px;font-weight:700;
+  min-width:18px;height:18px;border-radius:99px;display:inline-flex;align-items:center;
+  justify-content:center;padding:0 5px;line-height:1}
+.instruments{display:flex;gap:7px;overflow-x:auto;padding:4px 2px 10px;
+  border-bottom:1px solid var(--bord);margin-bottom:16px;scrollbar-width:thin}
+.inst{flex:0 0 auto;background:var(--surface);border:1px solid var(--bord);
+  border-radius:9px;padding:8px 12px;cursor:pointer;text-align:left;font:inherit;
+  min-width:116px;position:relative}
+.inst:hover{border-color:var(--bord-fort)}
+.inst[aria-pressed="true"]{border-color:var(--accent-marque);background:var(--accent-fond);
+  box-shadow:inset 0 0 0 1px var(--accent-marque)}
+.inst b{display:block;font-size:12.5px;font-weight:650}
+.inst .p{font-size:15px;font-weight:700;margin-top:1px}
+.inst .d{font-size:11px;font-weight:600;margin-top:1px}
+.inst .pastille{position:absolute;top:-6px;right:-5px}
+
+/* ---------- bandeau de stats ---------- */
+.stats{display:grid;grid-template-columns:1.15fr 1.7fr 1fr .85fr;gap:1px;
+  background:var(--bord);border:1px solid var(--bord);border-radius:var(--r);
+  overflow:hidden;margin-bottom:18px}
+.tuile{background:var(--surface);padding:14px 16px;min-width:0}
+.tuile .lab{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--encre-3);margin-bottom:5px}
+/* Un seul chiffre héros par vue. C'est celui-ci. */
+.heros{font-size:38px;font-weight:700;letter-spacing:-.025em;line-height:1.05}
+.heros.neg{color:var(--perte)} .heros.pos{color:var(--gain)}
+.sous{font-size:11.5px;color:var(--encre-3);margin-top:4px}
+.gros{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.gros.neg{color:var(--perte)} .gros.pos{color:var(--gain)}
+
+/* La jauge : taux mesuré contre le seuil d'équilibre.
+   Deux nombres qui ne veulent rien dire séparément. */
+.jauge{margin-top:9px}
+.jauge .piste{position:relative;height:26px;background:var(--neutre-fond);
+  border-radius:6px;overflow:visible}
+.jauge .rempli{position:absolute;inset:0 auto 0 0;background:var(--perte-marque);
+  border-radius:6px 3px 3px 6px}
+.jauge .rempli.ok{background:var(--gain-marque)}
+.jauge .seuil{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--encre);
+  border-radius:2px}
+.jauge .seuil::after{content:attr(data-l);position:absolute;top:-17px;left:50%;
+  transform:translateX(-50%);white-space:nowrap;font-size:10.5px;font-weight:650;
+  color:var(--encre-2)}
+.jauge .dansbarre{position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  color:#fff;font-size:13px;font-weight:700}
+.manque{font-size:11.5px;color:var(--perte);font-weight:600;margin-top:7px}
+
+/* ---------- timeframes : pleine largeur ---------- */
+.tfs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.tf{position:relative;background:var(--surface);border:1px solid var(--bord);
+  border-radius:var(--r);padding:11px 8px;cursor:pointer;font:inherit;text-align:center}
+.tf:hover{border-color:var(--bord-fort)}
+.tf[aria-pressed="true"]{border-color:var(--accent-marque);background:var(--accent-fond);
+  box-shadow:inset 0 0 0 1px var(--accent-marque)}
+.tf .n{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.tf .v{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  margin-top:3px}
+.tf .e{font-size:10.5px;color:var(--encre-3);margin-top:1px}
+.v.coupe{color:var(--perte)} .v.obs{color:var(--attention)}
+.v.autorise{color:var(--gain)} .v.insuf{color:var(--encre-3)}
+.tf.coupe{opacity:.62}
+.tf .pastille{position:absolute;top:-7px;right:-6px}
+
+/* ---------- 2 colonnes : signal | graphique ---------- */
+.duo{display:grid;grid-template-columns:400px minmax(0,1fr);gap:16px;margin-bottom:18px}
+.carte{background:var(--surface);border:1px solid var(--bord);border-radius:var(--r);
+  box-shadow:var(--ombre);overflow:hidden}
+.carte .tete{padding:13px 15px;border-bottom:1px solid var(--bord);display:flex;
+  align-items:center;gap:11px;flex-wrap:wrap}
+.carte .corps{padding:15px}
+.anneau{width:46px;height:46px;flex:0 0 auto}
+.badge{font-size:11px;font-weight:650;padding:4px 9px;border-radius:99px;
+  display:inline-flex;align-items:center;gap:5px}
+.badge.mesure-pos{background:var(--gain-fond);color:var(--gain)}
+.badge.mesure-neg{background:var(--perte-fond);color:var(--perte)}
+.badge.gris{background:var(--neutre-fond);color:var(--encre-2)}
+.avis{border-left:3px solid;border-radius:0 8px 8px 0;padding:10px 13px;
+  font-size:12.5px;line-height:1.55;margin-bottom:13px}
+.avis.stop{border-color:var(--attention-marque);background:var(--attention-fond);
+  color:var(--attention)}
+.avis.info{border-color:var(--accent-marque);background:var(--accent-fond);color:var(--accent)}
+.niveaux{display:grid;gap:8px;margin-bottom:14px}
+.niv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:9px 12px;border-radius:8px;border-left:3px solid}
+.niv .g{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.05em}
+.niv .s{font-size:11px;color:var(--encre-3);display:block;margin-top:1px;
+  text-transform:none;letter-spacing:0;font-weight:400}
+.niv .v{font-size:17px;font-weight:700}
+.niv.e{border-color:var(--accent-marque);background:var(--accent-fond)}
+.niv.sl{border-color:var(--perte-marque);background:var(--perte-fond)}
+.niv.tp{border-color:var(--gain-marque);background:var(--gain-fond)}
+.indics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  padding-top:13px;border-top:1px solid var(--bord)}
+.indic{text-align:center}
+.indic .l{font-size:10px;font-weight:650;letter-spacing:.05em;color:var(--encre-3);
+  text-transform:uppercase}
+.indic .v{font-size:18px;font-weight:700;margin-top:2px}
+.chart{height:100%;min-height:430px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);color:var(--encre-3);font-size:13px;position:relative}
+.surchart{position:absolute;top:12px;left:12px;background:var(--fond);
+  border:1px solid var(--bord);border-radius:8px;padding:9px 12px;font-size:12px;
+  box-shadow:var(--ombre);max-width:290px;text-align:left;color:var(--encre-2)}
+.surchart b{color:var(--encre);display:block;margin-bottom:3px;font-size:12.5px}
+
+/* ---------- onglets + historique ---------- */
+.onglets{display:flex;gap:6px;border-bottom:1px solid var(--bord);margin-bottom:0}
+.onglet{background:none;border:none;border-bottom:2px solid transparent;
+  padding:9px 14px;cursor:pointer;font:inherit;font-weight:600;font-size:13.5px;
+  color:var(--encre-3);margin-bottom:-1px}
+.onglet:hover{color:var(--encre-2)}
+.onglet[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent-marque)}
+.onglet .cpt{font-size:11px;color:var(--encre-3);font-weight:600;margin-left:5px}
+.panneau{background:var(--surface);border:1px solid var(--bord);border-top:none;
+  border-radius:0 0 var(--r) var(--r);overflow:hidden}
+.filtres{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:11px 14px;
+  border-bottom:1px solid var(--bord);background:var(--surface-2)}
+.puce{background:var(--fond);border:1px solid var(--bord);border-radius:99px;
+  padding:4px 11px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;
+  color:var(--encre-2)}
+.puce[aria-pressed="true"]{background:var(--accent-fond);border-color:var(--accent-marque);
+  color:var(--accent)}
+.filtres .info{margin-left:auto;font-size:11.5px;color:var(--encre-3)}
+
+/* Cinq lignes visibles, le reste au défilement.
+   overscroll-behavior:contain évite que le scroll « saute » à la page
+   quand on arrive au bout — c'est le défaut pénible sur trackpad Mac. */
+.defile{max-height:252px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--bord-fort) transparent}
+.defile::-webkit-scrollbar{width:11px}
+.defile::-webkit-scrollbar-thumb{background:var(--bord-fort);border-radius:99px;
+  border:3px solid var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{position:sticky;top:0;background:var(--surface-2);text-align:left;
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--encre-3);padding:9px 12px;border-bottom:1px solid var(--bord);z-index:1}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--bord);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.res{font-weight:650;font-size:12.5px;display:inline-flex;align-items:center;gap:5px}
+.res.tp{color:var(--gain)} .res.sl{color:var(--perte)} .res.at{color:var(--encre-3)}
+.cause{font-size:11.5px;color:var(--encre-3)}
+.pied{padding:10px 14px;font-size:11.5px;color:var(--encre-3);
+  border-top:1px solid var(--bord);background:var(--surface-2)}
+
+@media (max-width:1100px){
+  .duo{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .tfs{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:620px){
+  .page{padding:14px 12px 40px}
+  .stats{grid-template-columns:1fr}
+  .heros{font-size:32px}
+}
+</style>
+
+<div class="page">
+
+  <div class="chapeau">
+    <div>
+      <div class="titre">XAU/USD <span class="tic">· Or spot</span></div>
+      <div style="display:flex;align-items:baseline;gap:9px;margin-top:2px">
+        <span class="prix mono">4 348.58</span>
+        <span class="var dn">▼ 0.42 %</span>
+      </div>
+    </div>
+    <span class="pastille" style="background:var(--perte-marque)">1</span>
+    <span style="font-size:12.5px;color:var(--perte);font-weight:650">signal sur M5</span>
+    <div class="pousse"></div>
+    <button class="bt-theme" id="bt-theme">◐ thème sombre</button>
+  </div>
+
+  <div class="marches">
+    <button class="marche">🥇 Matières <span class="pastille">3</span></button>
+    <button class="marche">💱 Forex <span class="pastille">4</span></button>
+    <button class="marche" aria-pressed="true">🪙 Crypto <span class="pastille">9</span></button>
+    <button class="marche">📊 Actions</button>
+  </div>
+
+  <div class="instruments">
+    <button class="inst" aria-pressed="true"><b>XAU/USD</b><span class="p mono">4 348.58</span>
+      <span class="d" style="color:var(--perte)">▼ 0.42 %</span><span class="pastille">1</span></button>
+    <button class="inst"><b>BTC/USD</b><span class="p mono">75 713.00</span>
+      <span class="d" style="color:var(--gain)">▲ 0.13 %</span><span class="pastille">1</span></button>
+    <button class="inst"><b>EUR/USD</b><span class="p mono">1.08512</span>
+      <span class="d" style="color:var(--gain)">▲ 0.06 %</span></button>
+    <button class="inst"><b>ETH/USD</b><span class="p mono">2 396.21</span>
+      <span class="d" style="color:var(--perte)">▼ 0.12 %</span><span class="pastille">1</span></button>
+    <button class="inst"><b>CUIVRE</b><span class="p mono">6.5065</span>
+      <span class="d" style="color:var(--gain)">▲ 0.18 %</span><span class="pastille">2</span></button>
+    <button class="inst"><b>BRENT</b><span class="p mono">106.02</span>
+      <span class="d" style="color:var(--perte)">▼ 0.31 %</span><span class="pastille">1</span></button>
+    <button class="inst"><b>SOL/USD</b><span class="p mono">97.300</span>
+      <span class="d" style="color:var(--gain)">▲ 0.42 %</span></button>
+  </div>
+
+  <!-- =============== BANDEAU DE STATS ===============
+       4 tuiles au lieu de 5 : « taux » et « équilibre à atteindre »
+       étaient deux nombres qui ne veulent rien dire séparément.
+       Réunis dans une jauge, l'écart se lit d'un coup d'œil. -->
+  <div class="stats">
+    <div class="tuile">
+      <div class="lab">R cumulé — XAU/USD</div>
+      <div class="heros neg mono">−19.0 R</div>
+      <div class="sous">la mesure qui compte · 39 résolus</div>
+    </div>
+
+    <div class="tuile">
+      <div class="lab">Taux de validés contre l'équilibre</div>
+      <div class="jauge">
+        <div class="piste">
+          <div class="rempli" style="width:36%"></div>
+          <span class="dansbarre mono">18 %</span>
+          <div class="seuil" style="left:60%" data-l="équilibre 30 %"></div>
+        </div>
+      </div>
+      <div class="manque">▼ il manque 12 points · IC [9 % – 33 %] sur 39 résolus</div>
+    </div>
+
+    <div class="tuile">
+      <div class="lab">Pips nets</div>
+      <div class="gros neg mono">−6 086</div>
+      <div class="sous">+2 410 gagnés · −8 496 perdus</div>
+    </div>
+
+    <div class="tuile">
+      <div class="lab">Résolus / émis</div>
+      <div class="gros mono">39 / 61</div>
+      <div class="sous">1 en attente · 0 jamais entré</div>
+    </div>
+  </div>
+
+  <!-- =============== TIMEFRAMES PLEINE LARGEUR =============== -->
+  <div class="tfs">
+    <button class="tf"><div class="n">TOUS</div><div class="v obs">observation</div><div class="e mono">n=39</div></button>
+    <button class="tf" aria-pressed="true"><div class="n">H4</div><div class="v insuf">insuffisant</div><div class="e mono">n=0</div></button>
+    <button class="tf"><div class="n">H1</div><div class="v insuf">insuffisant</div><div class="e mono">n=4</div></button>
+    <button class="tf"><div class="n">M30</div><div class="v insuf">insuffisant</div><div class="e mono">n=6</div></button>
+    <button class="tf"><div class="n">M15</div><div class="v insuf">insuffisant</div><div class="e mono">n=9</div></button>
+    <button class="tf coupe"><div class="n">M5</div><div class="v coupe">coupé</div><div class="e mono">n=20</div>
+      <span class="pastille">1</span></button>
+  </div>
+
+  <!-- =============== SIGNAL À GAUCHE · GRAPHIQUE À DROITE =============== -->
+  <div class="duo">
+    <div class="carte">
+      <div class="tete">
+        <svg class="anneau" viewBox="0 0 40 40" aria-label="conviction 0 %">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="var(--neutre-fond)" stroke-width="5"/>
+          <text x="20" y="24" text-anchor="middle" font-size="12" font-weight="700"
+                fill="var(--encre-3)">0%</text>
+        </svg>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700">H4 · Structure</div>
+          <div style="font-size:11.5px;color:var(--gain);font-weight:650">émission ON</div>
+        </div>
+        <span class="badge mesure-pos">▲ mesuré 3 ans · stop 1,5 ATR : +1,12 R</span>
+      </div>
+      <div class="corps">
+        <div class="avis stop">
+          <b>Aucun signal.</b> Garde-fou : R:R 0.70 sous 1.5 après élargissement du
+          stop — le setup ne tenait que par un stop irréaliste.
+        </div>
+        <div class="niveaux">
+          <div class="niv e"><span class="g">Entrée<span class="s">zone 4 341 – 4 356</span></span>
+            <span class="v mono">4 348.58</span></div>
+          <div class="niv sl"><span class="g">Stop loss<span class="s">risque 41.7 pts · 1,50 ATR</span></span>
+            <span class="v mono">4 306.90</span></div>
+          <div class="niv tp"><span class="g">Take profit<span class="s">gain 87.6 pts · R:R 2.10</span></span>
+            <span class="v mono">4 436.18</span></div>
+        </div>
+        <div class="indics">
+          <div class="indic"><div class="l">RSI</div><div class="v mono">51.8</div></div>
+          <div class="indic"><div class="l">ATR</div><div class="v mono">27.82</div></div>
+          <div class="indic"><div class="l">Extension</div><div class="v mono">2.0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="carte">
+      <div class="chart">
+        <div class="surchart">
+          <b>Analyse sur le graphique</b>
+          Zone d'entrée, SL et TP tracés en surcouche · ICT : équilibre (41,4 % du
+          range) · AMD : indéterminée
+        </div>
+        graphique TradingView — pleine hauteur
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== ONGLETS : SIGNAUX VALIDÉS | HISTORIQUE =============== -->
+  <div class="onglets" role="tablist">
+    <button class="onglet" role="tab" aria-selected="true" data-p="p1">Signaux validés<span class="cpt">8</span></button>
+    <button class="onglet" role="tab" aria-selected="false" data-p="p2">Historique complet<span class="cpt">39</span></button>
+    <button class="onglet" role="tab" aria-selected="false" data-p="p3">Risque événementiel</button>
+  </div>
+
+  <div class="panneau" id="p1">
+    <div class="filtres">
+      <button class="puce" aria-pressed="true">Tous TF</button>
+      <button class="puce">H4</button><button class="puce">H1</button>
+      <button class="puce">M30</button><button class="puce">M15</button>
+      <button class="puce">M5</button>
+      <span class="info">XAU/USD seulement · 5 lignes visibles, fais défiler pour le reste</span>
+    </div>
+    <div class="defile">
+      <table>
+        <thead><tr><th>Émis (UTC)</th><th>TF</th><th>Sens</th><th class="num">Entrée</th>
+          <th class="num">SL</th><th class="num">TP</th><th class="num">Note</th>
+          <th>Résultat</th><th class="num">R</th><th class="num">Pips</th><th>Cause SL</th></tr></thead>
+        <tbody id="corps-1"></tbody>
+      </table>
+    </div>
+    <div class="pied">39 résolus affichés · les signaux jamais entrés sont exclus du
+      taux (règle 2) et listés dans l'historique complet</div>
+  </div>
+
+  <div class="panneau" id="p2" hidden>
+    <div class="filtres">
+      <button class="puce" aria-pressed="true">Tout</button>
+      <button class="puce">Résolus</button><button class="puce">En attente</button>
+      <button class="puce">Jamais entrés</button>
+      <span class="info">tous les signaux de XAU/USD, y compris les expirés</span>
+    </div>
+    <div class="defile">
+      <table>
+        <thead><tr><th>Émis (UTC)</th><th>TF</th><th>Sens</th><th class="num">Entrée</th>
+          <th class="num">SL</th><th class="num">TP</th><th class="num">Note</th>
+          <th>Résultat</th><th class="num">R</th><th class="num">Pips</th><th>Cause SL</th></tr></thead>
+        <tbody id="corps-2"></tbody>
+      </table>
+    </div>
+    <div class="pied">61 signaux · 39 résolus · 1 en attente · 21 jamais entrés</div>
+  </div>
+
+  <div class="panneau" id="p3" hidden>
+    <div style="padding:22px;color:var(--encre-3);font-size:13px">
+      Calendrier économique et risque événementiel.
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // --- thème : le clair est le défaut demandé -------------------------
+  const racine = document.documentElement, bt = document.getElementById('bt-theme');
+  racine.setAttribute('data-theme', 'light');
+  bt.onclick = () => {
+    const sombre = racine.getAttribute('data-theme') === 'dark';
+    racine.setAttribute('data-theme', sombre ? 'light' : 'dark');
+    bt.textContent = sombre ? '◐ thème sombre' : '◐ thème clair';
+  };
+
+  // --- données d'exemple ---------------------------------------------
+  const L = [
+    ["16/09 15:09","M5","vente",4348.58,4353.83,4337.83,.05,"SL",-1,-525,"stop trop serré"],
+    ["16/09 13:26","M5","achat",4346.88,4342.59,4359.58,.24,"SL",-1,-429,"stop trop serré"],
+    ["16/09 12:30","M5","achat",4331.82,4328.10,4348.58,.31,"SL",-1,-372,"stop trop serré"],
+    ["16/09 12:30","M15","achat",4330.88,4324.30,4342.87,.28,"SL",-1,-658,"direction fausse"],
+    ["16/09 12:06","M30","achat",4325.26,4316.37,4348.56,.44,"SL",-1,-889,"direction fausse"],
+    ["16/09 12:06","M5","achat",4341.22,4337.77,4349.15,.26,"SL",-1,-345,"stop trop serré"],
+    ["16/09 09:55","M5","achat",4327.53,4324.00,4335.95,.33,"SL",-1,-353,"stop trop serré"],
+    ["16/09 07:52","M5","achat",4327.13,4323.55,4333.88,.19,"SL",-1,-358,"stop trop serré"],
+    ["16/09 04:58","M5","achat",4317.56,4314.09,4323.95,.22,"SL",-1,-347,"stop trop serré"],
+    ["16/09 03:50","M5","achat",4322.78,4317.49,4331.82,.37,"SL",-1,-529,"direction fausse"],
+    ["16/09 02:01","M15","vente",4293.32,4298.84,4282.47,.41,"SL",-1,-552,"direction fausse"],
+    ["15/09 23:57","H1","vente",4300.44,4319.85,4260.03,.52,"SL",-1,-1941,"direction fausse"],
+    ["15/09 23:47","M15","vente",4295.08,4299.44,4283.94,.36,"SL",-1,-436,"stop trop serré"],
+    ["15/09 23:22","M30","vente",4297.38,4305.50,4283.94,.47,"TP",1.66,1344,""],
+    ["15/09 21:10","M5","achat",4288.10,4284.55,4295.20,.29,"TP",2.00,710,""],
+    ["15/09 18:44","M15","achat",4271.55,4265.30,4284.05,.45,"SL",-1,-625,"direction fausse"],
+    ["15/09 16:02","H1","achat",4262.88,4248.10,4292.44,.58,"TP",2.00,2956,""],
+  ];
+  const attente = [["16/09 17:10","M5","vente",4351.20,4356.05,4341.50,.33,"ATT",null,null,""]];
+  const expire  = [["15/09 14:20","M5","achat",4255.00,4251.40,4262.20,.30,"EXP",null,null,""]];
+
+  const f = (v, d) => v.toFixed(d);
+  const ligne = r => {
+    const [d,tf,sens,e,sl,tp,note,st,R,pips,cause] = r;
+    // Le SIGNE et l'ICÔNE portent le sens, pas seulement la couleur :
+    // rouge et vert sont indistinguables en deutéranopie (~8 % des hommes).
+    const res = st==="TP" ? '<span class="res tp">✓ validé (TP)</span>'
+              : st==="SL" ? '<span class="res sl">✗ non validé (SL)</span>'
+              : st==="ATT"? '<span class="res at">◷ en attente</span>'
+              :             '<span class="res at">— jamais entré</span>';
+    const cR = R===null ? '—' : `<span style="color:var(--${R>0?'gain':'perte'});font-weight:650">${R>0?'+':'−'}${Math.abs(R).toFixed(2)}</span>`;
+    const cP = pips===null ? '—' : `<span style="color:var(--${pips>0?'gain':'perte'});font-weight:650">${pips>0?'+':'−'}${Math.abs(pips)}</span>`;
+    return `<tr><td>${d}</td><td><b>${tf}</b></td><td>${sens}</td>
+      <td class="num">${f(e,2)}</td><td class="num">${f(sl,2)}</td><td class="num">${f(tp,2)}</td>
+      <td class="num">${Math.round(note*100)} %</td><td>${res}</td>
+      <td class="num">${cR}</td><td class="num">${cP}</td>
+      <td class="cause">${cause||"—"}</td></tr>`;
+  };
+  document.getElementById('corps-1').innerHTML = L.map(ligne).join('');
+  document.getElementById('corps-2').innerHTML =
+    [...attente, ...L, ...expire].map(ligne).join('');
+
+  // --- onglets ---------------------------------------------------------
+  const onglets = [...document.querySelectorAll('.onglet')];
+  onglets.forEach(o => o.onclick = () => {
+    onglets.forEach(x => {
+      const actif = x === o;
+      x.setAttribute('aria-selected', actif);
+      document.getElementById(x.dataset.p).hidden = !actif;
+    });
+  });
+
+  // --- boutons à état ---------------------------------------------------
+  document.querySelectorAll('.marches, .instruments, .tfs, .filtres').forEach(g => {
+    const bs = [...g.querySelectorAll('button')];
+    bs.forEach(b => b.onclick = () => {
+      bs.forEach(x => x.setAttribute('aria-pressed', x === b));
+    });
+  });
+})();
+</script>

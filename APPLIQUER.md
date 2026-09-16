@@ -533,6 +533,25 @@ sur la même carte et se contredisent.
 > mesuré passe devant. Une conviction est une opinion ; un R moyen sur
 > 23 trades est une mesure. **La mesure gagne toujours la place principale.**
 
+**Bug 4 — le meilleur chiffre du projet est affiché en rouge.** 🟢
+
+Sur la carte H4 de XAU/USD, un badge **rouge** annonce :
+
+```
+mesuré · 3 ans, stop 1,5 ATR : +1,12R
+```
+
+**+1,12R est un résultat positif.** Mesuré sur trois ans, avec un stop à
+1,5 ATR. C'est le chiffre le plus encourageant de tout le système, et il est
+peint de la couleur des pertes — donc personne ne le lit.
+
+Il confirme aussi directement l'étape 2 : **quand le stop est placé
+honnêtement, la stratégie devient positive.** Le problème n'a jamais été
+l'analyse, c'est la géométrie.
+
+> Règle : le badge prend la couleur du **signe du R mesuré**. Positif = vert,
+> négatif = rouge. Jamais l'inverse, jamais une couleur fixe.
+
 ### 8.1 — Registre d'instruments
 
 **Nouveau fichier : `core/instruments.py`** — une seule source de vérité :
@@ -661,6 +680,126 @@ couleurs de l'étape 7. Le graphe et les cases lisent la même source.
 **Fini quand :** cliquer sur l'or montre l'historique de l'or, son taux, ses
 5 timeframes avec leur verdict ; cliquer sur EUR/USD change tout ; et aucune
 case sous 20 résolus n'affiche de pourcentage.
+
+### 8.7 — La mise en page et le thème clair
+
+**Référence visuelle : `maquette.html`** à la racine du projet. Elle est
+autonome, elle s'ouvre dans un navigateur, et **son CSS est la source des
+valeurs** — reprends les variables telles quelles plutôt que d'en inventer.
+
+#### Le thème clair
+
+Le fond passe en blanc. ⚠️ **Ce n'est pas « le thème sombre avec le fond
+changé »** — c'est l'erreur classique, et elle donne du gris clair illisible
+sur du blanc. Toutes les encres et tous les statuts ont été recalculés :
+
+```css
+:root{
+  --fond:#ffffff;  --surface:#fafaf9;  --surface-2:#f4f4f2;
+  --bord:#e4e3df;  --bord-fort:#cdccc7;
+  --encre:#17171a;  --encre-2:#52514e;  --encre-3:#76746f;
+
+  --perte:#b3261e;        /* TEXTE   — 6,5:1 sur blanc */
+  --perte-marque:#d03b3b; /* MARQUES — barres, points */
+  --gain:#006300;         /* TEXTE   — 7,5:1 */
+  --gain-marque:#0ca30c;
+  --attention:#8a5a00;    /* TEXTE   — 5,9:1 */
+  --accent:#1c5cab;       /* TEXTE   — 6,6:1 */
+}
+```
+
+> **Deux verts et deux rouges, ce n'est pas une erreur.** `#0ca30c` sur blanc
+> ne donne que 3,35:1 : correct pour une barre, **insuffisant pour du texte**
+> (4,5:1 exigé). Le vert vif va sur les marques, le vert foncé sur les
+> chiffres. Le thème sombre garde ses propres valeurs et reste disponible par
+> le bouton — le clair est le défaut.
+
+#### 🔴 Le signe porte le sens, jamais la couleur seule
+
+Le rouge et le vert du tableau sont à **ΔE 4,1 en deutéranopie** (mesuré) :
+pour environ **8 % des hommes**, ce sont deux gris identiques. Un tableau de
+trading qui n'encode le résultat que par la couleur est illisible pour eux.
+
+Donc, partout et sans exception :
+
+| Élément | Forme obligatoire |
+|---|---|
+| R | `+1.66` / `−1.00` — **le signe, toujours** |
+| Pips | `+1 344` / `−525` |
+| Résultat | `✓ validé (TP)` / `✗ non validé (SL)` — **icône + mot** |
+| Variation de prix | `▲ 0.13 %` / `▼ 0.42 %` |
+| Verdict d'un TF | le mot écrit (`coupé`, `autorisé`), pas juste la teinte |
+
+#### La mise en page
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ XAU/USD · Or spot   4 348.58 ▼0.42%      🔴1 signal sur M5   │
+├──────────────────────────────────────────────────────────────┤
+│ [Matières 3] [Forex 4] [Crypto 9] [Actions]                  │
+│ [XAU/USD] [BTC/USD] [EUR/USD] [ETH/USD] …  ← défile          │
+├──────────────────────────────────────────────────────────────┤
+│  −19.0 R    │ taux ▓▓▓▓▓░░░│░░ 18 %   │ −6 086  │  39 / 61   │
+│  R cumulé   │      équilibre 30 % ↑    │  pips   │ résolus    │
+├──────────────────────────────────────────────────────────────┤
+│ [TOUS] [H4] [H1] [M30] [M15] [M5🔴]   ← PLEINE LARGEUR       │
+├───────────────────────┬──────────────────────────────────────┤
+│  SIGNAL               │  GRAPHIQUE TradingView               │
+│  conviction · badge   │  ┌────────────────────┐              │
+│  garde-fou            │  │ analyse en surcouche│             │
+│  entrée / SL / TP     │  └────────────────────┘              │
+│  RSI · ATR · ext.     │                                      │
+├───────────────────────┴──────────────────────────────────────┤
+│ [Signaux validés 8] [Historique complet 39] [Risque]         │
+│  filtres TF · 5 lignes visibles, le reste défile             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Quatre changements par rapport à l'actuel :
+
+**Les timeframes prennent toute la largeur.** `grid-template-columns:
+repeat(6, 1fr)`. Chaque bouton porte son nom, son **verdict** et son
+**effectif** — `M5 · coupé · n=20`. Un bouton `coupé` est atténué
+(`opacity:.62`) mais reste cliquable : on doit pouvoir regarder ce qu'on a
+coupé.
+
+**Signal à gauche (400 px fixe), graphique à droite (le reste).** L'analyse
+s'affiche **en surcouche sur le graphique**, pas en dessous. Sous 1100 px, la
+grille passe à une colonne.
+
+**Le bandeau de stats passe de 5 tuiles à 4.** « 21,7 % » et « 28,7 %
+équilibre à atteindre » étaient deux nombres qui ne veulent rien dire
+séparément — l'un n'a de sens que comparé à l'autre. Ils deviennent **une
+jauge** : la barre remplie est le taux mesuré, le trait vertical est
+l'équilibre. L'écart se voit sans lire un chiffre.
+
+> Et un seul **chiffre héros** par vue (38 px) : le **R cumulé**. C'est la
+> mesure qui décide. Tout le reste est en 24 px.
+
+**L'historique passe dans son propre onglet.** `Signaux validés` |
+`Historique complet` | `Risque événementiel`. Le premier ne montre que les
+résolus ; le second montre tout, y compris les jamais entrés.
+
+#### Le défilement à 5 lignes
+
+```css
+.defile{
+  max-height: 252px;          /* ≈ 5 lignes + l'en-tête */
+  overflow-y: auto;
+  overscroll-behavior: contain;   /* ⚠️ indispensable */
+}
+thead th{ position: sticky; top: 0; }   /* l'en-tête reste visible */
+```
+
+> `overscroll-behavior: contain` empêche le défilement de « sauter » à la page
+> entière quand on arrive en bas du tableau. Sans lui, deux doigts sur le
+> trackpad d'un Mac font partir la page au moment où on cherche la ligne
+> suivante — c'est le défaut le plus pénible d'un tableau défilant, et il
+> tient en une ligne de CSS.
+
+**Fini quand :** le fond est blanc, les 6 boutons de timeframe occupent toute
+la largeur, le graphique est à droite du signal, le tableau montre 5 lignes
+puis défile sans emporter la page, et chaque chiffre coloré porte son signe.
 
 ---
 

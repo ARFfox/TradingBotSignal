@@ -11,27 +11,41 @@ def _carte(r: dict) -> str:
     s = r.get("setup") or {}
     fi = r.get("fiabilite") or {}
     niveau = fi.get("niveau", "non mesuré")
-    cls = {"mesuré": "b-mesure", "indicatif": "b-indicatif"}.get(niveau, "b-nonmesure")
+    # Bug 4 (APPLIQUER 8.0) : le badge prend la couleur du SIGNE du R
+    # mesuré — « +1,12R » en rouge était le meilleur chiffre du projet
+    # peint de la couleur des pertes. Jamais une couleur fixe.
+    import re as _re
+    m_r = _re.search(r"([+\-\u2212])\s*(\d+[.,]\d+)\s*R", str(fi.get("note", "")))
+    if m_r:
+        cls = "mesure-neg" if m_r.group(1) in "-\u2212" else "mesure-pos"
+        fleche = "▼ " if cls == "mesure-neg" else "▲ "
+    elif "REFUSÉ" in str(niveau):
+        cls, fleche = "mesure-neg", "▼ "
+    elif niveau in ("mesuré", "walk-forward autorisé"):
+        cls, fleche = "mesure-pos", "▲ "
+    else:
+        cls, fleche = "gris", ""
     actif = " actif" if s.get("setup") else ""
 
     pct = r.get("pct_haussier", 50)
     circ = 2 * 3.14159 * 18
-    coul = "#3fb950" if pct >= 55 else ("#f85149" if pct <= 45 else "#d29922")
+    coul = ("var(--gain-marque)" if pct >= 55
+            else ("var(--perte-marque)" if pct <= 45 else "var(--attention-marque)"))
     jauge = (f'<div class="jauge-tf"><svg width="44" height="44">'
-             f'<circle cx="22" cy="22" r="18" fill="none" stroke="#21262d" stroke-width="5"/>'
+             f'<circle cx="22" cy="22" r="18" fill="none" stroke="var(--neutre-fond)" stroke-width="5"/>'
              f'<circle cx="22" cy="22" r="18" fill="none" stroke="{coul}" stroke-width="5" '
              f'stroke-dasharray="{circ*pct/100:.1f} {circ:.1f}"/></svg>'
              f'<span style="color:{coul}">{pct}%</span></div>')
 
     em = r.get("emission")
     tag_em = "" if em is None else (
-        ' <span style="font-size:10px;color:#3fb950">émission ON</span>' if em
-        else ' <span style="font-size:10px;color:#f85149">émission OFF</span>')
+        ' <span style="font-size:10px;color:var(--gain)">émission ON</span>' if em
+        else ' <span style="font-size:10px;color:var(--perte)">émission OFF</span>')
     h = [f'<div class="carte{actif}" data-tf="{r["nom"]}">',
          f'<div class="tete"><div style="display:flex;gap:10px;align-items:center">{jauge}'
          f'<div><div class="tf">{r["nom"]}</div>'
          f'<div class="role">{r["role"]}{tag_em}</div></div></div>'
-         f'<span class="badge {cls}">{niveau} · {fi.get("note","")}</span></div>',
+         f'<span class="badge {cls}">{fleche}{niveau} · {fi.get("note","")}</span></div>',
          '<div class="corps">']
 
     if s.get("setup") and s.get("suspendu"):
@@ -50,6 +64,11 @@ def _carte(r: dict) -> str:
             h.append(f'<div class="zone {klass}"><div><div class="zl">{lib}</div>'
                      f'<div class="zd">{extra}</div></div><div class="zv">{s[cle]}</div></div>')
         h.append("</div>")
+    elif "garde-fou" in str(s.get("raison", "")):
+        # étape 2 : le refus du garde-fou est une INFORMATION, pas un vide —
+        # il s'affiche comme un avis (maquette), avec la raison chiffrée.
+        h.append(f'<div class="avis stop"><b>Aucun signal.</b> '
+                 f'{s.get("raison", "")}</div>')
     else:
         h.append(f'<div class="aucun"><b>Aucun signal</b>{s.get("raison","")}</div>')
 
@@ -88,15 +107,16 @@ def _carte(r: dict) -> str:
         # couple mesuré négatif est une opinion contredite par une mesure.
         # La mesure prend la place principale ; la conviction se grise.
         if "REFUSÉ" in str(fiab_c.get("niveau", "")):
-            h.append(f'<div class="ict-ligne">📏 <b style="color:#f85149">'
+            h.append(f'<div class="ict-ligne">📏 <b style="color:var(--perte)">'
                      f'walk-forward REFUSÉ — {fiab_c.get("note", "")}</b> · '
-                     f'conviction <span style="color:#6e7681">{pct} % '
+                     f'conviction <span style="color:var(--encre-3)">{pct} % '
                      f'(opinion, contredite par la mesure)</span></div>')
         else:
-            coul_dc = "#3fb950" if pct >= 65 else ("#d29922" if pct >= 45 else "#f85149")
+            coul_dc = ("var(--gain)" if pct >= 65
+                       else ("var(--attention)" if pct >= 45 else "var(--perte)"))
             h.append(f'<div class="ict-ligne">🧠 Décision du Superviseur : '
                      f'<b style="color:{coul_dc}">{pct} %</b>'
-                     + (f' <span style="color:#8b949e">({det})</span>' if det else "")
+                     + (f' <span style="color:var(--encre-3)">({det})</span>' if det else "")
                      + '</div>')
 
     im = (r.get("setup") or {}).get("intermarche")
@@ -133,12 +153,11 @@ def _carte(r: dict) -> str:
         libelle = f"donnees figees depuis {age}s" if r.get("perime") else (
             "en direct" if age == 0 else f"il y a {age}s")
         h.append(f'<div class="al{perime}" style="margin-top:10px;font-size:11.5px;'
-                 f'border-left-color:#30363d;background:transparent;padding:4px 0">{libelle}</div>')
+                 f'border-left-color:var(--bord);background:transparent;padding:4px 0">{libelle}</div>')
     if r.get("erreur"):
         h.append(f'<div class="al chaud" style="margin-top:6px">{r["erreur"]}</div>')
 
     h.append("</div>")
-    h.append(f'<div class="chart" style="overflow-x:auto">{_grand_graphique(r)}</div>')
     h.append("</div>")
     return "".join(h)
 
@@ -176,13 +195,13 @@ def _boule(c: dict) -> str:
 
 # Widget officiel TradingView — construit HORS f-string : son JSON de config
 # est plein d'accolades qui entreraient en collision avec le gabarit.
-WIDGET_TV = """<div class="tv-cadre"><h3>Graphique en direct — TradingView</h3>
-<iframe id="tv-iframe" src="https://s.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=30&theme=dark&style=1&locale=fr&hide_side_toolbar=0&allow_symbol_change=0&timezone=Etc%2FUTC"
- style="width:100%;height:430px;border:0;display:block" loading="lazy"
- title="TradingView XAUUSD"></iframe>
-<div style="padding:8px 16px;font-size:11.5px;color:#6e7681">Si ce cadre reste noir,
-un bloqueur de publicité filtre probablement tradingview.com — ajoute une exception
-pour 127.0.0.1.</div></div>"""
+WIDGET_TV = """<div class="chart-tv">
+<iframe id="tv-iframe" src="https://s.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=30&theme=light&style=1&locale=fr&hide_side_toolbar=0&allow_symbol_change=0&timezone=Etc%2FUTC"
+ loading="lazy" title="TradingView"></iframe>
+<div class="surchart" id="surchart"></div>
+<div style="position:absolute;bottom:8px;left:12px;font-size:10.5px;color:var(--encre-3);z-index:5">
+Si ce cadre reste vide, un bloqueur filtre tradingview.com — ajoute une exception pour 127.0.0.1.</div>
+</div>"""
 
 
 def _fragment_graphe() -> str:
@@ -264,16 +283,7 @@ def _grille(d: dict) -> str:
     remplaçait la grille par les cartes seules — la barre disparaissait
     et l'utilisateur restait bloqué sur H4.
     """
-    nav_tf = ""
-    for r in d["timeframes"]:
-        st_ = r.get("setup") or {}
-        bip = ""
-        if st_.get("setup"):
-            bip = ('<span class="bip">⛔</span>' if st_.get("suspendu")
-                   else '<span class="bip ok">●</span>')
-        nav_tf += f'<button class="tfb" data-tf="{r["nom"]}">{r["nom"]}{bip}</button>'
-    return (f'<div class="tf-nav">{nav_tf}</div>'
-            + "".join(_carte(r) for r in d["timeframes"]))
+    return "".join(_carte(r) for r in d["timeframes"])
 
 
 
@@ -404,7 +414,7 @@ def _bloc_navigation(d: dict) -> str:
     for m in _inst.MARCHES_ORDRE:
         emoji, libelle = _inst.MARCHES_LIBELLES[m]
         barre += (f'<button class="m-btn" data-m="{m}">{emoji} {libelle} '
-                  f'<span class="badge" hidden></span></button>')
+                  f'<span class="pastille" hidden></span></button>')
         tuiles = ""
         for t in ms.get(m, []):
             dico[t["cle"]] = t
@@ -412,13 +422,13 @@ def _bloc_navigation(d: dict) -> str:
                 fmt = f'{{:.{t["decimales"]}f}}'
                 prix_txt = fmt.format(t["prix"])
                 v = t.get("variation_pct")
-                var_txt = (f'<span style="color:{"#3fb950" if v >= 0 else "#f85149"}">'
+                var_txt = (f'<span style="color:var(--{"gain" if v >= 0 else "perte"})">'
                            f'{"▲" if v >= 0 else "▼"} {abs(v):.2f}%</span>'
                            if v is not None else "")
             else:
                 prix_txt, var_txt = "—", ""
             tuiles += (f'<div class="tuile-inst" data-cle="{t["cle"]}" data-m="{m}">'
-                       f'<b>{t["libelle"]}</b> <span class="badge" hidden></span>'
+                       f'<b>{t["libelle"]}</b> <span class="pastille" hidden></span>'
                        f'<div style="font-size:15px;font-weight:700">{prix_txt}</div>'
                        f'<div style="font-size:11px">{var_txt}</div>'
                        f'<div style="font-size:9.5px;color:#6e7681">{t["nom"]}</div></div>')

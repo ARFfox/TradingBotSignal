@@ -1,33 +1,33 @@
 # Rapport du Superviseur apprenant
 
-généré le 2026-09-16 16:39 UTC · 553 signaux au journal · 355 résolus
+généré le 2026-09-16 18:16 UTC · 576 signaux au journal · 400 résolus
 
 ```
 ==========================================================================
   SUPERVISEUR — AUTO-DIAGNOSTIC
 ==========================================================================
 
-  -95.1R sur 355 résolus (553 émis, 198 jamais entrés)
-  taux 23.7% · gain moyen +2.09R · équilibre à 32.3%
-  ⚠ espérance -0.268R — il manque 8.6% points de réussite pour l'équilibre
+  -66.8R sur 400 résolus (576 émis, 176 jamais entrés)
+  taux 27.0% · gain moyen +2.08R · équilibre à 32.4%
+  ⚠ espérance -0.167R — il manque 5.4% points de réussite pour l'équilibre
 
   STOPS
-    271 stops touchés · 1% par stop trop serré
-    stop médian : 1.00 ATR · 100% sous 1.0 ATR
-      indetermine          267
-      stop_trop_serre      2
-      direction_fausse     2
+    292 stops touchés · 2% par stop trop serré
+    stop médian : 1.00 ATR · 50% sous 1.0 ATR
+      indetermine          283
+      stop_trop_serre      6
+      direction_fausse     3
 
   CALIBRATION DE LA NOTE
-    0%–20%     n=34   annoncé 11% → réel 21% · -0.42R
-    20%–40%    n=192  annoncé 31% → réel 28% · -0.16R
-    40%–60%    n=129  annoncé 44% → réel 19% · -0.39R
-    écart moyen 12.0% — exploitable
+    0%–20%     n=37   annoncé 10% → réel 22% · -0.37R
+    20%–40%    n=220  annoncé 31% → réel 31% · -0.04R
+    40%–60%    n=143  annoncé 44% → réel 22% · -0.31R
+    écart moyen 9.5% — exploitable
 
   AGENTS (poids mesuré, pas choisi)
-    AG-01  n=354  poids ×0.10   discr. +0.38   vote quasiment toujours pareil — sans valeur
-    AG-10  n=354  poids ×0.10   discr. -0.38   vote quasiment toujours pareil — sans valeur
-    AG-05  n=354  poids ×0.10   discr. -0.42   vote quasiment toujours pareil — sans valeur
+    AG-01  n=395  poids ×0.10   discr. +0.48   vote quasiment toujours pareil — sans valeur
+    AG-05  n=395  poids ×0.10   discr. -0.43   vote quasiment toujours pareil — sans valeur
+    AG-10  n=395  poids ×0.10   discr. -0.48   vote quasiment toujours pareil — sans valeur
 
   COUPLES INSTRUMENT × TIMEFRAME
     XAU/USD    M5    n=20   -0.562R  COUPE

@@ -3,184 +3,8 @@
 Separe de web.py (regle 17 : aucun fichier > 500 lignes).
 """
 
-CSS = """
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;color:#e6edf3;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:24px}
-.wrap{max-width:1400px;margin:0 auto}
-header{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:6px}
-h1{font-size:22px;font-weight:650;letter-spacing:-.3px}
-.prix{font-size:30px;font-weight:700;color:#e3b341;font-variant-numeric:tabular-nums}
-.meta{color:#8b949e;font-size:13px}
-.bandeau{background:#161b22;border:1px solid #30363d;border-left:3px solid #d29922;border-radius:8px;padding:12px 16px;margin:16px 0 24px;font-size:13.5px;color:#c9d1d9}
-.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px}
-.carte{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
-.carte.actif{border-color:#2f81f7}
-.tete{padding:14px 16px;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.tf{font-size:17px;font-weight:650}
-.role{color:#8b949e;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
-.badge{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
-.b-mesure{background:#12341f;color:#3fb950;border:1px solid #238636}
-.b-indicatif{background:#3a2e12;color:#d29922;border:1px solid #9e6a03}
-.b-nonmesure{background:#3d1d1d;color:#f85149;border:1px solid #b62324}
-.corps{padding:16px;flex:1}
-.aucun{color:#8b949e;font-size:13.5px;padding:10px 0}
-.aucun b{color:#c9d1d9;display:block;margin-bottom:4px;font-weight:600}
-.zones{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.zone{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:6px;font-variant-numeric:tabular-nums}
-.z-entree{background:rgba(47,129,247,.13);border-left:3px solid #2f81f7}
-.z-stop{background:rgba(248,81,73,.12);border-left:3px solid #f85149}
-.z-obj{background:rgba(63,185,80,.12);border-left:3px solid #3fb950}
-.zl{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
-.zv{font-size:17px;font-weight:650}
-.zd{font-size:11.5px;color:#8b949e;margin-top:2px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #30363d}
-.st{text-align:center}
-.sl{font-size:10.5px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
-.sv{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
-.chart{background:#0d1117;border-top:1px solid #30363d}
-.alertes{margin-top:12px;display:flex;flex-direction:column;gap:6px}
-.al{font-size:12.5px;padding:7px 10px;border-radius:5px;background:#21262d;color:#c9d1d9;border-left:2px solid #8b949e}
-.al.chaud{border-left-color:#f85149;color:#ffa198}
-.al.tiede{border-left-color:#d29922;color:#e3b341}
-footer{margin-top:28px;padding-top:18px;border-top:1px solid #30363d;color:#8b949e;font-size:12.5px;line-height:1.7}
-.rr{font-size:13px;color:#8b949e}
-.rr b{color:#e6edf3;font-size:15px}
-.age{font-size:11px;color:#6e7681;margin-left:auto}
-.age.perime{color:#f85149}
-.barre{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:auto}
-.pastille{width:8px;height:8px;border-radius:50%;background:#3fb950;display:inline-block;margin-right:6px}
-.pastille.charge{background:#d29922;animation:clign 1s infinite}
-@keyframes clign{50%{opacity:.3}}
-.compteur{font-size:12.5px;color:#8b949e;font-variant-numeric:tabular-nums}
-#notif-etat{font-size:12px;color:#8b949e}
-.rondelle{display:flex;flex-direction:column;align-items:center;gap:3px}
-.btn-rond{width:42px;height:42px;border-radius:50%;background:#21262d;border:1px solid #30363d;
-color:#c9d1d9;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
-transition:background .15s,transform .1s;position:relative}
-.btn-rond:hover{background:#30363d;transform:scale(1.06)}
-.btn-rond svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;
-stroke-linecap:round;stroke-linejoin:round}
-.btn-rond.on{border-color:#238636;color:#3fb950}
-.btn-rond .point{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;
-background:#3fb950;border:2px solid #161b22;display:none}
-.btn-rond.on .point{display:block}
-.mini-lib{font-size:10px;color:#6e7681;letter-spacing:.2px;font-variant-numeric:tabular-nums}
-.anneau{position:relative;width:54px;height:54px}
-.anneau svg{transform:rotate(-90deg)}
-.anneau .pctq{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
-.on{color:#3fb950}
-.flash{animation:flash 1.4s ease-out}
-.news{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin:0 0 18px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:800px){.news{grid-template-columns:1fr}}
-.news h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
-.evt{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid #21262d}
-.evt:last-child{border-bottom:none}
-.evt .t{color:#c9d1d9}.evt .q{color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums}
-.risque{padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:10px}
-.risque.veto{background:#3d1d1d;color:#ffa198;border-left:3px solid #f85149}
-.risque.reserve{background:#3a2e12;color:#e3b341;border-left:3px solid #d29922}
-.risque.ok{background:#12341f;color:#3fb950;border-left:3px solid #238636}
-.risque.inconnu{background:#21262d;color:#8b949e;border-left:3px solid #8b949e}
-.macrol{font-size:13px;color:#c9d1d9;padding:4px 0}
-.macrol b{font-variant-numeric:tabular-nums}
-.haut-page{display:grid;grid-template-columns:340px 1fr;gap:18px;margin:0 0 18px}
-@media(max-width:900px){.haut-page{grid-template-columns:1fr}}
-.boule{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.boule h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;align-self:flex-start}
-.verdict-b{font-size:20px;font-weight:700}
-.verdict-b.h{color:#3fb950}.verdict-b.b{color:#f85149}.verdict-b.n{color:#d29922}
-.legende{display:flex;gap:16px;font-size:12.5px;color:#c9d1d9}
-.legende i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
-.contribs{width:100%;font-size:11.5px;color:#8b949e;max-height:150px;overflow-y:auto;border-top:1px solid #21262d;padding-top:8px}
-.contribs div{display:flex;justify-content:space-between;padding:2px 0}
-.tv-cadre{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;min-height:460px}
-.tv-cadre h3{font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;padding:14px 16px 0}
-.onglets{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
-.onglet{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:8px;padding:9px 18px;font-size:13.5px;cursor:pointer;font-family:inherit;font-weight:600}
-.onglet.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.panneau{display:none}.panneau.actif{display:block}
-.tf-btns{display:flex;gap:6px;margin:0 0 10px}
-.tf-btn{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:12.5px;cursor:pointer;font-family:inherit}
-.tf-btn.actif{background:#238636;border-color:#238636;color:#fff}
-.grand-chart{display:none;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px}
-.grand-chart.actif{display:block}
-.strats{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;overflow-x:auto}
-.strats table{width:100%;border-collapse:collapse;font-size:13px}
-.strats th{text-align:left;color:#8b949e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;border-bottom:1px solid #30363d}
-.strats td{padding:7px 10px;border-bottom:1px solid #21262d;color:#c9d1d9;font-variant-numeric:tabular-nums}
-.strats .ok{color:#3fb950}.strats .ko{color:#f85149}
-.jauge-tf{position:relative;width:44px;height:44px;flex-shrink:0}
-.jauge-tf svg{transform:rotate(-90deg)}
-.jauge-tf span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
-.ict-ligne{font-size:12px;color:#8b949e;padding:6px 0;border-top:1px solid #21262d;margin-top:8px}
-.ict-ligne b{color:#c9d1d9}
-.cerveau{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.ag{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px}
-.ag h4{font-size:13.5px;color:#e6edf3;display:flex;align-items:center;gap:8px}
-.ag .pt{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.ag .pt.ok{background:#3fb950}.ag .pt.ko{background:#f85149}
-.ag p{font-size:12px;color:#8b949e;margin-top:4px}
-.superviseur{grid-column:1/-1;background:#161b22;border:1px solid #30363d;border-left:3px solid #1f6feb;border-radius:10px;padding:14px;font-size:13px;color:#c9d1d9}
-.sys{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-bottom:16px}
-@media(max-width:1000px){.sys{grid-template-columns:1fr}}
-.ag-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.agc{background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
-.agc .code{position:absolute;top:8px;right:10px;font-size:10px;color:#4a5878;font-family:monospace}
-.agc h4{display:flex;align-items:center;gap:8px;font-size:14.5px;letter-spacing:.3px}
-.agc .ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;background:#0d1117;border:1px solid currentColor}
-.agc .rl{font-size:11px;color:#8b949e;margin:2px 0 8px 38px}
-.chip{font-size:9.5px;font-weight:700;letter-spacing:1px;border:1px solid currentColor;border-radius:4px;padding:2px 7px;margin-left:auto;animation:pulse-chip 1.6s infinite}
-@keyframes pulse-chip{50%{opacity:.45}}
-.barp{height:4px;background:#1a2440;border-radius:99px;overflow:hidden;margin:6px 0 8px}
-.barp i{display:block;height:100%;width:40%;border-radius:99px;background:currentColor;animation:flux 2.2s ease-in-out infinite}
-@keyframes flux{0%{margin-left:-40%}100%{margin-left:100%}}
-.act{font-size:12px;color:#c9d1d9;min-height:34px;font-family:ui-monospace,monospace;line-height:1.45}
-.act .lg{display:none}.act .lg.on{display:block}
-.agc .pied{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10.5px;color:#6e7681;border-top:1px solid #1a2440;padding-top:7px}
-.mini-conv{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
-.console{background:#05080f;border:1px solid #1f2b45;border-radius:10px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;overflow-y:auto;max-height:520px}
-.console h5{color:#4a5878;font-size:10px;letter-spacing:1.5px;margin-bottom:6px}
-.cl{color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cl b{color:#58a6ff;font-weight:600}
-.cl.signal{color:#3fb950}.cl.veto{color:#f85149}.cl.alerte{color:#d29922}
-.tf-nav{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
-.marches-nav{display:flex;gap:10px;margin:0 0 12px;flex-wrap:wrap}
-.m-btn{background:#161b22;border:1px solid #30363d;color:#c9d1d9;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;position:relative}
-.m-btn:hover{border-color:#58a6ff}
-.badge{background:#f85149;color:#fff;border-radius:9px;font-size:10px;padding:1px 6px;vertical-align:top}
-.m-grille{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:10px 12px;margin:0 0 12px}
-.m-tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
-.tuile-inst{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12px}
-.tuile-inst:hover{border-color:#58a6ff}
-.tuile-inst.actif{border-color:#1f6feb;box-shadow:0 0 0 1px #1f6feb}
-.tf-nav{grid-column:1/-1;display:flex;flex-direction:row;gap:8px;align-items:flex-start;flex-wrap:wrap;overflow:visible;padding-top:8px}
-.tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:10px;
-width:64px;height:48px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
-font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.tfb.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
-/* Bug 2 (16/09) : la pastille etait minuscule et tronquee — on doit voir
-   d'un coup d'oeil QUEL timeframe porte le signal. */
-.tfb .bip{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:99px;
-background:#f85149;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;
-justify-content:center;padding:0 5px;border:2px solid #0d1117;animation:pulse-chip 1.2s infinite;
-z-index:3;overflow:visible}
-.tfb .bip.ok{background:#3fb950}
-.carte[data-tf]{display:none}.carte[data-tf].vue{display:flex}
-.convs{grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 16px;margin-bottom:14px}
-.convs .cvx{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#8b949e}
-.var{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
-.var.hausse{color:#3fb950}.var.baisse{color:#f85149}
-.direct{font-size:11.5px;color:#6e7681}
-.direct .vif{color:#3fb950}
-.quota{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#8b949e}
-.jauge{width:120px;height:6px;background:#21262d;border-radius:99px;overflow:hidden}
-.jauge span{display:block;height:100%;background:#3fb950;transition:width .4s}
-.jauge span.moyen{background:#d29922}.jauge span.haut{background:#f85149}
-@keyframes flash{0%{box-shadow:0 0 0 0 rgba(47,129,247,.7)}100%{box-shadow:0 0 0 22px rgba(47,129,247,0)}}
-button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit}
-button:hover{background:#30363d}
-"""
+# Le theme complet vit dans theme.py (maquette.html est la source, 8.7)
+from .theme import CSS  # noqa: F401  (reexporte pour rendu.py)
 
 
 PAGE_CONNEXION = """<!doctype html><html lang="fr"><head><meta charset="utf-8">
@@ -260,6 +84,23 @@ de passe dédié à ce site — ton adresse Gmail ne sert que d'identifiant.</di
 # interpolee dans une f-string : pleine d'accolades.
 NAV_JS = r"""
 (() => {
+  // --- theme : le CLAIR est le defaut demande (8.7) ; le choix persiste --
+  const racine = document.documentElement;
+  const btTheme = document.getElementById('bt-theme');
+  let theme = 'light';
+  try { theme = localStorage.getItem('theme') || 'light'; } catch (e) {}
+  const majTheme = t => {
+    racine.setAttribute('data-theme', t);
+    if (btTheme) btTheme.textContent = t === 'dark' ? '◐ thème clair' : '◐ thème sombre';
+    try { localStorage.setItem('theme', t); } catch (e) {}
+  };
+  majTheme(theme);
+  if (btTheme) btTheme.onclick = () => {
+    theme = racine.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    majTheme(theme);
+    try { majGraphique(INSTRUMENTS[window.INSTRUMENT_ACTIF]); } catch (e) {}
+  };
+
   const bloc = document.getElementById('donnees-instruments');
   if (!bloc) return;
   const D = JSON.parse(bloc.textContent);
@@ -268,18 +109,19 @@ NAV_JS = r"""
   let TF_ACTIF = '30', WS = null;
   window.INSTRUMENT_ACTIF = 'XAUUSD';
 
-  // §4 : les pastilles DERIVENT toutes de la meme liste, par calcul.
+  // §4 : les pastilles DERIVENT toutes de la meme liste, par calcul —
+  // elles comptent les signaux EN COURS, jamais l'historique (8.5).
   const badgeMarche = m => SIGNAUX.filter(s => s.marche === m).length;
   const badgeInstrument = c => SIGNAUX.filter(s => s.instrument === c).length;
   document.querySelectorAll('.m-btn').forEach(b => {
     const n = badgeMarche(b.dataset.m);
-    if (n) { const e = b.querySelector('.badge'); e.textContent = n; e.hidden = false; }
+    if (n) { const e = b.querySelector('.pastille'); e.textContent = n; e.hidden = false; }
     b.onclick = () => document.querySelectorAll('.m-grille').forEach(g =>
       g.hidden = (g.id !== 'mg2-' + b.dataset.m) || !g.hidden);
   });
   document.querySelectorAll('.tuile-inst').forEach(t => {
     const n = badgeInstrument(t.dataset.cle);
-    if (n) { const e = t.querySelector('.badge'); e.textContent = n; e.hidden = false; }
+    if (n) { const e = t.querySelector('.pastille'); e.textContent = n; e.hidden = false; }
     t.onclick = () => location.hash = '#/' + t.dataset.m + '/' + t.dataset.cle;
   });
 
@@ -287,10 +129,11 @@ NAV_JS = r"""
   // comporte mal quand l'intervalle change en meme temps.
   function majGraphique(inst) {
     const f = document.getElementById('tv-iframe');
-    if (!f) return;
+    if (!f || !inst) return;
+    const th = racine.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     f.src = 'https://s.tradingview.com/widgetembed/?symbol='
       + encodeURIComponent(inst.tv) + '&interval=' + TF_ACTIF
-      + '&theme=dark&style=1&locale=fr&hide_side_toolbar=0'
+      + '&theme=' + th + '&style=1&locale=fr&hide_side_toolbar=0'
       + '&allow_symbol_change=0&timezone=Etc%2FUTC';
   }
   function fermerFlux() { if (WS) { try { WS.close(); } catch (e) {} WS = null; } }
@@ -331,17 +174,66 @@ NAV_JS = r"""
     if (note) note.hidden = true;
   }
 
-  // 8.2 : la fiche par instrument (historique, taux honnete, 5 TF avec
-  // verdict) — calculee par vue_instrument, servie prete a inserer.
+  // 8.2 : la fiche par instrument — deux blocs (stats+timeframes en haut,
+  // onglets d'historique en bas), calcules par vue_instrument.
+  function placerRisque() {
+    const hote = document.getElementById('hote-risque');
+    const bloc = document.getElementById('bloc-risque');
+    if (hote && bloc) { hote.appendChild(bloc); bloc.hidden = false; }
+  }
   function majFiche(cle) {
-    const hote = document.getElementById('fiche-hote');
-    if (!hote) return;
-    hote.dataset.cle = cle;
+    const haut = document.getElementById('fiche-haut');
+    const bas = document.getElementById('fiche-bas');
+    if (!haut || !bas) return;
+    haut.dataset.cle = cle;
     fetch('/api/instrument/' + cle, {cache: 'no-store'})
       .then(r => r.json())
-      .then(d => { if (hote.dataset.cle === cle) hote.innerHTML = d.html || ''; })
+      .then(d => {
+        if (haut.dataset.cle !== cle) return;
+        // le bloc Risque vit dans l'onglet 3 : on le sort avant d'ecraser
+        const risque = document.getElementById('bloc-risque');
+        if (risque) { risque.hidden = true; document.body.appendChild(risque); }
+        haut.innerHTML = d.html_haut || '';
+        bas.innerHTML = d.html_bas || '';
+        placerRisque();
+        const ch = document.getElementById('chapeau-signal');
+        if (ch) ch.textContent = (d.tf_signal && d.tf_signal.length)
+          ? '🔴 ' + d.tf_signal.length + ' signal(aux) sur ' + d.tf_signal.join(', ') : '';
+        window.appliquerTf && window.appliquerTf();
+      })
       .catch(() => {});
   }
+  placerRisque();
+
+  // Onglets de la fiche + filtres — par DELEGATION : le contenu est
+  // reinjecte a chaque changement d'instrument.
+  document.addEventListener('click', e => {
+    const o = e.target.closest('#onglets-fiche .onglet');
+    if (o) {
+      document.querySelectorAll('#onglets-fiche .onglet').forEach(x =>
+        x.classList.toggle('actif', x === o));
+      ['pf1', 'pf2', 'pf3'].forEach(id => {
+        const p = document.getElementById(id);
+        if (p) p.classList.toggle('actif', id === o.dataset.pf);
+      });
+      return;
+    }
+    const puce = e.target.closest('.puce');
+    if (puce) {
+      const panneau = puce.closest('.panneau');
+      panneau.querySelectorAll('.puce').forEach(x =>
+        x.setAttribute('aria-pressed', x === puce));
+      const ftf = puce.dataset.ftf, fet = puce.dataset.fet;
+      panneau.querySelectorAll('tbody tr').forEach(tr => {
+        let ok = true;
+        if (ftf && ftf !== 'TOUS') ok = tr.dataset.tf === ftf;
+        if (fet && fet !== 'TOUS')
+          ok = (fet === 'resolu') ? (tr.dataset.etat === 'TP' || tr.dataset.etat === 'SL')
+                                  : tr.dataset.etat === fet;
+        tr.style.display = ok ? '' : 'none';
+      });
+    }
+  });
 
   // §2 : un seul etat, dans le hash — retour navigateur et lien partageable.
   function appliquerHash() {
@@ -392,12 +284,12 @@ NAV_JS = r"""
 
   // §5 : un clic timeframe met aussi a jour l'intervalle TradingView.
   document.addEventListener('click', e => {
-    const b = e.target.closest('.tfb');
+    const b = e.target.closest('.tfx');
     if (!b || !b.dataset.tf || !TV_INT[b.dataset.tf]) return;
     TF_ACTIF = TV_INT[b.dataset.tf];
-    const p = location.hash.split('/');
-    const inst = (p.length >= 3 && INSTRUMENTS[p[2]]) || INSTRUMENTS['XAUUSD'];
-    if (inst) majGraphique(inst);
+    majGraphique(INSTRUMENTS[window.INSTRUMENT_ACTIF] || INSTRUMENTS['XAUUSD']);
   });
+  // premier chargement : le cadre TradingView suit le theme choisi
+  majGraphique(INSTRUMENTS['XAUUSD']);
 })();
 """
