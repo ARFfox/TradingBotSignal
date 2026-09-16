@@ -297,9 +297,39 @@ def _blocs_onglets(d: dict) -> dict:
     # rend le taux honnete : il mesure ce qui t'a ete recommande.
     from .instruments import par_defaut as _pd
     _defaut_inst = _pd().symbole
-    ICONES = {"gagnant": ("✅ TP", "ok"), "perdant": ("❌ SL", "ko"),
+    # TP -> valide, SL -> non valide (APPLIQUER 8.4, demande explicite)
+    ICONES = {"gagnant": ("✅ validé (TP)", "ok"), "perdant": ("❌ non validé (SL)", "ko"),
               "ouvert": ("⏳ en cours", ""), "en_attente": ("🕐 en attente", ""),
               "non_execute": ("⚪ expiré", "")}
+
+    def _cause_sl(x):
+        """Pourquoi ce stop a sauté — les deux pannes opposées de
+        l'étape 1. Vide tant que le suivi n'a pas les données."""
+        if x["statut"] != "perdant":
+            return ""
+        if x.get("tp_atteint_apres_sl"):
+            return "stop trop serré"
+        ef, risque = x.get("extreme_favorable"), abs(x["entree"] - x["stop"])
+        if ef is not None and risque:
+            if abs(ef - x["entree"]) / risque < 0.25:
+                return "direction fausse"
+        return "—"
+
+    def _pips_x(x):
+        try:
+            import pips as _p
+            taille, _u = _p.taille_pip(x.get("instrument", _defaut_inst))
+            if x["statut"] == "gagnant":
+                v = abs(x["objectif"] - x["entree"]) / taille
+            elif x["statut"] == "perdant":
+                v = -abs(x["entree"] - x["stop"]) / taille
+            else:
+                return "—"
+            coul = "#f85149" if v < 0 else "#3fb950"
+            return f'<span style="color:{coul}">{round(v):+,}</span>'.replace(",", " ")
+        except Exception:
+            return "—"
+
     lignes_h = ""
     for x in hi.get("derniers", []):
         icone, cls_h = ICONES.get(x["statut"], (x["statut"], ""))
@@ -312,9 +342,10 @@ def _blocs_onglets(d: dict) -> dict:
                      f'<td>{x["tf"]}</td><td>{x["sens"]}</td><td>{x["entree"]}</td>'
                      f'<td>{x["stop"]}</td><td>{x["objectif"]}</td>'
                      f'<td>{note_x if note_x is not None else "—"}%</td>'
-                     f'<td class="{cls_h}">{icone}</td><td>{r_txt}</td></tr>')
+                     f'<td class="{cls_h}">{icone}</td><td>{r_txt}</td>'
+                     f'<td>{_pips_x(x)}</td><td>{_cause_sl(x)}</td></tr>')
     if not lignes_h:
-        lignes_h = ('<tr><td colspan="10">aucun signal émis pour l&#39;instant — '
+        lignes_h = ('<tr><td colspan="12">aucun signal émis pour l&#39;instant — '
                     'le journal se remplit à mesure que la règle émet</td></tr>')
 
     resolus = hi.get("resolus", 0)
@@ -322,7 +353,12 @@ def _blocs_onglets(d: dict) -> dict:
     # negatif, pourcentage du cumul des deux — toujours affiche, avec
     # l'effectif juste en dessous (un % sans effectif serait trompeur).
     if resolus and hi.get("taux_reussite_pct") is not None:
-        taux_txt = f'{hi["taux_reussite_pct"]}%'
+        # Règle 3 (APPLIQUER) : sous 20 résolus le pourcentage ment par
+        # petitesse d'échantillon — on le REMPLACE, on ne l'accompagne pas.
+        if resolus < 20:
+            taux_txt = "échantillon insuffisant"
+        else:
+            taux_txt = f'{hi["taux_reussite_pct"]}%'
         taux_sous = (f'{hi.get("gagnants", 0)} TP ✅ / '
                      f'{hi.get("perdants", 0)} SL ❌ ({resolus} résolus)')
     else:
@@ -344,11 +380,37 @@ def _blocs_onglets(d: dict) -> dict:
                       if manque_ > 0 else f'{-manque_} points au-dessus'))
     else:
         eq_txt, eq_sous = "—", "pas encore de signaux résolus"
-    rs_ = [x.get("r_obtenu") or 0 for x in hi.get("derniers", [])
-           if x.get("statut") in ("gagnant", "perdant")]
-    gains_ = sum(r for r in rs_ if r > 0)
-    pertes_ = abs(sum(r for r in rs_ if r < 0))
-    pf_txt = (f'{gains_ / pertes_:.2f}' if pertes_ else ("∞" if gains_ else "—"))
+    # APPLIQUER étape 5 : les PIPS remplacent le profit factor (qui était
+    # de toute façon calculé sur les 20 dernières lignes seulement — le
+    # fameux 0.00 impossible). Signés, rouges si négatifs, R à côté ; le
+    # marqueur ≠ avertit qu'un total multi-instruments n'est pas une somme
+    # d'argent.
+    try:
+        from .apprentissage import signaux as _sig_appr
+        import pips as _pips
+        _b = _pips.bilan(_sig_appr())
+    except Exception:
+        _b = None
+    if _b and _b.n_resolus:
+        _coul = "#f85149" if _b.net < 0 else "#3fb950"
+        _signe = "−" if _b.net < 0 else "+"
+        _unite = (_b.fiables[0].unite if len(_b.fiables) == 1
+                  else "pips/points")
+        _marque = ""
+        if _b.melange:
+            _marque = (' <span title="Ce total additionne des instruments '
+                       'différents. 1 pip d&#39;EUR/USD vaut environ 10 $, 1 pip '
+                       'd&#39;or environ 1 $ : +500 pips sur l&#39;or et −500 sur '
+                       'EUR/USD ne s&#39;annulent pas. Filtre sur un seul '
+                       'instrument pour un chiffre exact. Le R, lui, est '
+                       'comparable partout." style="cursor:help;color:#d29922">≠</span>')
+        _n = f'{abs(round(_b.net)):,}'.replace(",", " ")
+        pips_txt = (f'<span style="color:{_coul}">{_signe}&#8202;{_n}</span>'
+                    + _marque)
+        pips_sous = (f'+{round(_b.gagnes):,} · −{round(_b.perdus):,} {_unite} · '
+                     f'{round(_b.r_total, 1):+}R').replace(",", " ")
+    else:
+        pips_txt, pips_sous = "—", "aucun signal résolu"
 
     def _stat(valeur, libelle, sous=""):
         return (f'<div style="text-align:center;padding:4px 14px">'
@@ -364,14 +426,14 @@ def _blocs_onglets(d: dict) -> dict:
                 + _stat(taux_txt, "signaux validés par les agents", taux_sous)
                 + _stat(eq_txt, "équilibre à atteindre", eq_sous)
                 + _stat(f'{resolus} / {hi.get("total_emis", 0)}', "résolus / émis")
-                + _stat(pf_txt, "profit factor") + '</div>')
+                + _stat(pips_txt, "pips nets", pips_sous) + '</div>')
 
     bloc_histo = f"""<div class="strats">
 <div style="font-size:12px;color:#8b949e;margin-bottom:8px"><b style="color:#e6edf3">
 SIGNAUX VALIDÉS</b> — uniquement ce qui t&#39;a été affiché ou notifié. Pas les setups
 rejetés, pas les timeframes coupés : si tu ne l&#39;as pas vu à l&#39;écran, il n&#39;est pas ici.</div>
 {entete_h}
-<table><tr><th>Émis le (UTC)</th><th>Instrument</th><th>TF</th><th>Sens</th><th>Entrée</th><th>SL</th><th>TP</th><th>Note</th><th>Résultat</th><th>R</th></tr>
+<table><tr><th>Émis le (UTC)</th><th>Instrument</th><th>TF</th><th>Sens</th><th>Entrée</th><th>SL</th><th>TP</th><th>Note</th><th>Résultat</th><th>R</th><th>Pips</th><th>Cause SL</th></tr>
 {lignes_h}</table>
 <div style="font-size:11.5px;color:#6e7681;margin-top:8px">Les signaux expirés (entrée jamais
 touchée) et en cours ne comptent ni dans le taux ni dans le R : il n&#39;y a rien à y gagner ni à

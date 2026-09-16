@@ -22,6 +22,9 @@ if str(RACINE) not in sys.path:                     # modules livrés à la raci
 
 RAPPORT_SUPERVISEUR = RACINE / "rapport_superviseur.md"
 RAPPORT_SOUS_ENSEMBLES = RACINE / "rapport_sous_ensembles.md"
+RAPPORT_PIPS = RACINE / "rapport_pips.md"
+RAPPORT_AVOCATS = RACINE / "rapport_avocats.md"
+POIDS_AVOCATS = Path.home() / ".gold_agent_poids_avocats.json"
 ETAT = Path.home() / ".gold_agent_apprentissage.json"
 NOUVEAUX_RESOLUS_MIN = 20
 
@@ -51,6 +54,12 @@ def signaux(entrees: list[dict] | None = None) -> list:
     out = []
     for x in entrees:
         try:
+            # Artefacts de l'ancien arrondi 2 décimales (corrigé le 15/09) :
+            # entrée==SL ou entrée==TP -> risque ou gain nul, aucun trade
+            # réel ne ressemble à ça. Exclus de l'apprentissage ET des pips ;
+            # le journal brut les garde (données, pas jugement).
+            if x["entree"] in (x["stop"], x["objectif"]):
+                continue
             inst = x.get("instrument") or defaut
             if inst not in marches:
                 marches[inst] = _marche(inst)
@@ -81,7 +90,8 @@ def equilibre(entrees: list[dict] | None = None) -> dict | None:
     from . import journal
     if entrees is None:
         entrees = journal._charger()
-    resolus = [x for x in entrees if x["statut"] in ("gagnant", "perdant")]
+    resolus = [x for x in entrees if x["statut"] in ("gagnant", "perdant")
+               and x["entree"] not in (x["stop"], x["objectif"])]
     gagnants = [x for x in resolus if x["statut"] == "gagnant"]
     rrs = [x.get("rr_prevu") for x in resolus if x.get("rr_prevu")]
     if not resolus or not rrs:
@@ -94,6 +104,29 @@ def equilibre(entrees: list[dict] | None = None) -> dict | None:
             "taux_pct": round(taux, 1),
             "ecart_pts": round(taux - taux_equilibre, 1),
             "resolus": len(resolus)}
+
+
+def _calibration_avocats(entrees: list[dict]) -> tuple[str, dict] | None:
+    """Rejoue les plaidoiries sur les signaux résolus dont le contexte a
+    été journalisé, et mesure le poids réel de chaque argument. Renvoie
+    (texte du rapport, {code: poids}) — None tant que rien n'est mesurable."""
+    from avocats import Contexte, calibrer, rapport_calibration
+    paires = []
+    for x in entrees:
+        ctx_d = (x.get("debat") or {}).get("ctx")
+        if not ctx_d or x["statut"] not in ("gagnant", "perdant"):
+            continue
+        sig = signaux([x])
+        if not sig:
+            continue
+        try:
+            paires.append((sig[0], Contexte(**ctx_d)))
+        except Exception:
+            continue
+    if not paires:
+        return None
+    poids = calibrer(paires)
+    return rapport_calibration(poids), {k: v.poids for k, v in poids.items()}
 
 
 def _charger_etat() -> dict:
@@ -111,8 +144,10 @@ def rapports_si_du(force: bool = False) -> list[str]:
     écrits — vide si rien n'était dû."""
     import superviseur_apprenant as sup
     import chercheur_sous_ensembles as che
+    from . import journal
 
-    sig = signaux()
+    entrees = journal._charger()
+    sig = signaux(entrees)
     resolus = sum(1 for s in sig if s.resolu)
     etat = _charger_etat()
     jour = dt.date.today().isoformat()
@@ -136,6 +171,27 @@ def rapports_si_du(force: bool = False) -> list[str]:
             "# Chasse aux sous-ensembles\n\n" + entete
             + "```\n" + che.rapport(sig) + "\n```\n")
         ecrits.append(str(RAPPORT_SOUS_ENSEMBLES))
+    except Exception:
+        pass
+    try:
+        import pips
+        RAPPORT_PIPS.write_text(
+            "# Bilan en pips\n\n" + entete
+            + "```\n" + pips.rapport(pips.bilan(sig)) + "\n```\n")
+        ecrits.append(str(RAPPORT_PIPS))
+    except Exception:
+        pass
+    # Le débat apprend : les poids mesurés repartent vers l'émission via
+    # debat.poids_arguments() — un argument « à retourner » reste affiché,
+    # jamais supprimé (c'est un contre-indicateur, donc une information).
+    try:
+        cal = _calibration_avocats(entrees)
+        if cal:
+            texte_cal, poids = cal
+            RAPPORT_AVOCATS.write_text(
+                "# Calibration du débat contradictoire\n\n" + entete + texte_cal)
+            POIDS_AVOCATS.write_text(json.dumps(poids))
+            ecrits.append(str(RAPPORT_AVOCATS))
     except Exception:
         pass
     if ecrits:

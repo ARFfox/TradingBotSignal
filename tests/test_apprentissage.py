@@ -94,18 +94,21 @@ def test_rapports_ecrits_puis_cadence_respectee(tmp_path, monkeypatch):
                         tmp_path / "rapport_superviseur.md")
     monkeypatch.setattr(apprentissage, "RAPPORT_SOUS_ENSEMBLES",
                         tmp_path / "rapport_sous_ensembles.md")
+    monkeypatch.setattr(apprentissage, "RAPPORT_PIPS",
+                        tmp_path / "rapport_pips.md")
     monkeypatch.setattr(apprentissage, "ETAT", tmp_path / "etat.json")
     entrees = [_entree(statut="gagnant" if i % 4 == 0 else "perdant",
                        tf=["H1", "M30", "M15"][i % 3],
-                       entree=100.0 + i)
+                       entree=100.0 + i, stop=98.0 + i, objectif=104.0 + i)
                for i in range(30)]
     (tmp_path / "j.json").write_text(json.dumps(entrees))
 
     ecrits = apprentissage.rapports_si_du()
-    assert len(ecrits) == 2
+    assert len(ecrits) == 3
     texte = (tmp_path / "rapport_superviseur.md").read_text()
     assert "30 résolus" in texte
+    assert (tmp_path / "rapport_pips.md").exists()
     # le même jour, sans 20 nouveaux résolus : rien n'est dû
     assert apprentissage.rapports_si_du() == []
     # force=True passe outre la cadence
-    assert len(apprentissage.rapports_si_du(force=True)) == 2
+    assert len(apprentissage.rapports_si_du(force=True)) == 3

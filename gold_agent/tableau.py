@@ -9,7 +9,7 @@ import datetime as dt
 import threading
 import time
 
-from . import avis as avis_agents, avocat, config, datasource as ds, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
+from . import avis as avis_agents, avocat, config, datasource as ds, emission as _emission, ict, indicators as ind, instruments, journal, patterns as pat, regime as rg, strategy as sg
 from .cerveau import (_consensus, _notifier_reparations, _sante,  # noqa: F401
                       agents_live, grille_conviction)
 from .decision import noter as noter_decision
@@ -436,33 +436,14 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
                  f"{st['decision_chef']['pct']} % malgré des objections — "
                  f"décision pesée, pas bloquée", "alerte")
 
-    # CHANTIER etape 3 : le LOT des 5 timeframes passe par l'anti-
-    # contradiction avant d'entrer au journal. Un refus reste VISIBLE
-    # (motif sur la carte + console) mais n'est ni journalise ni notifie —
-    # GDX achete en M5 et vendu en M15 la meme minute ne se reproduit plus.
-    from garde_fous import filtrer_lot
-    _maintenant_ts = int(time.time())
-    _candidats = []
-    for r in resultats:
-        st = r.get("setup") or {}
-        if st.get("setup"):
-            _candidats.append({"instrument": symbole, "tf": r["nom"],
-                               "sens": st["setup"],
-                               "note": (st.get("decision_chef") or {}).get("pct", 0),
-                               "cree_ts": _maintenant_ts, "_r": r})
-    _gardes, _refuses = filtrer_lot(_candidats)
-    for c in _refuses:
-        st = c["_r"]["setup"]
-        st["refus_emission"] = c["motif"]
-        _evt("Superviseur", f"{c['tf']} {c['sens']} NON émis — {c['motif']}",
-             "veto")
-    for c in _gardes:
-        r = c["_r"]
-        journal.enregistrer(r["nom"], r["setup"], prix_actuel or 0,
-                            (r.get("fiabilite") or {}).get("niveau", "?"),
-                            atr=r.get("atr"),
-                            spread=(prix_actuel or 0)
-                            * instruments.par_defaut().cout_pct / 100)
+        # APPLIQUER étape 6 : le débat AG-16/AG-18 (gold_agent/emission.py).
+        _emission.debattre(st, r, resultats, symbole, prix_actuel,
+                           _evts_agenda, _carreaux_tf.get(r["nom"]), _evt)
+
+    # APPLIQUER étape 3 : anti-contradiction sur le LOT des 5 timeframes
+    # (gold_agent/emission.py) — GDX acheté en M5 et vendu en M15 la même
+    # minute ne se reproduit plus.
+    _emission.emettre_lot(resultats, symbole, prix_actuel, _evt)
     paquet["chrono"]["avocat"] = round((_tps.perf_counter() - d0) * 1000, 1)
 
     # SPEC_SITE_V3 §4 : LA liste unique dont derivent toutes les pastilles.
@@ -479,29 +460,15 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     except Exception:
         pass
 
-
     paquet["agents"] = agents_live(paquet)
 
     # --- le reseau des agents (INTEGRATION_GRAPHE.md) ---------------------
     # Tout ce que le graphe montre est mesure a l'instant du rendu : un
     # agent sans carte s'affiche MUET, un blocage s'anime en rouge.
     try:
-        from graphe_agents import construire
-        avocat_resume = None
-        for r in resultats:
-            v = (r.get("setup") or {}).get("avocat")
-            if v and v.get("objections"):
-                avocat_resume = {"cible": "AG-03",
-                                 "objections": v["objections"],
-                                 "bloque": v["verdict"] == "non_refute"}
-                if avocat_resume["bloque"]:
-                    break
-        paquet["graphe"] = construire(
-            cartes=paquet["agents"],
-            intermarches=(paquet.get("marches") or {}).get("graphe"),
-            miroir=(paquet.get("constellation") or {}).get("score"),
-            avocat=avocat_resume,
-        ).json()
+        # APPLIQUER étape 7 : positions pour/contre/neutre sur le signal
+        # de référence — construction dans gold_agent/emission.py.
+        paquet["graphe"] = _emission.construire_graphe(paquet, resultats)
     except Exception as e:
         paquet["graphe"] = {"noeuds": [], "liens": []}
         _evt("graphe", f"indisponible : {str(e)[:80]}", "warn")

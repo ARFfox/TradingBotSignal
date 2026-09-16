@@ -5,3 +5,6 @@ __pycache__/
 # clone vide homonyme du depot distant — pas un sous-module
 TradingBotSignal/
 *.zip
+bundle/
+trading_claude_complet.zip
+Claude outputs/

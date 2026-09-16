@@ -98,6 +98,28 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
         st["decision_chef"] = decision.noter(
             st, fiab, None, False, None,
             carreau=carreau, calibration=calibration)
+        # APPLIQUER étape 6 : le débat plaide aussi sur le multi — mêmes
+        # avocats, mêmes poids. Sans lecture intermarché ici : la défense
+        # reste plafonnée (une base mince ne rassure jamais).
+        try:
+            from . import debat as _debat
+            v_deb = _debat.examiner_setup(
+                st, instrument=inst.symbole, tf=spec["nom"],
+                atr=r.get("atr"), spread=r.get("spread"),
+                carreau=carreau, poids=_debat.poids_arguments())
+            if v_deb.bloque:
+                st["refus_emission"] = ("débat : "
+                                        + (v_deb.contre[0].texte
+                                           if v_deb.contre else v_deb.explication))
+                try:
+                    tableau._evt("Superviseur", f"{inst.symbole} {spec['nom']} "
+                                 f"{st['setup']} BLOQUÉ par le débat — "
+                                 f"{st['refus_emission'][:70]}", "veto")
+                except Exception:
+                    pass
+                continue
+        except Exception:
+            pass
         candidats.append({"instrument": inst.symbole, "tf": spec["nom"],
                           "sens": st["setup"],
                           "note": st["decision_chef"]["pct"],

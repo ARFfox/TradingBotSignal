@@ -91,6 +91,10 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str,
             "atr": atr, "spread": spread,
             "extreme_favorable": None, "tp_atteint_apres_sl": False,
             "r_realise": None,
+            # APPLIQUER etape 6 : le debat AG-16/AG-18 a l'emission —
+            # verdict, score, arguments et le contexte qui permettra de
+            # calibrer chaque argument sur le resultat reel.
+            "debat": s.get("debat"),
             # SPEC_SITE_V3 §7 : le journal ne contient QUE des signaux
             # emis (les suspendus n'y entrent jamais) — le champ le grave.
             "emis": True,

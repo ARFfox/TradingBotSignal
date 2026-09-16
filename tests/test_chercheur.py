@@ -80,8 +80,13 @@ def test_80_pourcent_sur_20_trades_reste_tres_incertain():
 
 
 def test_la_correction_elargit_l_intervalle():
+    """Chercher parmi 43 hypothèses exige une preuve plus forte que d'en
+    tester une seule. Sans ça, on trouve toujours quelque chose."""
     assert ce.z_corrige(43) > ce.z_corrige(1)
-    assert ce.z_corrige(1) == ce.Z_BASE
+    # L'approximation de la quantile normale est précise à ~4e-4 : assez
+    # pour trancher « significatif / pas significatif », ce qui est son
+    # seul usage ici.
+    assert ce.z_corrige(1) == pytest.approx(ce.Z_BASE, abs=1e-3)
 
 
 # --- détection d'un edge réel --------------------------------------------

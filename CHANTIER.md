@@ -3,7 +3,7 @@
 > **Claude Code : lis ce fichier en premier, puis `SYSTEME.md`.**
 > Tous les autres documents sont des références. Celui-ci dit quoi faire,
 > dans quel ordre, et comment savoir que c'est fini.
-> État au 16/09/2026 — 129 tests verts.
+> État au 16/09/2026 — 193 tests verts.
 
 ---
 
@@ -57,13 +57,21 @@ en face :
 | `verif.py` | contrôle automatique du projet | — |
 | `garde_fous.py` | stop minimum · anti-contradiction · **suivi des SL** | 25 |
 | `superviseur_apprenant.py` | audit SL · calibration · poids · seuil | 30 |
-| `parametres_agents.py` | réglage automatique avec walk-forward | 17 |
+| `parametres_agents.py` | réglage automatique avec walk-forward corrigé | 16 |
 | `constellation_agent.py` | AG-09 Constellation + AG-10 Miroir | 20 |
 | `agents_marches.py` | AG-11..15 marchés + intermarchés | 22 |
 | `chercheur_sous_ensembles.py` | **où se cache le taux élevé** — Wilson + hors échantillon | 17 |
-| `graphe_agents.py` · `graphe.html` | réseau d'agents | — |
+| `avocats.py` | **AG-16 + AG-18** — le débat contradictoire, calibré | 25 |
+| `statistiques.py` | hasard · Wilson · Bonferroni · marge de bruit | — |
+| `pips.py` | **pips gagnés / perdus** — remplace le Profit Factor | 21 |
+| `graphe_agents.py` · `graphe.html` | réseau d'agents + positions pour/contre/neutre | 17 |
 
-**129 tests. `python3 verif.py` doit rester vert après chaque étape.**
+**193 tests. `python3 verif.py` doit rester vert après chaque étape.**
+
+> Trois fichiers, trois rôles :
+> **`APPLIQUER.md`** = les 9 modifications à faire, code compris — commence là.
+> **`ETAT.md`** = ce qui existe vraiment vs ce qui n'est qu'une spécification.
+> **`CHANTIER.md`** (ici) = le pourquoi de l'ordre et les chiffres qui décident.
 
 ---
 
@@ -221,7 +229,7 @@ Deux règles de méthode sont câblées dans le module et ne se négocient pas :
 | 11 | **VectorBT** pour le balayage | idem §2 | rend possible le walk-forward complet |
 | 12 | Registre d'instruments + navigation | `SPEC_SITE_V3.md` §1-5 | l'interface multi-marchés |
 | 13 | Cases d'agents + graphe | `SPEC_SITE_V3.md` §6 · `INTEGRATION_GRAPHE.md` | lisibilité |
-| 14 | **AG-18 Avocat de la défense** | `SKILL_OUTILS_EXTERNES.md` §3 | équilibre le débat face à AG-16 |
+| 14 | **Débat AG-16/AG-18 branché** à l'émission | `ETAT.md` §3 | `debat()` module la conviction ; `calibrer()` sur le journal |
 | 15 | `parametres_agents.py` branché | — | réglage automatique niveau 2 |
 | 16 | Nouvelles stratégies (CRT, IFVG, ORB) | `SKILL_STRATEGIES.md` | **en dernier**, et chacune passe le backtest |
 
@@ -246,6 +254,12 @@ Deux règles de méthode sont câblées dans le module et ne se négocient pas :
 12. **Toute affirmation de performance se compare au hasard**, jamais à 50 %.
     À 2,09R le hasard vaut 32,4 %.
 13. **Jamais plus de 2 conditions combinées** pour définir un sous-ensemble.
+14. **Un agent dont la conclusion est connue d'avance ne vote pas.** Un avocat
+    qui plaide à chaque signal, un agent toujours « pour » : poids zéro.
+15. **Le défaut d'une position est « neutre », jamais « pour ».** Un silence
+    compté comme un accord fabrique une unanimité qui n'existe pas.
+16. **Toute recherche qui essaie N valeurs exige une preuve corrigée de N.**
+    Sans ça, 4 découpes favorables sur 4 laissent passer 20 % de bruit pur.
 
 ---
 

@@ -40,7 +40,7 @@ Les trois garde-fous
 """
 from __future__ import annotations
 
-import math
+from statistiques import Z_BASE, marge_bruit, taux_hasard, wilson, z_corrige
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Callable
@@ -49,45 +49,12 @@ from typing import Callable
 N_MIN = 20                # résolus minimum dans un sous-ensemble
 MAX_CONDITIONS = 2        # au-delà, c'est de la mémorisation
 PART_TEST = 0.30          # part réservée à la vérification
-Z_BASE = 1.96             # 95 % avant correction des tests multiples
 
 
 # ==========================================================================
-def taux_hasard(rr: float) -> float:
-    """Taux de réussite d'une marche aléatoire à ce R:R.
-
-    P(toucher +rr avant -1) = 1 / (1 + rr). C'est LA référence : tout
-    taux en dessous signifie que le système prédit moins bien qu'une
-    pièce — le plus souvent parce que les stops sont dans le bruit.
-    """
-    return 1.0 / (1.0 + rr) if rr > 0 else 0.0
-
-
-def wilson(succes: int, n: int, z: float = Z_BASE) -> tuple[float, float]:
-    """Intervalle de Wilson. Pas de dépendance, et correct sur petits
-    effectifs — contrairement à l'intervalle normal, qui donne des bornes
-    au-dessus de 100 % quand le taux est élevé."""
-    if n == 0:
-        return 0.0, 1.0
-    p = succes / n
-    d = 1 + z * z / n
-    centre = (p + z * z / (2 * n)) / d
-    demi = z / d * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
-    return max(0.0, centre - demi), min(1.0, centre + demi)
-
-
-def z_corrige(n_tests: int) -> float:
-    """Correction de Bonferroni. Tester 200 sous-ensembles au seuil de 5 %
-    produit ~10 faux positifs. Sans cette correction, le module trouverait
-    toujours un « 80 % » et il aurait toujours tort."""
-    if n_tests <= 1:
-        return Z_BASE
-    alpha = 0.05 / n_tests
-    # approximation de la quantile normale (Beasley-Springer-Moro simplifié)
-    p = 1 - alpha / 2
-    t = math.sqrt(-2.0 * math.log(1 - p))
-    return t - (2.515517 + 0.802853 * t + 0.010328 * t * t) / \
-        (1 + 1.432788 * t + 0.189269 * t * t + 0.001308 * t * t * t)
+# Les outils statistiques vivent dans `statistiques.py` : ils servent aussi
+# a `parametres_agents` et a `avocats`, et en avoir trois copies garantissait
+# qu'un jour deux versions divergeraient.
 
 
 # ==========================================================================

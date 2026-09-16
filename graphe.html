@@ -19,6 +19,11 @@
     <span><i style="background:#58a6ff"></i>corrélation</span>
     <span><i style="background:#30363d"></i>flux</span>
     <span><i class="mort"></i>agent muet</span>
+    <span class="sep"></span>
+    <span><i class="anneau" style="border-color:#3fb950"></i>pour</span>
+    <span><i class="anneau" style="border-color:#f85149"></i>contre</span>
+    <span><i class="anneau" style="border-color:#6e7681"></i>neutre</span>
+    <span id="gr-balance"></span>
   </div>
 </div>
 
@@ -45,6 +50,10 @@
 #gr-legende i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;
   vertical-align:middle}
 #gr-legende i.mort{width:9px;height:9px;border-radius:50%;background:#484f58}
+#gr-legende i.anneau{width:9px;height:9px;border-radius:50%;background:transparent;
+  border:2px solid #6e7681}
+#gr-legende .sep{width:1px;height:12px;background:#21262d;margin:0 2px}
+#gr-balance{margin-left:auto;color:#8b949e;font-weight:600}
 </style>
 
 <script>
@@ -59,6 +68,12 @@
   const RANG = {perception:0, marche:1, relation:2, critique:3, decision:4, chef:5, sortie:6};
   const COUL = {confirme:'#7ee787', contredit:'#e3b341', bloque:'#f85149',
                 correlation:'#58a6ff', alimente:'#30363d'};
+  // Position prise sur le signal EN COURS. C'est la seule chose du graphe
+  // qui bouge d'une seconde a l'autre sans qu'aucune correlation ne change
+  // — donc la seule qui dise ce que le systeme est en train de penser.
+  // Neutre est gris et discret : un agent qui n'a rien trouve a dire ne
+  // doit pas attirer l'oeil autant qu'un agent qui s'oppose.
+  const POS = {pour:'#3fb950', contre:'#f85149', neutre:'#6e7681'};
 
   let N = [], L = [], fige = false, survol = null, tire = null, W = 0, H = 0;
 
@@ -88,6 +103,16 @@
     const conflits = L.filter(l => l.type === 'bloque' || l.type === 'contredit').length;
     etat.textContent = `${N.length} agents · ${conflits} conflit(s)` +
                        (morts ? ` · ${morts} muet(s)` : '');
+
+    // Le decompte des positions. A surveiller : s'il ne bouge jamais d'un
+    // signal a l'autre, les agents ne votent pas, ils recitent.
+    const vote = n => n.vivant && n.couche !== 'sortie';
+    const c = p => N.filter(n => vote(n) && (n.position || 'neutre') === p).length;
+    const bal = document.getElementById('gr-balance');
+    if (bal) bal.innerHTML =
+      `<span style="color:#3fb950">${c('pour')} pour</span> · ` +
+      `<span style="color:#f85149">${c('contre')} contre</span> · ` +
+      `<span style="color:#6e7681">${c('neutre')} neutre</span>`;
   }
 
   function pas() {
@@ -168,6 +193,14 @@
       if (!n.vivant) cx.setLineDash([3, 3]);
       cx.beginPath(); cx.arc(n.x, n.y, n.r, 0, 7); cx.fill(); cx.stroke();
       cx.setLineDash([]);
+      // Anneau de position : pour (vert) / contre (rouge) / neutre (gris).
+      // On ne le trace PAS pour un agent muet : un mort ne vote pas.
+      if (n.vivant && n.statut !== '—' && n.position && n.position !== 'neutre') {
+        cx.strokeStyle = POS[n.position] || POS.neutre;
+        cx.lineWidth = 2.5; cx.globalAlpha = vif ? 1 : .85;
+        cx.beginPath(); cx.arc(n.x, n.y, n.r + 4.5, 0, 7); cx.stroke();
+        cx.globalAlpha = 1;
+      }
       cx.font = `${Math.round(n.r * 0.95)}px sans-serif`;
       cx.textAlign = 'center'; cx.textBaseline = 'middle';
       cx.globalAlpha = n.vivant ? 1 : .45;
@@ -201,6 +234,11 @@
       info.hidden = false;
       info.innerHTML = `<b>${survol.emoji} ${survol.nom}</b> <span class="s">${survol.id}</span><br>` +
         `<span class="s">${survol.couche} · ${survol.statut} · conviction ${survol.conviction}%</span>` +
+        (survol.vivant && survol.couche !== 'sortie'
+          ? `<br><span style="color:${POS[survol.position] || POS.neutre}">`
+            + `${survol.position === 'pour' ? '▲ pour ce signal'
+              : survol.position === 'contre' ? '▼ contre ce signal'
+              : '— rien à dire sur ce signal'}</span>` : '') +
         (survol.detail ? `<br>${survol.detail}` : '') +
         (survol.vivant ? '' : '<br><span style="color:#f85149">agent muet</span>');
       info.style.left = Math.min(survol.x + 16, r.width - 285) + 'px';
