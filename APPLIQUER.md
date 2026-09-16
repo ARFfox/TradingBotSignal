@@ -9,7 +9,7 @@
 > la racine du projet, testés — **ne les réécris pas**. Ton travail est de
 > les BRANCHER dans `gold_agent/` et `web.py`.
 >
-> État de départ : **193 tests verts**. Si `verif.py` passe au rouge après
+> État de départ : **222 tests verts**. Si `verif.py` passe au rouge après
 > une étape, corrige avant de passer à la suivante.
 
 ---
@@ -30,6 +30,11 @@ semble les contredire, ce sont elles qui gagnent.
 7. **Ne jamais désactiver un contrôle de `verif.py`** — le signaler et
    proposer une règle plus précise.
 8. **Tout changement automatique est journalisé et réversible.**
+9. **Une mesure passe toujours devant une opinion.** Si la conviction dit
+   83 % et le walk-forward dit −0,44R sur 23 trades, c'est le −0,44R qui
+   prend la place principale.
+10. **Aucun chiffre n'est global.** Taux, R, pips : toujours rattachés à un
+    instrument, et si possible à un timeframe.
 
 ---
 
@@ -482,7 +487,51 @@ jamais, les agents ne votent pas — ils récitent, et c'est un bug.
 
 ---
 
-## Étape 8 — Le site 🟡
+## Étape 8 — Le site : tout est par instrument 🟠
+
+**C'est la demande, et elle est plus qu'une question d'affichage.** Un taux
+global de 21,7 % vaut pour l'or, pour le Bitcoin et pour EUR/USD à la fois —
+donc pour aucun des trois. Cliquer sur l'or doit montrer l'or.
+
+Le module `vue_instrument.py` fait tous les calculs. **Ne les refais pas
+dans `web.py`** : deux pages qui calculent le même taux finissent toujours
+par afficher deux chiffres différents.
+
+### 8.0 — 🛑 Trois bugs visibles sur les captures, à corriger d'abord
+
+**Bug 1 — deux bandeaux se contredisent.** Sur la même page, en cliquant
+BTC/USD :
+
+```
+bandeau A : « L'analyse 5 timeframes reste celle de XAU/USD
+              (l'instrument du compte) »
+bandeau B : « BTC/USD — analyse seulement. Chaque timeframe affiche
+              son verdict walk-forward réel »
+```
+
+Et la carte H4 montre bien des prix BTC (entrée 75 545,67). Donc le
+bandeau A est un **texte périmé** qui ment. Supprime-le. Un bandeau faux est
+pire qu'aucun bandeau : il apprend à ne plus lire les bandeaux.
+
+**Bug 2 — on ne voit pas quel timeframe porte le signal.** La rangée
+`H4 · H1 · M30 · M15 · M5` a une pastille minuscule et tronquée sur H4.
+Correctif au §8.3.
+
+**Bug 3 — une conviction de 83 % sur un setup mesuré à −0,44R.** 🔴
+
+```
+H4 · STRUCTURE · conviction 83 %
+walk-forward REFUSÉ · 23 trades · R moyen −0.439
+```
+
+C'est la **même inversion** que la calibration de la note (§2.2) : plus le
+système est confiant, moins il a raison. Les deux chiffres sont côte à côte
+sur la même carte et se contredisent.
+
+> **Règle d'affichage :** quand le walk-forward d'un couple est REFUSÉ, la
+> conviction **ne s'affiche pas en vert**. Elle se grise, et le verdict
+> mesuré passe devant. Une conviction est une opinion ; un R moyen sur
+> 23 trades est une mesure. **La mesure gagne toujours la place principale.**
 
 ### 8.1 — Registre d'instruments
 
@@ -490,59 +539,136 @@ jamais, les agents ne votent pas — ils récitent, et c'est un bug.
 
 ```python
 INSTRUMENTS = {
-    "XAUUSD": {"nom": "Or", "marche": "matieres", "tv": "OANDA:XAUUSD",
-               "decimales": 2},
-    # … un par instrument, y compris "marche" et le symbole TradingView
+    "XAU/USD": {"nom": "Or", "marche": "matieres",
+                "tv": "OANDA:XAUUSD", "decimales": 2},
+    "BTC/USD": {"nom": "Bitcoin", "marche": "crypto",
+                "tv": "BINANCE:BTCUSDT", "decimales": 2},
+    # … un par instrument
 }
-MARCHES = ["forex", "crypto", "actions", "matieres"]
+MARCHES = ["matieres", "forex", "crypto", "actions"]
 ```
 
-Tout le reste (boutons, listes, graphe, pips) lit ce fichier. **Aucune liste
-d'instruments codée en dur ailleurs.**
+Boutons, listes, graphe, pips et `TAILLE_PIP` lisent ce fichier.
+**Aucune liste d'instruments codée en dur ailleurs.**
 
-### 8.2 — Navigation
+### 8.2 — La fiche instrument
 
-- Quatre **boutons de marché** : Forex · Crypto · Actions · Matières
-  premières. Au clic → la liste des instruments de ce marché.
-- Au clic sur un instrument (ex. EUR/USD) : **l'en-tête change** — nom, prix
-  exact, variation — **et le chart TradingView se charge directement** avec
-  le symbole du registre.
-- **Timeframes en BOUTONS** (H1 · M30 · M15 · M5), pas en lignes de tableau.
+**Fichier : `web.py`**, route `/api/instrument/<nom>` :
 
-### 8.3 — Cascade de notifications
+```python
+from vue_instrument import fiche, toutes_les_fiches, badges_par_marche
 
-Un badge remonte : **signal → instrument → marché**. Le badge d'un marché
-affiche la somme de ses instruments. Au clic, il se vide.
+f = fiche(journal, instrument, signaux_actifs)
 
-### 8.4 — Historique des signaux validés
+return {
+    "instrument": f.instrument,
+    "marche":     f.marche,
+    "badge":      f.badge,              # signaux EN COURS
+    "tf_signal":  f.tf_avec_signal,     # ["H4", "M15"]
+    "sous_hasard": f.sous_le_hasard,
+    "global": {
+        "texte":     f.global_.texte_taux,   # ⚠️ utilise CE texte
+        "taux":      f.global_.taux,         # None = insuffisant
+        "n":         f.global_.n_resolus,
+        "r_total":   f.global_.r_total,
+        "pips_net":  f.global_.pips_net,
+        "hasard":    f.global_.hasard,
+        "n_attente": f.global_.n_attente,
+        "n_expire":  f.global_.n_expire,
+    },
+    "timeframes": [
+        {"tf": tf, "n": c.n_resolus, "taux": c.taux, "ic": c.ic,
+         "r_moyen": c.r_moyen, "pips": c.pips_net, "verdict": c.verdict,
+         "signal": tf in f.tf_avec_signal, "texte": c.texte_taux}
+        for tf, c in f.timeframes.items()
+    ],
+    "historique": f.signaux[:200],      # DÉJÀ filtré sur cet instrument
+}
+```
 
-Remplacer l'onglet « Historique » par **« Signaux validés »** :
+> 🔴 **`taux` vaut `None` quand il y a moins de 20 résolus.** Dans ce cas la
+> page écrit **« échantillon insuffisant (3/20) »** À LA PLACE du
+> pourcentage — jamais à côté, jamais en petit, jamais un `0 %`.
+>
+> Ce n'est pas de la prudence décorative. 405 résolus ÷ 25 instruments ÷
+> 5 timeframes = **3,2 signaux par case**. Un « 67 % » sur 3 trades est un
+> tirage à pile ou face affiché en gras, et il fait prendre des décisions.
+>
+> Le champ `texte` contient déjà la bonne phrase dans les deux cas. Affiche-le
+> tel quel et le problème ne peut pas arriver.
+
+### 8.3 — Les 5 timeframes, tous visibles
+
+Les cinq boutons `H4 · H1 · M30 · M15 · M5` sont **toujours affichés**, même
+sans données. Un timeframe absent du tableau se lit « pas de signal », alors
+qu'il veut dire « pas de données » — ce n'est pas la même chose.
+
+Sur chaque bouton :
+
+| Élément | Règle |
+|---|---|
+| **Pastille rouge** | uniquement si `signal = true` — lisible, pas tronquée |
+| **Verdict** sous le nom | `AUTORISÉ` vert · `COUPÉ` rouge · `OBSERVATION` jaune · `INSUFFISANT` gris |
+| **Effectif** | `n=48` en petit, toujours |
+| Bouton **grisé** si `COUPÉ` | il reste cliquable — on doit pouvoir regarder ce qu'on a coupé |
+
+Le titre de la page affiche l'instrument **et** les timeframes en signal :
+
+```
+BTC/USD · Bitcoin                    🔴 signal sur H4
+```
+
+L'analyse des 5 timeframes est **celle de l'instrument cliqué**, jamais
+celle de l'or. C'est le bug 1.
+
+### 8.4 — L'historique, filtré par instrument
+
+Le tableau `SIGNAUX VALIDÉS` ne montre que l'instrument sélectionné —
+`f.signaux` est déjà filtré, il suffit de ne pas le refiltrer.
 
 | Colonne | Règle |
 |---|---|
-| Ne compter QUE les signaux dont l'entrée a été touchée | règle 2 |
+| Ne compter que les signaux dont l'entrée a été touchée | règle 2 |
 | `TP` → **validé** · `SL` → **non validé** | demandé explicitement |
-| `expire` (entrée jamais touchée) → **exclu du taux**, affiché à part | |
-| Taux de réussite | avec l'effectif à côté : « 28 % (24/86) » |
-| **Pips nets** | étape 5 — signés, colorés |
+| `expire` → **exclu du taux**, affiché dans une ligne à part | on doit voir qu'on annonce des entrées jamais atteintes |
+| Taux | le champ `texte` du §8.2, tel quel |
+| **Pips nets** | signés, rouges si négatifs (étape 5) |
 | Cause du SL | `stop_trop_serre` / `direction_fausse` (étape 1) |
 
-### 8.5 — Cases d'agents
+Un sélecteur de timeframe filtre encore : `BTC/USD → H4` montre les résolus
+de BTC sur H4 uniquement, avec son propre effectif.
 
-Des cases d'agents reliées à une case **Superviseur** qui fait les calculs.
-Chaque case : nom, conviction, statut, et **sa position** (pour/contre/
-neutre) avec la couleur de l'étape 7.
+### 8.5 — Les badges qui remontent
 
-**Fini quand :** un clic sur EUR/USD change l'en-tête ET le chart ; les
-timeframes sont des boutons ; l'historique n'affiche que des signaux entrés.
+```python
+fiches = toutes_les_fiches(journal, signaux_actifs)
+badges = badges_par_marche(fiches)        # {"crypto": 9, "matieres": 3}
+```
+
+Le badge d'un marché est la somme de ses instruments. **Il compte les
+signaux EN COURS, jamais l'historique** — un badge qui compte des trades
+finis ne se vide jamais, et on arrête de le regarder.
+
+Au clic sur un marché : la liste de ses instruments, ceux qui portent un
+signal en premier (`toutes_les_fiches` les trie déjà).
+
+### 8.6 — Cases d'agents
+
+Des cases d'agents reliées à une case **Superviseur**. Chaque case : nom,
+conviction, statut, et **sa position** (pour / contre / neutre) avec les
+couleurs de l'étape 7. Le graphe et les cases lisent la même source.
+
+**Fini quand :** cliquer sur l'or montre l'historique de l'or, son taux, ses
+5 timeframes avec leur verdict ; cliquer sur EUR/USD change tout ; et aucune
+case sous 20 résolus n'affiche de pourcentage.
 
 ---
 
 ## Étape 9 — Vérification finale
 
 ```bash
-python3 verif.py          # doit afficher VERT
-python3 -m pytest tests/ -q   # 193 passed
+python3 verif.py              # doit afficher VERT
+python3 -m pytest tests/ -q   # 222 passed
 ```
 
 Puis les trois contrôles que seul un humain peut faire :
@@ -553,6 +679,11 @@ Puis les trois contrôles que seul un humain peut faire :
    ne sont pas renseignées.
 3. **Y a-t-il encore des SL à `indetermine` ?** Si oui, l'étape 1 est
    incomplète.
+4. **Un clic sur l'or, puis sur EUR/USD : tout change-t-il ?** Historique,
+   taux, 5 timeframes, pips. Si un seul chiffre reste identique, il n'est
+   pas filtré.
+5. **Une case sous 20 résolus affiche-t-elle un pourcentage ?** Si oui,
+   `texte_taux` n'est pas utilisé et la page recalcule dans son coin.
 
 ---
 

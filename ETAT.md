@@ -3,7 +3,7 @@
 > **Pour APPLIQUER tout d'un coup, va dans `APPLIQUER.md`.** Ce document-ci
 > répond à une autre question : **qu'est-ce qui existe vraiment ?**
 > Pas ce qui est prévu, pas ce qui est spécifié — ce qui tourne et qui est
-> testé. Mis à jour le 16/09/2026. `python3 verif.py` → **VERT, 193 tests**.
+> testé. Mis à jour le 16/09/2026. `python3 verif.py` → **VERT, 222 tests**.
 
 Trois états, et un seul compte :
 
@@ -21,6 +21,7 @@ Trois états, et un seul compte :
 |---|---|---|---|
 | `statistiques.py` | hasard · Wilson · Bonferroni · marge de bruit | ✅ | via 3 modules |
 | `pips.py` | **pips gagnés/perdus** par instrument | ✅ | 21 |
+| `vue_instrument.py` | **fiche par instrument** — historique, 5 TF, badges | ✅ | 29 |
 | `garde_fous.py` | stop minimum · anti-contradiction · suivi des SL | ✅ | 25 |
 | `superviseur_apprenant.py` | AG-00 — audit SL, calibration, poids, seuil | ✅ | 30 |
 | `parametres_agents.py` | réglage automatique, walk-forward | ✅ | 16 |

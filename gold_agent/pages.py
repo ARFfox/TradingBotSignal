@@ -154,14 +154,17 @@ font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
 .tuile-inst{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12px}
 .tuile-inst:hover{border-color:#58a6ff}
 .tuile-inst.actif{border-color:#1f6feb;box-shadow:0 0 0 1px #1f6feb}
-.tf-nav{grid-column:1/-1;display:flex;flex-direction:row;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.tf-nav{grid-column:1/-1;display:flex;flex-direction:row;gap:8px;align-items:flex-start;flex-wrap:wrap;overflow:visible;padding-top:8px}
 .tfb{position:relative;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:10px;
 width:64px;height:48px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
 font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .tfb.actif{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.tfb .bip{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:99px;
-background:#f85149;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;
-padding:0 4px;border:2px solid #0d1117;animation:pulse-chip 1.2s infinite}
+/* Bug 2 (16/09) : la pastille etait minuscule et tronquee — on doit voir
+   d'un coup d'oeil QUEL timeframe porte le signal. */
+.tfb .bip{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:99px;
+background:#f85149;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;
+justify-content:center;padding:0 5px;border:2px solid #0d1117;animation:pulse-chip 1.2s infinite;
+z-index:3;overflow:visible}
 .tfb .bip.ok{background:#3fb950}
 .carte[data-tf]{display:none}.carte[data-tf].vue{display:flex}
 .convs{grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;background:#0e1524;border:1px solid #1f2b45;border-radius:10px;padding:12px 16px;margin-bottom:14px}
@@ -321,13 +324,23 @@ NAV_JS = r"""
         WS.onerror = () => { if (src) src.textContent = 'différé (cache 6 h)'; };
       } catch (e) { if (src) src.textContent = 'différé (cache 6 h)'; }
     } else if (src) src.textContent = 'différé (cache 6 h)';
+    // Bug 1 (16/09) : l'ancien bandeau « l'analyse reste celle de XAU/USD »
+    // etait perime et mentait — la grille analyse bien l'instrument clique.
+    // Un bandeau faux apprend a ne plus lire les bandeaux : supprime.
     const note = document.getElementById('note-instrument');
-    if (note) {
-      note.hidden = false;
-      note.innerHTML = '<b>' + inst.libelle + '</b> — graphique et prix ci-dessus. '
-        + "L'analyse 5 timeframes reste celle de XAU/USD (l'instrument du compte) : "
-        + 'les autres instruments passeront par le walk-forward avant toute analyse émise.';
-    }
+    if (note) note.hidden = true;
+  }
+
+  // 8.2 : la fiche par instrument (historique, taux honnete, 5 TF avec
+  // verdict) — calculee par vue_instrument, servie prete a inserer.
+  function majFiche(cle) {
+    const hote = document.getElementById('fiche-hote');
+    if (!hote) return;
+    hote.dataset.cle = cle;
+    fetch('/api/instrument/' + cle, {cache: 'no-store'})
+      .then(r => r.json())
+      .then(d => { if (hote.dataset.cle === cle) hote.innerHTML = d.html || ''; })
+      .catch(() => {});
   }
 
   // §2 : un seul etat, dans le hash — retour navigateur et lien partageable.
@@ -338,7 +351,7 @@ NAV_JS = r"""
     if (!inst) return;
     window.INSTRUMENT_ACTIF = inst.cle;
     majEnTete(inst); majGraphique(inst);
-    majAnalyse(inst);
+    majAnalyse(inst); majFiche(inst.cle);
     document.querySelectorAll('.tuile-inst').forEach(t =>
       t.classList.toggle('actif', t.dataset.cle === inst.cle));
     if (inst.cle === 'XAUUSD') {
@@ -375,6 +388,7 @@ NAV_JS = r"""
 
   addEventListener('hashchange', appliquerHash);
   if (location.hash) appliquerHash();
+  else majFiche('XAUUSD');   // l'or est l'instrument par defaut : sa fiche aussi
 
   // §5 : un clic timeframe met aussi a jour l'intervalle TradingView.
   document.addEventListener('click', e => {

@@ -160,6 +160,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                "text/html; charset=utf-8", code=401)
             return
 
+        if self.path.startswith("/api/instrument/"):
+            # APPLIQUER 8.2 : la fiche par instrument — tous les calculs
+            # dans vue_instrument, le JSON suit le contrat à la lettre,
+            # et « html » porte le bloc prêt à insérer (une seule source).
+            cle = self.path.rsplit("/", 1)[-1].split("?")[0]
+            try:
+                from . import fiche_instrument as _fi
+                corps = json.dumps({**_fi.json_fiche(cle),
+                                    "html": _fi.bloc_html(cle)},
+                                   ensure_ascii=False).encode()
+                self._repondre(corps, "application/json; charset=utf-8")
+            except Exception as e:
+                self._repondre(json.dumps({"erreur": str(e)[:150]}).encode(),
+                               "application/json; charset=utf-8", code=500)
+            return
+
         if self.path.startswith("/api/instruments/"):
             # SPEC_SITE_V3 §8/§2 niveau 3 : l'analyse 5 TF d'un instrument
             # NON emetteur, calculee a la demande (feeds caches) et memoisee

@@ -82,12 +82,22 @@ def _carte(r: dict) -> str:
     dc = (r.get("setup") or {}).get("decision_chef")
     if dc:
         pct = dc["pct"]
-        coul_dc = "#3fb950" if pct >= 65 else ("#d29922" if pct >= 45 else "#f85149")
         det = " · ".join(dc.get("composantes", [])[:4])
-        h.append(f'<div class="ict-ligne">🧠 Décision du Superviseur : '
-                 f'<b style="color:{coul_dc}">{pct} %</b>'
-                 + (f' <span style="color:#8b949e">({det})</span>' if det else "")
-                 + '</div>')
+        fiab_c = r.get("fiabilite") or {}
+        # Bug 3 (APPLIQUER 8.0, règle 9) : une conviction de 83 % sur un
+        # couple mesuré négatif est une opinion contredite par une mesure.
+        # La mesure prend la place principale ; la conviction se grise.
+        if "REFUSÉ" in str(fiab_c.get("niveau", "")):
+            h.append(f'<div class="ict-ligne">📏 <b style="color:#f85149">'
+                     f'walk-forward REFUSÉ — {fiab_c.get("note", "")}</b> · '
+                     f'conviction <span style="color:#6e7681">{pct} % '
+                     f'(opinion, contredite par la mesure)</span></div>')
+        else:
+            coul_dc = "#3fb950" if pct >= 65 else ("#d29922" if pct >= 45 else "#f85149")
+            h.append(f'<div class="ict-ligne">🧠 Décision du Superviseur : '
+                     f'<b style="color:{coul_dc}">{pct} %</b>'
+                     + (f' <span style="color:#8b949e">({det})</span>' if det else "")
+                     + '</div>')
 
     im = (r.get("setup") or {}).get("intermarche")
     if im:

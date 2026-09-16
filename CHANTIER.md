@@ -3,7 +3,7 @@
 > **Claude Code : lis ce fichier en premier, puis `SYSTEME.md`.**
 > Tous les autres documents sont des références. Celui-ci dit quoi faire,
 > dans quel ordre, et comment savoir que c'est fini.
-> État au 16/09/2026 — 193 tests verts.
+> État au 16/09/2026 — 222 tests verts.
 
 ---
 
@@ -64,9 +64,10 @@ en face :
 | `avocats.py` | **AG-16 + AG-18** — le débat contradictoire, calibré | 25 |
 | `statistiques.py` | hasard · Wilson · Bonferroni · marge de bruit | — |
 | `pips.py` | **pips gagnés / perdus** — remplace le Profit Factor | 21 |
+| `vue_instrument.py` | **tout par instrument** — taux, 5 TF, badges, garde-fou d'effectif | 29 |
 | `graphe_agents.py` · `graphe.html` | réseau d'agents + positions pour/contre/neutre | 17 |
 
-**193 tests. `python3 verif.py` doit rester vert après chaque étape.**
+**222 tests. `python3 verif.py` doit rester vert après chaque étape.**
 
 > Trois fichiers, trois rôles :
 > **`APPLIQUER.md`** = les 9 modifications à faire, code compris — commence là.

@@ -46,11 +46,83 @@ la sortie n'est pas verte.
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_debat_pont.py:50** — symbole cable en dur : v = examiner_setup(st, instrument="XAU/USD", tf="H1", atr=2.0, spread=
   - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_fiche_instrument.py:24** — symbole cable en dur : "cle": f"XAU/USD|H1|vente|{4300 + i}", "instrument": "XAU/USD",
+  - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:34** — symbole cable en dur : assert instruments.par_defaut().symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:40** — symbole cable en dur : assert instruments.depuis_alias("OANDA:XAUUSD").symbole == "XAU/USD"
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_instruments.py:41** — symbole cable en dur : assert instruments.depuis_alias("gold").symbole == "XAU/USD"
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:30** — symbole cable en dur : def sig(instrument="XAU/USD", tf="H1", statut="SL", marche="matieres",
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:39** — symbole cable en dur : def jeu(instrument="XAU/USD", tf="H1", n_tp=10, n_sl=30, **kw):
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:47** — symbole cable en dur : f = vi.fiche(jeu(n_tp=2, n_sl=1), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:53** — symbole cable en dur : f = vi.fiche(jeu(n_tp=2, n_sl=1), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:60** — symbole cable en dur : f = vi.fiche(jeu(n_tp=5, n_sl=15), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:65** — symbole cable en dur : f = vi.fiche(jeu(n_tp=10, n_sl=30), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:73** — symbole cable en dur : f = vi.fiche(jeu(n_tp=10, n_sl=30, rr=2.0), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:79** — symbole cable en dur : f = vi.fiche(jeu(n_tp=8, n_sl=42, rr=2.0), "XAU/USD")   # 16 % vs 33 %
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:85** — symbole cable en dur : f = vi.fiche(jeu(n_tp=25, n_sl=25, rr=2.0), "XAU/USD")  # 50 % vs 33 %
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:92** — symbole cable en dur : j = jeu("XAU/USD", n_tp=10, n_sl=30) + jeu("EUR/USD", n_tp=9, n_sl=1, 
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:93** — symbole cable en dur : f = vi.fiche(j, "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:95** — symbole cable en dur : assert all(s["instrument"] == "XAU/USD" for s in f.signaux)
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:99** — symbole cable en dur : j = jeu("XAU/USD", n_tp=8, n_sl=32) + jeu("EUR/USD", n_tp=30, n_sl=10,
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:100** — symbole cable en dur : a = vi.fiche(j, "XAU/USD").global_.taux
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:106** — symbole cable en dur : f = vi.fiche(jeu(n_tp=10, n_sl=10), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:121** — symbole cable en dur : f = vi.fiche(jeu(tf="H1"), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:128** — symbole cable en dur : f = vi.fiche(j, "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:135** — symbole cable en dur : f = vi.fiche(jeu(tf="M5", n_tp=2, n_sl=38), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:140** — symbole cable en dur : f = vi.fiche(jeu(tf="H4", n_tp=30, n_sl=10), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:147** — symbole cable en dur : f = vi.fiche(jeu(tf="M15", n_tp=0, n_sl=5), "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:155** — symbole cable en dur : f = vi.fiche(jeu(n_tp=10, n_sl=30), "XAU/USD",
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:156** — symbole cable en dur : [{"instrument": "XAU/USD", "tf": "M5"}])
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:162** — symbole cable en dur : f = vi.fiche(jeu(), "XAU/USD",
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:163** — symbole cable en dur : [{"instrument": "XAU/USD", "tf": "M15"},
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:164** — symbole cable en dur : {"instrument": "XAU/USD", "tf": "H4"}])
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:169** — symbole cable en dur : assert vi.fiche(jeu(), "XAU/USD", []).badge == 0
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:189** — symbole cable en dur : j = jeu("XAU/USD", n_tp=10, n_sl=30) + jeu("BTC/USD", marche="crypto",
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:199** — symbole cable en dur : f = vi.fiche(j, "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:208** — symbole cable en dur : f = vi.fiche(j, "XAU/USD")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:232** — symbole cable en dur : assert isinstance(vi.rapport(vi.fiche([], "XAU/USD")), str)
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_vue_instrument.py:236** — symbole cable en dur : r = vi.rapport(vi.fiche(jeu(tf="H4", n_tp=1, n_sl=2), "XAU/USD"))
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **vue_instrument.py:280** — symbole cable en dur : plan = [("XAU/USD", "matieres", 240), ("EUR/USD", "forex", 60),
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **vue_instrument.py:284** — symbole cable en dur : px = {"XAU/USD": 4348.0, "EUR/USD": 1.085,
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **vue_instrument.py:297** — symbole cable en dur : {"instrument": "XAU/USD", "tf": "M15", "marche": "matieres"},
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **vue_instrument.py:298** — symbole cable en dur : {"instrument": "XAU/USD", "tf": "M5", "marche": "matieres"}]
   - piste : la fonction doit recevoir un Instrument en parametre
 
 ## Regles a respecter pendant la correction

@@ -131,6 +131,7 @@ mesuré sur ce timeframe. Un signal «&nbsp;non mesuré&nbsp;» n'a aucune preuv
 <div id="p-risque" class="panneau actif">{bloc_news}</div>
 <div id="p-histo" class="panneau">{bloc_histo}</div>
 <div id="p-cerveau" class="panneau">{bloc_cerveau}</div>
+<div id="fiche-hote"></div>
 <div class="grille">{cartes}</div>
 <footer>
 <span id="etat-cles"></span>Données Twelve Data · filtres : RSI max 70 à l'achat,
