@@ -1,23 +1,23 @@
 # Walk-forward des stratégies du skill (CRT · IFVG · ORB · POC)
 
-*Généré le 2026-09-14 par `python3 -m research.rapport_strategies`. Ces méthodes viennent de comptes Instagram : populaires n'est pas profitables, et le corpus ne montre jamais ce qui arrive quand le setup échoue. Ce tableau est la partie qui manquait. Aucune stratégie n'émet sans verdict AUTORISÉ.*
+*Généré le 2026-09-16 par `python3 -m research.rapport_strategies`. Ces méthodes viennent de comptes Instagram : populaires n'est pas profitables, et le corpus ne montre jamais ce qui arrive quand le setup échoue. Ce tableau est la partie qui manquait. Aucune stratégie n'émet sans verdict AUTORISÉ.*
 
 | Stratégie · Instrument | TF | Trades | R moyen | R total | PF | Réussite | Pire creux | Fen.+ | Régimes | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
 | CRT · XAU/USD | H1 | 11 | -0.584 | -6.42 | 0.31 | 18.2% | -8.31 | 0/0 | range 9, tendance 2 | ❌ REFUSÉ — 11 trades < 30 · PF 0.31 ≤ 1.3 · R moyen -0.584 ≤ 0 |
-| CRT · BTC/USD | H1 | 8 | -0.317 | -2.54 | 0.63 | 25.0% | -6.81 | 0/0 | range 3, tendance 5 | ❌ REFUSÉ — 8 trades < 30 · PF 0.63 ≤ 1.3 · R moyen -0.317 ≤ 0 |
-| IFVG · XAU/USD | H1 | 256 | -0.219 | -56.13 | 0.74 | 21.5% | -84.94 | 10/29 | range 156, tendance 100 | ❌ REFUSÉ — PF 0.74 ≤ 1.3 · R moyen -0.219 ≤ 0 · 10/29 fenêtres évaluables positives |
-| IFVG · XAU/USD | M30 | 270 | +0.157 | +42.47 | 1.2 | 28.9% | -34.22 | 12/30 | range 137, tendance 133 | ❌ REFUSÉ — PF 1.2 ≤ 1.3 · 12/30 fenêtres évaluables positives |
-| IFVG · XAU/USD | M15 | 335 | -0.075 | -25.10 | 0.91 | 25.7% | -54.80 | 14/27 | range 206, tendance 129 | ❌ REFUSÉ — PF 0.91 ≤ 1.3 · R moyen -0.075 ≤ 0 |
-| IFVG · BTC/USD | H1 | 310 | -0.455 | -141.17 | 0.54 | 24.8% | -163.64 | 5/31 | range 172, tendance 138 | ❌ REFUSÉ — PF 0.54 ≤ 1.3 · R moyen -0.455 ≤ 0 · 5/31 fenêtres évaluables positives |
-| IFVG · BTC/USD | M30 | 329 | -0.661 | -217.44 | 0.45 | 24.9% | -254.79 | 7/31 | range 199, tendance 130 | ❌ REFUSÉ — PF 0.45 ≤ 1.3 · R moyen -0.661 ≤ 0 · 7/31 fenêtres évaluables positives |
-| IFVG · BTC/USD | M15 | 362 | -1.224 | -443.05 | 0.24 | 18.8% | -449.57 | 2/29 | range 234, tendance 128 | ❌ REFUSÉ — PF 0.24 ≤ 1.3 · R moyen -1.224 ≤ 0 · 2/29 fenêtres évaluables positives |
-| ORB · XAU/USD | M15 | 17 | +0.244 | +4.15 | 1.66 | 64.7% | -4.22 | 0/0 | range 9, tendance 8 | ❌ REFUSÉ — 17 trades < 30 |
-| ORB · XAU/USD | M5 | 16 | +0.084 | +1.35 | 1.19 | 56.2% | -2.19 | 0/0 | range 9, tendance 7 | ❌ REFUSÉ — 16 trades < 30 · PF 1.19 ≤ 1.3 |
-| POC_RETEST · XAU/USD | M30 | 52 | -0.465 | -24.17 | 0.47 | 17.3% | -29.09 | 1/6 | range 42, tendance 10 | ❌ REFUSÉ — PF 0.47 ≤ 1.3 · R moyen -0.465 ≤ 0 · 1/6 fenêtres évaluables positives |
-| POC_RETEST · XAU/USD | M15 | 33 | +0.767 | +25.32 | 1.99 | 27.3% | -11.81 | 2/3 | range 23, tendance 10 | ✅ AUTORISÉ — tous les critères passés · ⚠️ preuve courte : 52 j de calendrier — et 14 candidats testés : un faux positif est statistiquement attendu. À reconfirmer hors échantillon avant toute question d'émission. |
-| POC_RETEST · BTC/USD | M30 | 117 | -0.659 | -77.07 | 0.44 | 12.8% | -82.70 | 4/24 | range 110, tendance 7 | ❌ REFUSÉ — PF 0.44 ≤ 1.3 · R moyen -0.659 ≤ 0 · 4/24 fenêtres évaluables positives |
-| POC_RETEST · BTC/USD | M15 | 168 | -0.618 | -103.80 | 0.53 | 19.6% | -127.91 | 8/24 | range 158, tendance 10 | ❌ REFUSÉ — PF 0.53 ≤ 1.3 · R moyen -0.618 ≤ 0 · 8/24 fenêtres évaluables positives |
+| CRT · BTC/USD | H1 | 7 | -0.202 | -1.41 | 0.75 | 28.6% | -5.68 | 0/0 | range 3, tendance 4 | ❌ REFUSÉ — 7 trades < 30 · PF 0.75 ≤ 1.3 · R moyen -0.202 ≤ 0 |
+| IFVG · XAU/USD | H1 | 262 | -0.209 | -54.72 | 0.75 | 21.4% | -83.15 | 12/30 | range 164, tendance 98 | ❌ REFUSÉ — PF 0.75 ≤ 1.3 · R moyen -0.209 ≤ 0 · 12/30 fenêtres évaluables positives |
+| IFVG · XAU/USD | M30 | 272 | +0.152 | +41.42 | 1.2 | 28.7% | -43.65 | 12/31 | range 144, tendance 128 | ❌ REFUSÉ — PF 1.2 ≤ 1.3 · 12/31 fenêtres évaluables positives |
+| IFVG · XAU/USD | M15 | 340 | -0.070 | -23.80 | 0.92 | 24.4% | -67.28 | 13/30 | range 207, tendance 133 | ❌ REFUSÉ — PF 0.92 ≤ 1.3 · R moyen -0.07 ≤ 0 · 13/30 fenêtres évaluables positives |
+| IFVG · BTC/USD | H1 | 315 | -0.445 | -140.22 | 0.56 | 24.1% | -167.75 | 7/30 | range 175, tendance 140 | ❌ REFUSÉ — PF 0.56 ≤ 1.3 · R moyen -0.445 ≤ 0 · 7/30 fenêtres évaluables positives |
+| IFVG · BTC/USD | M30 | 334 | -0.707 | -236.22 | 0.42 | 24.0% | -254.91 | 5/30 | range 213, tendance 121 | ❌ REFUSÉ — PF 0.42 ≤ 1.3 · R moyen -0.707 ≤ 0 · 5/30 fenêtres évaluables positives |
+| IFVG · BTC/USD | M15 | 376 | -1.173 | -440.93 | 0.26 | 19.7% | -449.48 | 3/31 | range 245, tendance 131 | ❌ REFUSÉ — PF 0.26 ≤ 1.3 · R moyen -1.173 ≤ 0 · 3/31 fenêtres évaluables positives |
+| ORB · XAU/USD | M15 | 16 | +0.202 | +3.22 | 1.51 | 62.5% | -4.22 | 0/0 | range 8, tendance 8 | ❌ REFUSÉ — 16 trades < 30 |
+| ORB · XAU/USD | M5 | 18 | +0.290 | +5.23 | 1.84 | 66.7% | -2.19 | 0/0 | range 10, tendance 8 | ❌ REFUSÉ — 18 trades < 30 |
+| POC_RETEST · XAU/USD | M30 | 54 | -0.686 | -37.07 | 0.27 | 11.1% | -37.07 | 0/8 | range 42, tendance 12 | ❌ REFUSÉ — PF 0.27 ≤ 1.3 · R moyen -0.686 ≤ 0 · 0/8 fenêtres évaluables positives |
+| POC_RETEST · XAU/USD | M15 | 37 | +0.514 | +19.04 | 1.66 | 27.0% | -11.88 | 2/5 | range 27, tendance 10 | ❌ REFUSÉ — 2/5 fenêtres évaluables positives |
+| POC_RETEST · BTC/USD | M30 | 104 | -0.674 | -70.14 | 0.42 | 13.5% | -72.81 | 1/19 | range 96, tendance 8 | ❌ REFUSÉ — PF 0.42 ≤ 1.3 · R moyen -0.674 ≤ 0 · 1/19 fenêtres évaluables positives |
+| POC_RETEST · BTC/USD | M15 | 186 | -0.748 | -139.21 | 0.46 | 15.1% | -169.04 | 6/25 | range 174, tendance 12 | ❌ REFUSÉ — PF 0.46 ≤ 1.3 · R moyen -0.748 ≤ 0 · 6/25 fenêtres évaluables positives |
 
 ## Lecture
 - Même protocole que la règle du projet : fenêtres glissantes, purge,
