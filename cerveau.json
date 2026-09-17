@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "maj": "2026-09-17T13:00:31+00:00",
-  "n_resolus": 579,
+  "maj": "2026-09-17T13:12:28+00:00",
+  "n_resolus": 580,
   "n_au_dernier_apprentissage": 576,
   "dernier_apprentissage": "2026-09-17T12:41:10+00:00",
   "poids": {
@@ -128,7 +128,7 @@
       "version": 1
     }
   ],
-  "motif_dernier_cycle": "3 résolu(s) nouveau(x) depuis le dernier apprentissage — il en faut 20. Rien n'a bougé, et c'est voulu : recalibrer sur les mêmes données ne crée aucun savoir.",
+  "motif_dernier_cycle": "4 résolu(s) nouveau(x) depuis le dernier apprentissage — il en faut 20. Rien n'a bougé, et c'est voulu : recalibrer sur les mêmes données ne crée aucun savoir.",
   "n_neuf_dernier_cycle": 0,
   "n_changements_dernier_cycle": 0
 }

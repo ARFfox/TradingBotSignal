@@ -70,13 +70,28 @@ def integrer(paquet: dict, bars_par_tf: dict, symbole: str) -> None:
 
 
 def carte_dans_agents(paquet: dict, symbole: str) -> None:
-    """La carte AG-20 rejoint le panneau (après agents_live)."""
+    """La carte AG-20 rejoint le panneau (après agents_live).
+
+    La carte livrée porte le FOND (position, conviction, activités) ; la
+    PRÉSENTATION (nom, emoji, couleur) vient du registre graphe_agents —
+    le panneau exige ces champs (bug réel : KeyError 'coul' au rendu)."""
     L = derniere(symbole)
     if L is None or not isinstance(paquet.get("agents"), list):
         return
     from agent_chartiste import carte_agent
+    from graphe_agents import AGENTS
+    deco = AGENTS.get("AG-20", {})
+    fond = carte_agent(L)
+    carte = {"nom": deco.get("nom", "Chartiste"),
+             "emoji": deco.get("emoji", "📐"),
+             "coul": deco.get("coul", "#79c0ff"),
+             "role": "lecture graphique — niveaux, tendances, conflits",
+             "metriques": f"{len(L.par_tf)} échelles · {L.n_uniques} figure(s) "
+                          f"· accord {L.accord:.0%}",
+             "charge": 0,
+             **fond}
     paquet["agents"] = [c for c in paquet["agents"]
-                        if c.get("code") != "AG-20"] + [carte_agent(L)]
+                        if c.get("code") != "AG-20"] + [carte]
 
 
 def enrichir_debat(st: dict, instrument: str, prix: float | None) -> None:

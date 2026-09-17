@@ -47,3 +47,17 @@ def test_absence_ne_vote_pas():
     st = {"debat": {"verdict": "NEUTRE", "contre": [], "pour": []}}
     chartiste.enrichir_debat(st, "JAMAIS/VU", 100.0)
     assert st["debat"]["contre"] == [] and st["debat"]["pour"] == []
+
+
+def test_carte_panneau_complete():
+    """Bug réel (17/09) : la carte livrée n'a pas les champs de
+    présentation — le panneau exigeait 'coul'/'metriques' et la page
+    entière tombait en « Erreur de collecte ». La carte insérée doit
+    porter TOUT le contrat du panneau."""
+    chartiste.lire_instrument("TEST/USD", _bars_par_tf())
+    paquet = {"agents": []}
+    chartiste.carte_dans_agents(paquet, "TEST/USD")
+    carte = next(c for c in paquet["agents"] if c["code"] == "AG-20")
+    for champ in ("nom", "emoji", "coul", "role", "metriques", "charge",
+                  "statut", "conviction", "position", "activites"):
+        assert champ in carte, champ
