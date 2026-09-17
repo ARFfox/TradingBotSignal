@@ -147,6 +147,17 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
                           "cree_ts": int(time.time()),
                           "_st": st, "_r": r, "_fiab": fiab})
 
+    # AG-20 (6ter) : lecture multi-timeframe de CET instrument — mémorisée
+    # pour la fiche, la trace du débat des candidats retenus, et AG-19 au
+    # prochain tour (une passe de retard assumée : la boucle fait 10 min).
+    try:
+        from . import chartiste
+        chartiste.lire_instrument(inst.symbole, bars_par_tf)
+        for c in candidats:
+            chartiste.enrichir_debat(c["_st"], inst.symbole,
+                                     c["_r"].get("prix"))
+    except Exception:
+        pass
     # CHANTIER etape 3 : anti-contradiction/anti-doublon sur le LOT des
     # timeframes de CET instrument — le meilleur survit, les refus sont
     # traces (console) mais jamais journalises ni notifies.

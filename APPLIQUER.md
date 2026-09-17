@@ -11,7 +11,7 @@
 > la racine du projet, testés — **ne les réécris pas**. Ton travail est de
 > les BRANCHER dans `gold_agent/` et `web.py`.
 >
-> État de départ : **320 tests verts**. Si `verif.py` passe au rouge après
+> État de départ : **345 tests verts**. Si `verif.py` passe au rouge après
 > une étape, corrige avant de passer à la suivante.
 
 ---
@@ -544,6 +544,88 @@ Si tous les signaux ont une direction, quelque chose court-circuite le module.
 
 ---
 
+## Étape 6ter — AG-20 Chartiste : l'agent qui lit les graphiques 🟠
+
+`figures.py` détecte sur UNE série. AG-20 est la couche au-dessus, et il
+apporte trois choses qui n'existaient nulle part :
+
+1. **Les NIVEAUX** — supports, résistances, points pivots. Ils étaient sur
+   tes planches et dans aucun module.
+2. **La lecture des 5 timeframes ensemble**, et surtout **où ils se
+   contredisent**.
+3. **Une carte d'agent** qui prend position sur le graphe.
+
+```python
+from agent_chartiste import lire, carte_agent, source_direction, arguments_avocats
+
+L = lire(instrument, {"H4": b_h4, "H1": b_h1, "M30": b_m30,
+                      "M15": b_m15, "M5": b_m5})
+
+cartes.append(carte_agent(L))                       # → le graphe
+ctx.arguments += arguments_avocats(L, prix)         # → AG-16 / AG-18
+srcs += [Source("chartiste", "tendance", L.sens_dominant, L.accord,
+                source_direction(L)["mesure"])]     # → AG-19
+```
+
+### La distinction qui commande tout le module
+
+**Un NIVEAU décrit. Une FIGURE prédit.**
+
+| | exemple | poids de départ |
+|---|---|---|
+| **niveau** | « le prix a tourné 4 fois entre 4 316 et 4 322 » | **1,0** — vérifiable |
+| **figure** | « ce triangle annonce une hausse » | **0,0** — à prouver |
+
+C'est pour ça que les niveaux sont dans AG-20 et les figures dans
+`figures.py` : ce sont deux métiers, et les confondre est l'erreur la plus
+courante de l'analyse graphique.
+
+> ⚠️ `arguments_avocats()` ne donne QUE des faits de niveau au débat. Jamais
+> de figure. Une figure se croit, un niveau se vérifie.
+
+### 🔴 Le piège du multi-timeframe
+
+Un double sommet sur H4 **et** sur H1 n'est pas deux confirmations : H1
+contient les mêmes bougies que H4, en plus fin. C'est **une** observation vue
+deux fois.
+
+Le module dédoublonne par code et ne garde que le plus grand timeframe. Le
+rapport affiche donc `6 figure(s) distincte(s) (11 détections brutes)` — et
+compare les 6 au bruit, jamais les 11.
+
+> J'avais écrit ce bug : j'affichais « 11 figures contre 0,8 attendues », en
+> comparant des détections brutes à une attente dédoublonnée. Deux chiffres
+> qui ne comptent pas la même chose.
+
+Les échelles ne pèsent pas pareil : `H4 1,00 · H1 0,75 · M30 0,55 · M15 0,40
+· M5 0,30`. Une bougie H4 en vaut 48 en M5 — les traiter à égalité laisserait
+le bruit de court terme décider de la tendance.
+
+### Ce qu'il faut regarder en premier dans sa sortie
+
+**Les conflits.** Exemple réel de la démonstration :
+
+```
+H4  haussier   +12,96 %   position range 98 %
+H1  haussier   + 6,46 %                   99 %
+M30 haussier   + 2,71 %                   92 %
+M15 baissier   − 4,02 %                   22 %
+M5  baissier   − 5,41 %                   14 %
+
+→ haussier sur 77 % des échelles
+→ M15 et M5 sont baissiers alors que l'ensemble est haussier
+```
+
+Un accord parfait entre cinq échelles est rare et souvent trompeur. **Un
+désaccord dit où se situe le risque** — ici, acheter sur M5 va contre les
+trois grandes échelles, et vendre sur M5 va contre la tendance de fond.
+
+**Fini quand :** AG-20 apparaît sur le graphe avec sa position, ses niveaux
+s'affichent sur la fiche instrument, et le rapport nomme les conflits entre
+échelles quand il y en a.
+
+---
+
 ## Étape 7 — Le graphe avec les positions 🟠
 
 **Fichiers : `web.py` + `graphe.html`**
@@ -899,7 +981,7 @@ puis défile sans emporter la page, et chaque chiffre coloré porte son signe.
 
 ```bash
 python3 verif.py              # doit afficher VERT
-python3 -m pytest tests/ -q   # 320 passed
+python3 -m pytest tests/ -q   # 345 passed
 ```
 
 Puis les trois contrôles que seul un humain peut faire :

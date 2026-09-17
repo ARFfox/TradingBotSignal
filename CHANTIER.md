@@ -3,7 +3,7 @@
 > **Claude Code : lis ce fichier en premier, puis `SYSTEME.md`.**
 > Tous les autres documents sont des références. Celui-ci dit quoi faire,
 > dans quel ordre, et comment savoir que c'est fini.
-> État au 16/09/2026 — 320 tests verts.
+> État au 16/09/2026 — 345 tests verts.
 
 ---
 
@@ -67,10 +67,11 @@ en face :
 | `vue_instrument.py` | **tout par instrument** — taux, 5 TF, badges, garde-fou d'effectif | 29 |
 | `figures.py` | **34 figures chartistes** — 98 % du bruit en contient une | 35 |
 | `direction.py` | **AG-19 Directeur** — une direction, ou l'aveu qu'il n'y en a pas | 33 |
+| `agent_chartiste.py` | **AG-20 Chartiste** — niveaux (descriptifs) + 5 TF | 25 |
 | `cerveau.py` | **la boucle vivante** — n'apprend que de données nouvelles | 30 |
 | `graphe_agents.py` · `graphe.html` | réseau d'agents + positions pour/contre/neutre | 17 |
 
-**320 tests. `python3 verif.py` doit rester vert après chaque étape.**
+**345 tests. `python3 verif.py` doit rester vert après chaque étape.**
 
 > Trois fichiers, trois rôles :
 > **`APPLIQUER.md`** = les 9 modifications à faire, code compris — commence là.

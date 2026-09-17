@@ -3,7 +3,7 @@
 > **Claude Code : c'est le point d'entrée. Lis-le en entier, puis va dans
 > `APPLIQUER.md`.**
 > Tout est à la racine de `/Users/arf/Trading Claude/`.
-> `python3 verif.py` → **VERT · 320 tests** · 17/09/2026.
+> `python3 verif.py` → **VERT · 345 tests** · 17/09/2026.
 
 ---
 
@@ -12,7 +12,7 @@
 | Question | Réponse | Où |
 |---|---|---|
 | Par quoi je commence ? | **`APPLIQUER.md` étape 1** | 11 étapes, code compris |
-| Qu'est-ce qui existe déjà ? | 16 modules, 320 tests | `ETAT.md` |
+| Qu'est-ce qui existe déjà ? | 17 modules, 345 tests | `ETAT.md` |
 | Pourquoi cet ordre ? | les chiffres qui décident | `CHANTIER.md` |
 | À quoi ça doit ressembler ? | `maquette.html` · `direction_vue.html` | s'ouvrent au navigateur |
 
@@ -52,7 +52,7 @@ que le stop est placé honnêtement.** C'est l'étape 2.
 
 ---
 
-## Les 16 modules
+## Les 17 modules
 
 | Fichier | Rôle | Tests |
 |---|---|---:|
@@ -63,6 +63,7 @@ que le stop est placé honnêtement.** C'est l'étape 2.
 | `chercheur_sous_ensembles.py` | où se cache un taux élevé | 17 |
 | `avocats.py` | **AG-16 + AG-18** — le débat contradictoire | 25 |
 | `figures.py` | **34 figures chartistes** + référence de bruit | 35 |
+| `agent_chartiste.py` | **AG-20 Chartiste** — niveaux + lecture 5 timeframes | 25 |
 | `direction.py` | **AG-19 Directeur** — la direction sur toutes les sources | 33 |
 | `cerveau.py` | **la boucle vivante** — apprend, journalise, s'affiche | 30 |
 | `pips.py` | pips gagnés/perdus par instrument | 21 |
@@ -148,6 +149,7 @@ précède un gain **sur ton journal**, avec au moins 30 observations.
 | AG-11..15 | Forex · Crypto · Matières · Actions · Intermarchés | ✅ `agents_marches.py` |
 | AG-16 · AG-18 | **Avocat du diable · Avocat de la défense** | ✅ `avocats.py` |
 | AG-19 | **Directeur** — direction du marché | ✅ `direction.py` |
+| AG-20 | **Chartiste** — niveaux + 5 timeframes | ✅ `agent_chartiste.py` |
 | AG-99 | Vérificateur | ✅ `verif.py` |
 | AG-06 · AG-07 | Probabilité · Opportunités | ⬜ **fondus dans AG-00** |
 | AG-17 | Rattrapage | ⬜ jamais construit |
@@ -209,6 +211,7 @@ pareil **403 fois sur 403**. Ils ne votaient pas, ils récitaient.
 🟠 étape 5   pips à la place du Profit Factor (+ le bug du 0.00)
 🟠 étape 6   le débat AG-16/AG-18
 🟠 étape 6bis AG-19 Directeur
+🟠 étape 6ter AG-20 Chartiste (niveaux + multi-timeframe)
 🟠 étape 7   le graphe pour/contre/neutre
 🟠 étape 8   le site : thème clair, par instrument, 5 TF
 🟠 étape 10  le cerveau vivant sur tout le site
@@ -242,7 +245,7 @@ stratégie. Laisse-la atteindre 200 résolus avant d'en faire quoi que ce soit.
 
 ```bash
 python3 verif.py                 # VERT
-python3 -m pytest tests/ -q      # 320 passed
+python3 -m pytest tests/ -q      # 345 passed
 ```
 
 Puis les trois contrôles que seul un humain peut faire :

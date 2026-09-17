@@ -38,9 +38,13 @@ def debattre(st: dict, r: dict, resultats: list, symbole: str,
         evt("Superviseur", f"débat indisponible : {str(e)[:60]}", "warn")
     # Étape 6bis : AG-19 attache la DIRECTION (ou l'aveu qu'il n'y en a
     # pas) — sources, certitude, point de bascule. Jamais bloquant.
-    from . import directeur
+    from . import chartiste, directeur
     directeur.analyser(st, r, instrument=symbole, tf=r["nom"],
                        marche=instruments.par_defaut().marche)
+    # 6ter : les faits de NIVEAU d'AG-20 rejoignent la TRACE du débat
+    # (avocats.py, livré, n'accepte pas encore d'arguments externes —
+    # ils sont visibles et journalisés, le score ne bouge pas).
+    chartiste.enrichir_debat(st, symbole, prix_actuel)
 
 
 _CACHE_POIDS = {"t": 0.0, "poids": {}}
@@ -130,6 +134,18 @@ def construire_graphe(paquet: dict, resultats: list) -> dict:
             if sens_avis in ("achat", "vente"):
                 positions[code] = ("pour" if sens_avis == reference["setup"]
                                    else "contre")
+        # AG-20 : sa position sur le graphe est RELATIVE au signal de
+        # référence — une lecture haussière est CONTRE une vente. On ne
+        # déduit jamais la position de la conviction seule.
+        try:
+            from . import chartiste, instruments
+            L = chartiste.derniere(instruments.par_defaut().symbole)
+            if L is not None and L.sens_dominant in ("haussier", "baissier"):
+                meme = (L.sens_dominant == "haussier") == \
+                       (reference["setup"] == "achat")
+                positions["AG-20"] = "pour" if meme else "contre"
+        except Exception:
+            pass
     cartes = [{**c, "position": positions[c["code"]]}
               if c.get("code") in positions else c
               for c in paquet.get("agents") or []]

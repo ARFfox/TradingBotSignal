@@ -61,6 +61,9 @@ AGENTS: dict[str, dict] = {
               "coul": "#f778ba", "ecoute": ["AG-11", "AG-12", "AG-13", "AG-14"]},
     "AG-10": {"nom": "Miroir", "emoji": "🪞", "couche": "relation",
               "coul": "#f778ba", "ecoute": ["AG-09", "AG-02"]},
+    # --- couche lecture : il lit les graphiques ---------------------------
+    "AG-20": {"nom": "Chartiste", "emoji": "📐", "couche": "perception",
+              "coul": "#79c0ff", "ecoute": []},
     # --- couche critique : ils s'opposent --------------------------------
     # Deux avocats, pas un. Un systeme qui n'a qu'un contradicteur apprend a
     # se mefier de tout ; un systeme qui n'a qu'un defenseur apprend a tout
@@ -71,12 +74,12 @@ AGENTS: dict[str, dict] = {
               "coul": "#3fb950", "ecoute": ["AG-03", "AG-02", "AG-09"]},
     # --- couche decision -------------------------------------------------
     "AG-03": {"nom": "Stratège", "emoji": "♟️", "couche": "decision",
-              "coul": "#e3b341", "ecoute": ["AG-02", "AG-04", "AG-05"]},
+              "coul": "#e3b341", "ecoute": ["AG-02", "AG-04", "AG-05", "AG-20"]},
     "AG-00": {"nom": "Superviseur", "emoji": "🧠", "couche": "chef",
               "coul": "#1f6feb",
               "ecoute": ["AG-01", "AG-02", "AG-03", "AG-04", "AG-05",
                          "AG-09", "AG-10", "AG-11", "AG-12", "AG-13",
-                         "AG-14", "AG-15", "AG-16", "AG-18"]},
+                         "AG-14", "AG-15", "AG-16", "AG-18", "AG-20"]},
     # --- sorties ---------------------------------------------------------
     "OUT-1": {"nom": "Notification", "emoji": "🔔", "couche": "sortie",
               "coul": "#7ee787", "ecoute": ["AG-00"]},

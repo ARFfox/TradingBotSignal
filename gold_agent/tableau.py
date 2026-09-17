@@ -14,14 +14,11 @@ from .cerveau import (_consensus, _notifier_reparations, _sante,  # noqa: F401
                       agents_live, grille_conviction)
 from .decision import noter as noter_decision
 
-# Twelve Data limite le plan gratuit a 8 requetes/minute et 800/jour. Sans
-# cache, chaque rechargement en consomme 4 et le quota saute en quelques
-# minutes. La duree de vie est calee sur la bougie : inutile de rafraichir
-# du H4 toutes les 10 secondes, la bougie met 4 heures a se former.
+# Quota Twelve Data (8 req/min, 800/j) : cache dont la duree de vie est
+# calee sur la bougie — inutile de rafraichir du H4 toutes les 10 s.
 
-# Console d'evenements : chaque collecte y consigne ce qui s'est reellement
-# passe (donnees, signaux, vetos). C'est la matiere de la console du
-# panneau Agents — du vrai vecu, pas un decor.
+# Console d'evenements : le vecu reel de chaque collecte (donnees,
+# signaux, vetos) — la matiere de la console du panneau Agents.
 from collections import deque
 _EVENEMENTS: deque = deque(maxlen=80)
 _EV_VERROU = threading.Lock()
@@ -44,10 +41,8 @@ from .quota import (FIABILITE, PROFILS, TTL_PLANCHER,  # noqa: F401
 
 
 TIMEFRAMES = [
-    # k_stop par timeframe — mesure du 01/09/2026 sur deux fenetres
-    # (historique complet ET 60 derniers jours, guerre comprise) :
-    # H4 k1,5 : +0,76R -> +1,12R · H1 k1,5 : +0,09R -> +0,58R (et la fenetre
-    # recente repasse positive) · M30 : k1,0 reste meilleur (+0,74R).
+    # k_stop par timeframe — mesure du 01/09/2026, deux fenetres :
+    # H4 k1,5 +1,12R · H1 k1,5 +0,58R · M30 k1,0 +0,74R.
     {"tf": "240", "nom": "H4", "role": "Structure", "mtf": 6, "k_stop": 1.5,
      "params": dict(ema_fast=50, ema_slow=200, pivot_span=3, delai_max=40)},
     {"tf": "60", "nom": "H1", "role": "Tendance", "mtf": 4, "k_stop": 1.5,
@@ -86,21 +81,21 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
     except Exception:
         pass
 
+    _bars_tf: dict = {}
     for spec in TIMEFRAMES:
         try:
             bars_cache, age, du_cache = _bars_caches(symbole, spec["tf"], bougies)
             bars = _avec_prix_direct(bars_cache, prix_actuel)
-            # L'analyse elle-meme vit dans analyse.analyser_tf : la MEME
-            # fonction sert l'or et les autres instruments (SPEC_SITE_V3
-            # niveau 3) — deux copies divergeraient sans bruit.
+            _bars_tf[spec["nom"]] = bars
+            # analyse.analyser_tf : la MEME fonction pour l'or et le
+            # multi — deux copies divergeraient sans bruit.
             entree = analyser_tf(bars, spec, FIABILITE.get(spec["nom"], {}),
                                  prix_direct=prix_actuel, chrono=chrono,
                                  cout_pts=0.3)
             entree["age_secondes"] = age
             entree["du_cache"] = du_cache
         except Exception as e:
-            # Repli sur la derniere donnee connue, en le signalant clairement :
-            # une carte vide est moins utile qu'une carte datee et annoncee.
+            # Repli annonce sur la derniere donnee connue.
             entree = {"nom": spec["nom"], "role": spec["role"], "tf": spec["tf"],
                       "fiabilite": FIABILITE.get(spec["nom"], {})}
             vieux = dernier_cache(symbole, spec["tf"], bougies)
@@ -118,8 +113,7 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         resultats.append(entree)
 
     actifs = [r for r in resultats if (r.get("setup") or {}).get("setup")]
-    if prix_actuel is None:
-        # Repli : derniere cloture connue, faute de quote
+    if prix_actuel is None:      # repli : derniere cloture connue
         for r in resultats:
             if r.get("prix"):
                 prix_actuel = r["prix"]
@@ -172,13 +166,9 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         gdelt = {"disponible": False, "lecture": []}
     chrono["vigie"] = chrono.get("vigie", 0.0) + (_tps.perf_counter() - d0)
 
-    # Journal : chaque signal emis est memorise puis suivi jusqu'a son
-    # denouement, avec les bougies deja en cache (zero requete en plus).
-    # SUSPENSION D'EMISSION — le superviseur applique sa propre discipline :
-    # en regime geopolitique eleve ou en serie perdante averee, les setups
-    # restent AFFICHES (marques) mais ne sont ni journalises ni notifies.
-    # Mesure du 01/09 : la regle H4 tient sur 60 jours (+0,7R) mais les
-    # timeframes non backtestes ont produit 14 pertes pendant le choc.
+    # Journal + suspension : les setups suspendus restent AFFICHES mais ne
+    # sont ni journalises ni notifies (mesure du 01/09 : 14 pertes de choc
+    # sur les timeframes non backtestes).
     tf_autorises = config.tf_emission()
     suspension = None
     if actus.get("niveau") == "eleve":
@@ -379,13 +369,19 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         _sig_journal = journal._charger()
     except Exception:
         _sig_journal = []
-    # L'AUTO-CALIBRATION du Superviseur (demande de Mushine, 14/09) : la
-    # grille live et les poids Brier sont calcules AVANT la notation pour
-    # que l'historique reel pese dans chaque note, automatiquement.
+    # Auto-calibration (14/09) : grille live et poids Brier calcules AVANT
+    # la notation — l'historique reel pese dans chaque note.
     try:
         paquet["calibration"] = avis_agents.evaluer(_sig_journal)
     except Exception:
         paquet["calibration"] = {}
+    # AG-20 lit les 5 timeframes ENSEMBLE (niveaux, conflits) — avant
+    # l'emission : AG-19 et le debat consomment sa lecture.
+    try:
+        from . import chartiste as _chartiste
+        _chartiste.integrer(paquet, _bars_tf, symbole)
+    except Exception as e:
+        _evt("Chartiste", f"lecture impossible : {str(e)[:60]}", "warn")
     paquet["grille"] = grille_conviction(_sig_journal,
                                          [t["nom"] for t in TIMEFRAMES])
     _carreaux_tf = {x["tf"]: x for x in paquet["grille"]}
@@ -461,6 +457,10 @@ def collecter(symbole: str | None = None, bougies: int = 600) -> dict:
         pass
 
     paquet["agents"] = agents_live(paquet)
+    try:
+        _chartiste.carte_dans_agents(paquet, symbole)
+    except Exception:
+        pass
 
     # --- le reseau des agents (INTEGRATION_GRAPHE.md) ---------------------
     # Tout ce que le graphe montre est mesure a l'instant du rendu : un

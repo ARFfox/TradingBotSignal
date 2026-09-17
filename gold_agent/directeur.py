@@ -99,6 +99,15 @@ def analyser(st: dict, r: dict, *, instrument: str, tf: str,
             figures_biais=r.get("figures_biais"),
             momentum=momentum,
             memoire=memoire)
+        # AG-20 Chartiste (6ter) : la tendance multi-timeframe, DESCRIPTIVE
+        # — même famille que structure_ema : une famille = une voix.
+        try:
+            from .chartiste import source_pour_directeur
+            sc = source_pour_directeur(instrument)
+            if sc is not None:
+                srcs.append(sc)
+        except Exception:
+            pass
         d = decider(srcs, poids_cerveau("source"))
         st["direction"] = {
             "sens": d.sens, "score": d.score, "certitude": d.certitude,

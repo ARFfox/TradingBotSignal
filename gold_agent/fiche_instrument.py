@@ -174,6 +174,37 @@ def bloc_haut(cle: str, _deja=None) -> str:
                  f'<div class="n">{tf}</div>{v_html}'
                  f'<div class="e mono">n={c.n_resolus}</div>{bip}</button>')
     h.append('</div>')
+    h.append(_bloc_chartiste(f.instrument))
+    return "".join(h)
+
+
+def _bloc_chartiste(instrument: str) -> str:
+    """Étape 6ter : les NIVEAUX d'AG-20 sur la fiche (descriptifs), et les
+    CONFLITS entre échelles — c'est eux qu'on regarde en premier."""
+    try:
+        from .chartiste import derniere
+        L = derniere(instrument)
+    except Exception:
+        L = None
+    if L is None or not L.par_tf:
+        return ""
+    morceaux = []
+    for n in L.niveaux_fusionnes[:3]:
+        morceaux.append(f'<b>{n["genre"]}</b> {n["prix"]:.5g} '
+                        f'({n["touches"]} touches · {", ".join(n["timeframes"])})')
+    niveaux_txt = " · ".join(morceaux) if morceaux else "aucun niveau majeur"
+    h = [f'<div style="font-size:12px;color:var(--encre-2);margin:-6px 0 14px">'
+         f'📐 AG-20 — {L.sens_dominant} sur {L.accord:.0%} des échelles · '
+         f'{niveaux_txt}']
+    for cfl in L.conflits[:2]:
+        h.append(f'<div style="color:var(--attention);font-weight:600;'
+                 f'margin-top:3px">⚠ {cfl}</div>')
+    if L.n_uniques:
+        h.append(f'<div style="color:var(--encre-3);margin-top:2px">'
+                 f'{L.n_uniques} figure(s) distincte(s) '
+                 f'({L.n_figures} détections brutes) — le bruit en donnerait '
+                 f'{L.attendu_sur_bruit:.1f}</div>')
+    h.append('</div>')
     return "".join(h)
 
 

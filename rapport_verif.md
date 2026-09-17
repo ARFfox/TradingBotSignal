@@ -4,6 +4,8 @@ montre-moi la sortie. N'annonce pas que c'est fini tant que
 la sortie n'est pas verte.
 
 ## AVERTISSEMENTS (non bloquants, a traiter ensuite)
+- **agent_chartiste.py:431** — symbole cable en dur : L = lire("XAU/USD", bougies)
+  - piste : la fonction doit recevoir un Instrument en parametre
 - **avocats.py** — 544 lignes (max 500)
   - piste : a decouper (regle 16 du CLAUDE.md)
 - **bundle/avocats.py** — 544 lignes (max 500)
