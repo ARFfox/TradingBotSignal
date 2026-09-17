@@ -11,7 +11,7 @@ from datetime import datetime
 
 from . import config as _cfg, datasource as ds, notify, tableau
 from .blocs import (_bloc_navigation, _bloc_rapport, _boule, _carte,
-                    _cases_agents,
+                    _cases_agents, _fragment_bandeau_cerveau,
                     _fragment_graphe, _grille,
                     _panneau_agents, WIDGET_TV)
 from .onglets import _bloc_constellation, _bloc_marches, _blocs_onglets
@@ -91,6 +91,7 @@ def rendre(d: dict) -> str:
         fiche_bas = _fi.bloc_bas("XAUUSD")
     except Exception:
         fiche_haut, fiche_bas = "", ""
+    bandeau_cerveau = _fragment_bandeau_cerveau()
 
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -131,6 +132,7 @@ def rendre(d: dict) -> str:
   <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></a>
   <span class="mini-lib">sortie</span></div>
 </div></header>
+{bandeau_cerveau}
 <div class="bandeau"><b>Sortie mécanique d'une règle, pas une recommandation.</b>
 Les niveaux découlent des paramètres de la règle : support confirmé = entrée, −1&nbsp;ATR = stop,
 première résistance = objectif. Le badge de chaque carte indique ce que le backtest a réellement

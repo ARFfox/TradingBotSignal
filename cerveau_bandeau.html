@@ -1,0 +1,169 @@
+<!-- =====================================================================
+     BANDEAU DU SUPERVISEUR — présent sur TOUTES les pages du site.
+     Claude Code : colle ce bloc juste sous l'en-tête, dans le gabarit
+     commun. Données : GET /api/cerveau -> cerveau.etat_live(etat, sante)
+     ===================================================================== -->
+<div id="cv" hidden>
+  <button id="cv-tete" aria-expanded="false" aria-controls="cv-detail">
+    <span class="cv-point"></span>
+    <b id="cv-statut"></b>
+    <span class="cv-sep">·</span>
+    <span id="cv-v" class="cv-min"></span>
+    <span class="cv-sep">·</span>
+    <span id="cv-poids" class="cv-min"></span>
+    <span id="cv-phrase" class="cv-phrase"></span>
+    <span class="cv-chevron">▾</span>
+  </button>
+
+  <div id="cv-detail" hidden>
+    <div class="cv-cols">
+      <div>
+        <div class="cv-t">Ce qu'il a appris en dernier</div>
+        <ul id="cv-chg" class="cv-liste"></ul>
+      </div>
+      <div>
+        <div class="cv-t">Ce qui l'empêche d'apprendre</div>
+        <ul id="cv-pb" class="cv-liste"></ul>
+      </div>
+    </div>
+    <div class="cv-pied">
+      <span id="cv-quand"></span>
+      <a href="/cerveau" class="cv-lien">journal complet des changements →</a>
+    </div>
+  </div>
+</div>
+
+<style>
+#cv{font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  border:1px solid var(--bord,#e4e3df);border-radius:10px;
+  background:var(--surface,#fafaf9);margin:0 0 16px;overflow:hidden}
+#cv-tete{display:flex;align-items:center;gap:8px;width:100%;padding:9px 13px;
+  background:none;border:none;cursor:pointer;font:inherit;text-align:left;
+  color:var(--encre,#17171a)}
+#cv-tete:hover{background:var(--surface-2,#f4f4f2)}
+#cv-statut{font-weight:650;white-space:nowrap}
+.cv-sep{color:var(--bord-fort,#cdccc7)}
+.cv-min{font-size:12px;color:var(--encre-3,#76746f);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.cv-phrase{font-size:12px;color:var(--encre-2,#52514e);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.cv-chevron{color:var(--encre-3,#76746f);font-size:11px;transition:transform .15s}
+#cv-tete[aria-expanded="true"] .cv-chevron{transform:rotate(180deg)}
+
+/* La pastille porte AUSSI une forme : rouge et vert sont indistinguables
+   en deutéranopie (~8 % des hommes). La couleur seule ne dit rien. */
+.cv-point{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+#cv[data-c="vert"]  .cv-point{background:#0ca30c}
+#cv[data-c="ambre"] .cv-point{background:#fab219;border-radius:2px}
+#cv[data-c="rouge"] .cv-point{background:#d03b3b;border-radius:1px;
+  width:10px;height:10px}
+#cv[data-c="gris"]  .cv-point{background:transparent;
+  border:2px solid var(--bord-fort,#cdccc7)}
+#cv[data-c="vert"]  #cv-statut{color:#006300}
+#cv[data-c="ambre"] #cv-statut{color:#8a5a00}
+#cv[data-c="rouge"] #cv-statut{color:#b3261e}
+#cv[data-c="gris"]  #cv-statut{color:var(--encre-3,#76746f)}
+
+#cv-detail{padding:13px;border-top:1px solid var(--bord,#e4e3df);
+  background:var(--fond,#fff)}
+.cv-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cv-t{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--encre-3,#76746f);margin-bottom:7px}
+.cv-liste{margin:0;padding:0;list-style:none;font-size:12.5px}
+.cv-liste li{padding:5px 0;border-bottom:1px solid var(--bord,#e4e3df);
+  color:var(--encre-2,#52514e)}
+.cv-liste li:last-child{border-bottom:none}
+.cv-liste .vide{color:var(--encre-3,#76746f);font-style:italic}
+.cv-liste code{font-size:11.5px;background:var(--surface-2,#f4f4f2);
+  padding:1px 4px;border-radius:3px}
+.cv-g{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;
+  margin-right:5px;white-space:nowrap}
+.cv-g.bloquant{background:#fdf0ef;color:#b3261e}
+.cv-g.attention{background:#fdf6e6;color:#8a5a00}
+.cv-g.normal{background:#f0efec;color:#52514e}
+.cv-pied{display:flex;justify-content:space-between;align-items:center;
+  margin-top:12px;padding-top:10px;border-top:1px solid var(--bord,#e4e3df);
+  font-size:11.5px;color:var(--encre-3,#76746f)}
+.cv-lien{color:var(--accent,#1c5cab);text-decoration:none;font-weight:600}
+.cv-lien:hover{text-decoration:underline}
+@media (max-width:760px){
+  .cv-cols{grid-template-columns:1fr;gap:14px}
+  .cv-phrase{display:none}
+}
+</style>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('cv');
+
+  function rendre(d) {
+    cv.hidden = false;
+    cv.dataset.c = d.couleur;
+    $('cv-statut').textContent = 'Superviseur — ' + d.statut;
+    $('cv-v').textContent = 'v' + d.version;
+    $('cv-poids').textContent = `${d.n_mesures}/${d.n_total_poids} poids mesurés`;
+    $('cv-phrase').textContent = d.phrase;
+    $('cv-phrase').title = d.phrase;
+
+    const chg = d.derniers_changements || [];
+    $('cv-chg').innerHTML = chg.length
+      ? chg.slice().reverse().map(c => `<li><code>${c}</code></li>`).join('')
+      : `<li class="vide">rien encore — le cerveau n'a pas assez de
+         résolus pour bouger un poids</li>`;
+
+    const pb = d.problemes || [];
+    $('cv-pb').innerHTML = pb.length
+      ? pb.map(p => `<li><span class="cv-g ${p.gravite}">${p.gravite}</span>
+          <b>${p.quoi}</b> — ${p.detail}<br>
+          <span style="color:var(--encre-3,#76746f)">→ ${p.action}</span></li>`).join('')
+      : `<li class="vide">rien ne le bloque</li>`;
+
+    // On affiche la DATE du dernier apprentissage, pas « en ligne ». Une
+    // pastille verte sur un cerveau qui n'a rien appris depuis trois
+    // semaines apprend au lecteur à ne plus la regarder.
+    $('cv-quand').textContent = d.dernier_apprentissage === '—'
+      ? 'jamais entraîné'
+      : `dernier apprentissage ${d.dernier_apprentissage.replace('T', ' ').slice(0, 16)} · `
+        + `${d.n_resolus} résolus au journal, ${d.n_depuis} depuis`;
+  }
+
+  $('cv-tete').onclick = () => {
+    const ouvert = $('cv-tete').getAttribute('aria-expanded') === 'true';
+    $('cv-tete').setAttribute('aria-expanded', !ouvert);
+    $('cv-detail').hidden = ouvert;
+  };
+
+  async function rafraichir() {
+    try {
+      const r = await fetch('/api/cerveau');
+      if (r.ok) rendre(await r.json());
+    } catch (e) { /* le bandeau ne doit jamais casser la page */ }
+  }
+  rafraichir();
+  setInterval(rafraichir, 60000);
+
+  // Démonstration hors serveur : à retirer une fois /api/cerveau branché.
+  if (!window.__CERVEAU_API__) rendre({
+    statut: "bridé", couleur: "rouge", version: 4,
+    n_mesures: 3, n_total_poids: 18,
+    phrase: "314 SL sur 317 sont indéterminés",
+    dernier_apprentissage: "2026-09-17T09:12:00",
+    n_resolus: 405, n_depuis: 7,
+    derniers_changements: [
+      "▲ argument:stop_dans_le_bruit : 0.00 → 1.80 (première mesure, n=405)",
+      "▼ source:regime_marche : 1.20 → 0.85 (en perd, n=405)",
+      "▼ figure:double_sommet : 0.00 → 0.00 (sans pouvoir prédictif, n=405)"],
+    problemes: [
+      {gravite: "bloquant", quoi: "audit des stops",
+       detail: "314 SL sur 317 sont indéterminés",
+       action: "APPLIQUER.md étape 1"},
+      {gravite: "bloquant", quoi: "note inversée",
+       detail: "bande 40–60 % : 17 % réel contre 25 % en 20–40 %",
+       action: "ne PAS filtrer sur la note (§2.2)"},
+      {gravite: "attention", quoi: "seuil d'émission",
+       detail: "aucun seuil ne rend le système positif",
+       action: "APPLIQUER.md étape 4"}],
+  });
+})();
+</script>

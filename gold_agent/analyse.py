@@ -58,6 +58,17 @@ def analyser_tf(bars: list[dict], spec: dict, fiabilite: dict,
     _chr["structure"] = _chr.get("structure", 0.0) + (time.perf_counter() - t0)
     entree["volatilite"] = rg.regime_volatilite(h, l, c)
     entree["renversement"] = rg.renversement(o, h, l, c)
+    # Étape 6bis : les figures chartistes (module livré figures.py) — elles
+    # entrent en PRÉDICTIVES : biais neutre tant que cerveau.json ne leur a
+    # pas mesuré de poids sur CE journal. Détection sur les mêmes bougies.
+    try:
+        import figures as _figs
+        from .directeur import poids_cerveau as _pc
+        _f = _figs.detecter(bars[-160:])
+        entree["figures"] = [x.code for x in _f]
+        entree["figures_biais"] = _figs.biais(_f, _pc("figure"))
+    except Exception:
+        entree["figures"], entree["figures_biais"] = [], None
     d0 = time.perf_counter()
     try:
         entree["ict"] = ict.analyse_ict(bars, entree["atr"])

@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "maj": "2026-09-17T12:44:24+00:00",
+  "n_resolus": 576,
+  "n_au_dernier_apprentissage": 576,
+  "dernier_apprentissage": "2026-09-17T12:41:10+00:00",
+  "poids": {
+    "agent": {
+      "AG-01": 0.1,
+      "AG-05": 0.59,
+      "AG-10": 0.1
+    },
+    "argument": {
+      "stop_sous_le_spread": 1.0,
+      "rr_genereux": 0.0,
+      "stop_dans_le_bruit": 0.0,
+      "stop_hors_bruit": 1.0,
+      "rr_insuffisant": 1.0,
+      "miroir_contredit": 1.0,
+      "combo_positif": 1.0,
+      "confluence": 1.0,
+      "combo_negatif": 1.0,
+      "miroir_confirme": 1.0
+    },
+    "figure": {},
+    "source": {}
+  },
+  "combos_coupes": [],
+  "seuil_emission": null,
+  "changements": [
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "agent:AG-01",
+      "avant": 0.0,
+      "apres": 0.1,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "agent:AG-05",
+      "avant": 0.0,
+      "apres": 0.59,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "agent:AG-10",
+      "avant": 0.0,
+      "apres": 0.1,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:stop_sous_le_spread",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:stop_hors_bruit",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:rr_insuffisant",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:miroir_contredit",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:combo_positif",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:confluence",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:combo_negatif",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    },
+    {
+      "quand": "2026-09-17T12:41:10+00:00",
+      "quoi": "argument:miroir_confirme",
+      "avant": 0.0,
+      "apres": 1.0,
+      "motif": "première mesure",
+      "n_base": 576,
+      "version": 1
+    }
+  ],
+  "motif_dernier_cycle": "0 résolu(s) nouveau(x) depuis le dernier apprentissage — il en faut 20. Rien n'a bougé, et c'est voulu : recalibrer sur les mêmes données ne crée aucun savoir.",
+  "n_neuf_dernier_cycle": 0,
+  "n_changements_dernier_cycle": 0
+}

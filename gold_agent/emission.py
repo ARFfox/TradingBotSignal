@@ -36,6 +36,11 @@ def debattre(st: dict, r: dict, resultats: list, symbole: str,
                 f"débat — {st['refus_emission'][:80]}", "veto")
     except Exception as e:
         evt("Superviseur", f"débat indisponible : {str(e)[:60]}", "warn")
+    # Étape 6bis : AG-19 attache la DIRECTION (ou l'aveu qu'il n'y en a
+    # pas) — sources, certitude, point de bascule. Jamais bloquant.
+    from . import directeur
+    directeur.analyser(st, r, instrument=symbole, tf=r["nom"],
+                       marche=instruments.par_defaut().marche)
 
 
 _CACHE_POIDS = {"t": 0.0, "poids": {}}

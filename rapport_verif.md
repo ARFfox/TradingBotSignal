@@ -12,6 +12,8 @@ la sortie n'est pas verte.
   - piste : a decouper (regle 16 du CLAUDE.md)
 - **bundle/superviseur_apprenant.py** — 552 lignes (max 500)
   - piste : a decouper (regle 16 du CLAUDE.md)
+- **figures.py** — 840 lignes (max 500)
+  - piste : a decouper (regle 16 du CLAUDE.md)
 - **gold_agent/instruments.py:26** — symbole cable en dur : symbole: str          # identifiant canonique AFFICHÉ (ex : "XAU/USD")
   - piste : la fonction doit recevoir un Instrument en parametre
 - **gold_agent/instruments.py:67** — symbole cable en dur : _i("XAU/USD", "Or spot", "matieres", "OANDA:XAUUSD", "GC=F",
@@ -45,6 +47,12 @@ la sortie n'est pas verte.
 - **tests/test_debat_pont.py:25** — symbole cable en dur : v = examiner_setup(st, instrument="XAU/USD", tf="H1", atr=2.0, spread=
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_debat_pont.py:50** — symbole cable en dur : v = examiner_setup(st, instrument="XAU/USD", tf="H1", atr=2.0, spread=
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_directeur_pont.py:26** — symbole cable en dur : directeur.analyser(st, _r(), instrument="XAU/USD", tf="H1")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_directeur_pont.py:42** — symbole cable en dur : instrument="XAU/USD", tf="M5")
+  - piste : la fonction doit recevoir un Instrument en parametre
+- **tests/test_directeur_pont.py:51** — symbole cable en dur : directeur.analyser(st, _r(), instrument="XAU/USD", tf="H1")
   - piste : la fonction doit recevoir un Instrument en parametre
 - **tests/test_fiche_instrument.py:24** — symbole cable en dur : "cle": f"XAU/USD|H1|vente|{4300 + i}", "instrument": "XAU/USD",
   - piste : la fonction doit recevoir un Instrument en parametre

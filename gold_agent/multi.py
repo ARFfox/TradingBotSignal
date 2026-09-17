@@ -122,6 +122,13 @@ def analyser_et_emettre(inst, notifier=None) -> list[dict]:
                 continue
         except Exception:
             pass
+        # Étape 6bis : AG-19 attache la direction sur le multi aussi.
+        try:
+            from . import directeur
+            directeur.analyser(st, r, instrument=inst.symbole,
+                               tf=spec["nom"], marche=inst.marche)
+        except Exception:
+            pass
         # CHANTIER #8-9 : couple coupé (espérance mesurée négative) ou note
         # sous le seuil mesuré — refus motivé AVANT le lot.
         motif_cal = refus_calibrage(inst.symbole, spec["nom"],

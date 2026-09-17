@@ -95,6 +95,11 @@ def enregistrer(tf: str, s: dict, prix: float, fiabilite: str,
             # verdict, score, arguments et le contexte qui permettra de
             # calibrer chaque argument sur le resultat reel.
             "debat": s.get("debat"),
+            # Étape 6bis / 10 : la direction d'AG-19 (sources comprises) et
+            # les figures présentes — la matière des calibrations « source »
+            # et « figure » du cerveau.
+            "direction": s.get("direction"),
+            "figures": s.get("figures"),
             # SPEC_SITE_V3 §7 : le journal ne contient QUE des signaux
             # emis (les suspendus n'y entrent jamais) — le champ le grave.
             "emis": True,

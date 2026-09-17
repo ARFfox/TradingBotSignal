@@ -1,5 +1,7 @@
 # APPLIQUER — tout ce que Claude Code doit faire, dans l'ordre
 
+> **Vue d'ensemble d'abord : `REMISE.md`.** Puis ce fichier.
+>
 > **Claude Code : ce fichier se suffit à lui-même.** Il contient les
 > 9 modifications à appliquer au projet, dans l'ordre, avec le code exact et
 > le critère qui dit que c'est fini. Applique-les **une par une**, et lance
@@ -9,7 +11,7 @@
 > la racine du projet, testés — **ne les réécris pas**. Ton travail est de
 > les BRANCHER dans `gold_agent/` et `web.py`.
 >
-> État de départ : **222 tests verts**. Si `verif.py` passe au rouge après
+> État de départ : **320 tests verts**. Si `verif.py` passe au rouge après
 > une étape, corrige avant de passer à la suivante.
 
 ---
@@ -452,6 +454,96 @@ sortent plus, et `rapport_avocats.md` donne un poids mesuré par argument.
 
 ---
 
+## Étape 6bis — AG-19 Directeur : la direction, décidée sur tout 🟠
+
+**C'est la demande : que le superviseur analyse toutes les données des agents
+plus l'analyse du graphique, et décide la direction exacte.**
+
+**Fichier : `web.py` et `gold_agent/strategy.py`**
+
+```python
+from direction import sources_depuis_agents, decider, expliquer, calibrer
+from figures import detecter, biais
+
+figs = detecter(bougies)                 # bougies de CE timeframe
+srcs = sources_depuis_agents(
+    structure   = {"ecart_ema": (prix - ema50) / ema50},
+    marche      = {"regime": ag_marche.regime, "largeur": ag_marche.largeur,
+                   "nom": marche},
+    intermarche = {"score": inter["score"], "fiable": inter["fiable"]},
+    figures_biais = biais(figs, poids_figures),
+    momentum    = {"rsi": rsi},
+    memoire     = {"esperance": esp, "n": n_combo,
+                   "sens_favorable": sens_favorable},
+)
+d = decider(srcs, poids_sources)         # poids_sources vient de calibrer()
+
+signal["direction"] = {
+    "sens": d.sens, "score": d.score, "certitude": d.certitude,
+    "base": d.base, "accord": d.accord, "bascule": d.bascule,
+    "texte": expliquer(d),
+}
+```
+
+### Les quatre règles du module, à ne pas contourner
+
+**« INDÉTERMINÉE » est une réponse, pas une panne.** Un module qui trouve
+toujours une direction n'en trouve aucune : sa sortie est connue d'avance.
+Sur ses quatre cas de démonstration, il refuse de se prononcer **trois fois**.
+C'est le comportement voulu. Ne rajoute pas de repli « alors on prend le sens
+majoritaire » — ce serait exactement le défaut qu'on vient de supprimer.
+
+**DÉCRIRE et PRÉDIRE ne pèsent pas pareil au départ.**
+
+| Type | Exemple | Poids par défaut |
+|---|---|---|
+| **descriptive** | « le prix est 3,1 % au-dessus de l'EMA50 » | **1,0** — c'est un fait |
+| **prédictive** | « ce triangle annonce une hausse » | **0,0** — à prouver |
+
+Les figures chartistes entrent en prédictives. Elles ne pèseront que le jour
+où `calibrer()` montre qu'elles précèdent un gain **sur ton journal**.
+
+**Une famille = une voix.** `tendance · marche · intermarche · figure ·
+momentum · memoire`. Deux sources de la même famille ne comptent qu'une fois,
+avec le poids de la plus forte.
+
+**La certitude vient de l'accord ET de la base, jamais de la force.**
+`certitude = accord × min(1, base/4) × (0,4 + 0,6 × part_mesurée)`. Tant
+qu'aucune source n'a de poids mesuré, elle est **plafonnée à 40 %**.
+
+### Le point de bascule
+
+Chaque verdict nomme **LA source dont le retournement suffirait à le casser** :
+
+```
+Ce qui me ferait changer d'avis : que structure_ema (prix +3.10 % vs EMA50)
+passe baissier — à lui seul il ferait basculer le verdict. Il pèse 1.4 sur 3.4.
+```
+
+C'est calculé en retournant chaque famille et en regardant si le verdict
+tient. Quand aucune ne suffit, le module le dit — et c'est ce qui rend une
+direction solide, bien plus que son score.
+
+> Ne remplace pas cette phrase par « surveiller les niveaux clés » ou toute
+> autre formule générale. Une analyse qui ne dit pas ce qui l'invaliderait
+> n'est pas réfutable, donc elle n'est pas vérifiable.
+
+### La vue — `direction_vue.html`
+
+Gabarit autonome à la racine. Il montre le verdict, la barre haussier/baissier,
+les trois jauges (accord · base · certitude) et **chaque source avec sa
+famille** — une famille déjà utilisée apparaît grisée avec la mention « même
+famille, ne vote pas », pour que la redondance se voie au lieu de se cacher.
+
+⚠️ La flèche (▲ ▼ ◆) porte le sens autant que la couleur : rouge et vert sont
+à ΔE 4,1 en deutéranopie.
+
+**Fini quand :** chaque signal porte sa `direction`, le texte nomme des
+chiffres, et le verdict `INDÉTERMINÉE` apparaît réellement dans le journal.
+Si tous les signaux ont une direction, quelque chose court-circuite le module.
+
+---
+
 ## Étape 7 — Le graphe avec les positions 🟠
 
 **Fichiers : `web.py` + `graphe.html`**
@@ -807,7 +899,7 @@ puis défile sans emporter la page, et chaque chiffre coloré porte son signe.
 
 ```bash
 python3 verif.py              # doit afficher VERT
-python3 -m pytest tests/ -q   # 222 passed
+python3 -m pytest tests/ -q   # 320 passed
 ```
 
 Puis les trois contrôles que seul un humain peut faire :
@@ -823,6 +915,118 @@ Puis les trois contrôles que seul un humain peut faire :
    pas filtré.
 5. **Une case sous 20 résolus affiche-t-elle un pourcentage ?** Si oui,
    `texte_taux` n'est pas utilisé et la page recalcule dans son coin.
+
+---
+
+## Étape 10 — Le cerveau vivant sur tout le site 🟠
+
+**C'est la demande : que le superviseur soit vivant partout et se développe
+tout seul à partir des données du site et des agents.**
+
+Cinq calibrations existent déjà et marchent. **Personne ne les lance
+ensemble, et leurs résultats ne reviennent nulle part** — le site affiche des
+poids figés pendant que le journal grossit. `cerveau.py` est la boucle qui
+manquait.
+
+### 10.1 — La tâche périodique
+
+**Fichier : `taches/cerveau_cycle.py`**, toutes les heures :
+
+```python
+from cerveau import charger, cycle, sauver, sante, rapport
+from superviseur_apprenant import charger_journal, poids_agents, auditer_sl
+import avocats, figures, direction
+
+j = charger_journal(JOURNAL)
+etat = cycle(j, charger(), calibrations={
+    "agent":    {k: v.poids for k, v in poids_agents(j).items()},
+    "argument": {k: v.poids for k, v in avocats.calibrer(paires_avocats).items()},
+    "figure":   {k: v.poids for k, v in figures.calibrer(paires_figures).items()},
+    "source":   {k: v.poids for k, v in direction.calibrer(paires_sources).items()},
+})
+sauver(etat)
+
+audits = {"sl_indetermines": n_indet, "sl_total": n_sl,
+          "calibration_inversee": texte_si_inversion}
+Path("rapport_cerveau.md").write_text(rapport(etat, sante(etat, j, audits)))
+```
+
+### 10.2 — Les poids alimentent le direct
+
+`cerveau.json` devient **la source unique** des poids. Tous les modules le
+lisent au lieu de recalculer :
+
+```python
+etat = charger()
+poids_args    = etat.poids.get("argument", {})   # → avocats.debat()
+poids_figures = etat.poids.get("figure", {})     # → figures.biais()
+poids_sources = etat.poids.get("source", {})     # → direction.decider()
+```
+
+> Sans ça, chaque module recalibre dans son coin et le site affiche des
+> chiffres qui ne viennent pas de la même mesure.
+
+### 10.3 — Le bandeau, sur TOUTES les pages
+
+`cerveau_bandeau.html` se colle dans le gabarit commun, sous l'en-tête.
+Route `GET /api/cerveau` → `etat_live(charger(), sante(...))`.
+
+```
+● Superviseur — vient d'apprendre · v4 · 3/18 poids mesurés · 2 poids modifiés
+  ▾ (déplié : ce qu'il a appris | ce qui le bloque)
+```
+
+### Les quatre règles du module — ne pas les contourner
+
+**On n'apprend que de données NOUVELLES.** Sous 20 résolus depuis le dernier
+cycle, rien ne bouge. Recalibrer sur les mêmes 405 signaux ne crée aucun
+savoir : c'est la même conclusion re-dérivée, et à force de re-chercher dans
+le même journal on finit par y trouver ce qu'on veut. Ne mets pas ce cycle
+toutes les minutes.
+
+**Un poids ne saute pas.** ±0,35 par cycle après la première mesure. Un
+cerveau dont les poids passent de 0,1 à 2,0 d'un coup ne réagit pas aux
+données, il réagit au dernier trade. *(La première mesure, elle, s'applique
+en entier : il n'y a aucune croyance antérieure à protéger.)*
+
+**Tout est journalisé et réversible.** Chaque changement porte son avant, son
+après, son motif, son effectif et sa version. `revenir_a(etat, v)` défait.
+
+**🔴 Le bandeau affiche ce qu'il a APPRIS, jamais qu'il tourne.** Une pastille
+verte « superviseur actif » sur un cerveau qui n'a rien appris depuis trois
+semaines est un mensonge décoratif — et pire, elle apprend au lecteur à ne
+plus regarder la pastille. Les quatre états possibles :
+
+| état | ce que ça veut dire |
+|---|---|
+| ○ **jamais entraîné** | aucun cycle n'a tourné |
+| ◐ **en attente** | pas assez de résolus nouveaux — normal |
+| ● **vient d'apprendre** | des poids ont changé au dernier cycle |
+| ■ **bridé** | quelque chose l'empêche d'apprendre, et c'est nommé |
+
+⚠️ La pastille change aussi de FORME (rond, carré, cercle vide) : rouge et
+vert sont à ΔE 4,1 en deutéranopie.
+
+### Ce que `sante()` dira sur ton journal actuel
+
+```
+🔴 audit des stops — 314 SL sur 317 sont indéterminés
+   l'ATR à l'émission manque au journal
+   → impossible de distinguer un stop trop serré d'une erreur de direction
+   → APPLIQUER.md étape 1
+
+🔴 note inversée — bande 40–60 % : 17 % réel contre 25 % en 20–40 %
+   → filtrer sur la note sélectionne les perdants
+   → ne PAS filtrer sur la note (§2.2)
+```
+
+> **Le cerveau démarrera donc en « bridé ».** C'est exact et c'est utile : il
+> dit précisément ce qui lui manque pour apprendre. Ne masque pas cet état
+> pour faire plus propre — un cerveau qui ne sait pas nommer ce qui le bloque
+> ne peut pas être réparé, et on le regarde tourner en croyant qu'il progresse.
+
+**Fini quand :** le bandeau est sur toutes les pages, `cerveau.json` existe et
+sa `version` monte, et les poids affichés dans le débat viennent de ce fichier.
 
 ---
 

@@ -71,11 +71,18 @@ def examiner_setup(st: dict, *, instrument: str, tf: str,
 
 
 def poids_arguments() -> dict[str, float]:
-    """Les poids mesurés par `avocats.calibrer`, persistés par le rapport
-    quotidien. Vide tant que rien n'est mesuré — chaque argument vaut
-    alors 1,0 et le module le dit."""
+    """Les poids mesurés des arguments — depuis cerveau.json (étape 10.2 :
+    LA source unique), avec repli sur l'ancien fichier du rapport quotidien.
+    Vide tant que rien n'est mesuré — chaque argument vaut alors 1,0."""
     import json
     from pathlib import Path
+    try:
+        from .directeur import poids_cerveau
+        p = poids_cerveau("argument")
+        if p:
+            return p
+    except Exception:
+        pass
     f = Path.home() / ".gold_agent_poids_avocats.json"
     if f.exists():
         try:

@@ -1,0 +1,289 @@
+<style>
+/* =====================================================================
+   BOUSSOLE DE DIRECTION — AG-19
+   Claude Code : gabarit autonome. Données attendues :
+   GET /api/direction/<instrument> -> le dict rendu par direction.Direction
+   ===================================================================== */
+:root{
+  color-scheme: light;
+  --fond:#ffffff; --surface:#fafaf9; --surface-2:#f4f4f2;
+  --bord:#e4e3df; --bord-fort:#cdccc7;
+  --encre:#17171a; --encre-2:#52514e; --encre-3:#76746f;
+  --hausse:#006300; --hausse-marque:#0ca30c; --hausse-fond:#edf7ed;
+  --baisse:#b3261e; --baisse-marque:#d03b3b; --baisse-fond:#fdf0ef;
+  --indet:#8a5a00; --indet-marque:#fab219; --indet-fond:#fdf6e6;
+  --accent:#1c5cab; --accent-marque:#2a78d6; --accent-fond:#eef4fd;
+  --neutre:#f0efec;
+  --r:10px; --ombre:0 1px 2px rgba(23,23,26,.05),0 1px 3px rgba(23,23,26,.06);
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --fond:#131316; --surface:#1a1a1e; --surface-2:#232328;
+  --bord:#2c2c32; --bord-fort:#3d3d45;
+  --encre:#f2f2f0; --encre-2:#b9b8b2; --encre-3:#8d8c86;
+  --hausse:#6ddc6d; --hausse-fond:#12240f;
+  --baisse:#ff8a80; --baisse-fond:#2a1614;
+  --indet:#f5c451; --indet-fond:#2a2210;
+  --accent:#7fb2f5; --accent-marque:#3987e5; --accent-fond:#101d2e;
+  --neutre:#26262b;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --fond:#131316; --surface:#1a1a1e; --surface-2:#232328;
+    --bord:#2c2c32; --bord-fort:#3d3d45;
+    --encre:#f2f2f0; --encre-2:#b9b8b2; --encre-3:#8d8c86;
+    --hausse:#6ddc6d; --hausse-fond:#12240f;
+    --baisse:#ff8a80; --baisse-fond:#2a1614;
+    --indet:#f5c451; --indet-fond:#2a2210;
+    --accent:#7fb2f5; --accent-marque:#3987e5; --accent-fond:#101d2e;
+    --neutre:#26262b;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.page{max-width:1240px;margin:0 auto;padding:22px 16px 60px}
+.mono{font-variant-numeric:tabular-nums}
+h2{margin:0 0 3px;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--encre-3);font-size:12.5px;margin-bottom:16px}
+
+.grille{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+  gap:16px;align-items:start}
+.carte{background:var(--surface);border:1px solid var(--bord);
+  border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden}
+.carte>.tete{padding:12px 16px;border-bottom:1px solid var(--bord);
+  font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--encre-3)}
+.carte>.corps{padding:16px}
+
+/* --- le verdict --- */
+.verdict{text-align:center;padding:20px 16px 16px}
+.fleche{font-size:40px;line-height:1;margin-bottom:4px}
+.sens{font-size:29px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.sens.h{color:var(--hausse)} .sens.b{color:var(--baisse)} .sens.i{color:var(--indet)}
+.motif{color:var(--encre-2);font-size:13px;margin-top:7px;max-width:44ch;
+  margin-inline:auto}
+
+/* --- la barre haussier/baissier --- */
+.balance{margin:18px 0 6px}
+.piste{position:relative;height:30px;background:var(--neutre);border-radius:7px;
+  overflow:visible;display:flex}
+.part{height:100%;display:flex;align-items:center;font-size:12px;font-weight:700;
+  color:#fff;padding:0 9px;white-space:nowrap}
+.part.b{background:var(--baisse-marque);border-radius:7px 0 0 7px;justify-content:flex-start}
+.part.h{background:var(--hausse-marque);border-radius:0 7px 7px 0;
+  justify-content:flex-end;margin-left:auto}
+.milieu{position:absolute;left:50%;top:-6px;bottom:-6px;width:2px;
+  background:var(--encre);border-radius:2px}
+.legendes{display:flex;justify-content:space-between;font-size:11px;
+  color:var(--encre-3);margin-top:7px}
+
+/* --- les jauges accord / base / certitude --- */
+.jauges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.jauge{background:var(--surface-2);border-radius:8px;padding:10px 11px}
+.jauge .l{font-size:10px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--encre-3)}
+.jauge .v{font-size:19px;font-weight:700;margin:2px 0 5px}
+.jauge .t{height:5px;background:var(--neutre);border-radius:99px;overflow:hidden}
+.jauge .f{height:100%;border-radius:99px;background:var(--accent-marque)}
+.jauge .f.ok{background:var(--hausse-marque)}
+.jauge .f.bas{background:var(--indet-marque)}
+.jauge .n{font-size:10.5px;color:var(--encre-3);margin-top:4px}
+
+/* --- les sources --- */
+.src{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--bord)}
+.src:last-child{border-bottom:none}
+.puce{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.puce.h{background:var(--hausse-marque)} .puce.b{background:var(--baisse-marque)}
+.puce.n{background:var(--bord-fort)}
+.src .nom{font-weight:650;font-size:13px;min-width:120px}
+.src .nom small{display:block;font-weight:400;color:var(--encre-3);font-size:11px}
+.src .txt{color:var(--encre-2);font-size:12.5px;flex:1;min-width:0}
+.src .poids{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;
+  white-space:nowrap}
+.poids.mesure{background:var(--hausse-fond);color:var(--hausse)}
+.poids.decrit{background:var(--accent-fond);color:var(--accent)}
+.poids.zero{background:var(--neutre);color:var(--encre-3)}
+.fam{font-size:10px;color:var(--encre-3);text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 6px;background:var(--surface-2);
+  border-radius:4px;white-space:nowrap}
+.doublon{opacity:.45}
+.doublon .txt::after{content:" — même famille, ne vote pas";color:var(--indet);
+  font-style:italic}
+
+/* --- le texte --- */
+.raisonnement{font-size:13.5px;line-height:1.65}
+.raisonnement strong{color:var(--encre)}
+.raisonnement ul{margin:8px 0 0;padding-left:18px}
+.raisonnement li{margin-bottom:3px;color:var(--encre-2)}
+.bascule{margin-top:14px;padding:11px 13px;border-left:3px solid var(--accent-marque);
+  background:var(--accent-fond);border-radius:0 8px 8px 0;font-size:12.5px;
+  color:var(--accent)}
+.avert{margin-top:12px;padding:11px 13px;border-left:3px solid var(--indet-marque);
+  background:var(--indet-fond);border-radius:0 8px 8px 0;font-size:12.5px;
+  color:var(--indet)}
+.bt{background:var(--surface);border:1px solid var(--bord);color:var(--encre-2);
+  border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:12px}
+.bt[aria-pressed="true"]{background:var(--accent-fond);border-color:var(--accent-marque);
+  color:var(--accent)}
+.cas{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+@media (max-width:900px){.grille{grid-template-columns:1fr}}
+</style>
+
+<div class="page">
+  <h2>Direction du marché — AG-19 Directeur</h2>
+  <div class="sub">Toutes les sources, une seule décision. Choisis un cas pour
+    voir comment elle se construit.</div>
+
+  <div class="cas" id="cas"></div>
+
+  <div class="grille">
+    <div class="carte">
+      <div class="tete">Verdict</div>
+      <div class="verdict" id="verdict"></div>
+      <div class="corps" style="padding-top:0">
+        <div class="balance">
+          <div class="piste" id="piste"><div class="milieu"></div></div>
+          <div class="legendes"><span>◀ baissier</span><span>haussier ▶</span></div>
+        </div>
+        <div class="jauges" id="jauges"></div>
+      </div>
+    </div>
+
+    <div class="carte">
+      <div class="tete">Ce que dit chaque agent</div>
+      <div class="corps" id="sources"></div>
+    </div>
+  </div>
+
+  <div class="carte" style="margin-top:16px">
+    <div class="tete">Le raisonnement</div>
+    <div class="corps raisonnement" id="texte"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  document.documentElement.setAttribute('data-theme', 'light');
+
+  // Sorties réelles de direction.py sur les 4 cas de sa démonstration.
+  const CAS = [
+    {nom:"Tout concorde", sens:"haussier", score:0.77, certitude:0.65,
+     base:3.4, accord:1.0, nMes:3, nFam:5,
+     motif:"5 familles pour, 0 contre · 3/5 au poids mesuré",
+     bascule:"que <b>structure_ema</b> (prix +3.10 % vs EMA50) passe baissier — à lui seul il ferait basculer le verdict. Il pèse 1.4 sur 3.4.",
+     avert:"3 sources sur 5 portent un poids mesuré. Les autres comptent pour ce qu'elles décrivent, pas pour ce qu'elles prédisent.",
+     src:[
+      {n:"AG-02 Structure",f:"tendance",s:"h",t:"prix +3.10 % vs EMA50",p:"×1.4",k:"mesure"},
+      {n:"AG-11 Marché",f:"marche",s:"h",t:"matières haussier · largeur 78 %",p:"×1.1",k:"mesure"},
+      {n:"AG-10 Miroir",f:"intermarche",s:"h",t:"score intermarché +0.52",p:"×0.9",k:"mesure"},
+      {n:"AG-02 RSI",f:"momentum",s:"h",t:"RSI 62.0",p:"décrit",k:"decrit"},
+      {n:"AG-00 Mémoire",f:"memoire",s:"h",t:"+0.22R mesuré sur 41 signaux",p:"décrit",k:"decrit"},
+      {n:"AG-19 Figures",f:"figure",s:"h",t:"2 figures · le bruit en donnerait 0.5",p:"×0 — prédictive",k:"zero"}]},
+
+    {nom:"Sources en conflit", sens:"INDÉTERMINÉE", score:0.06, certitude:0,
+     base:2.7, accord:0.53, nMes:3, nFam:4,
+     motif:"les sources se contredisent (53 % d'accord, 60 % exigés)",
+     camps:{h:["prix +2.80 % vs EMA50","RSI 58.0"],
+            b:["forex baissier · largeur 71 %","score intermarché −0.45"]},
+     src:[
+      {n:"AG-02 Structure",f:"tendance",s:"h",t:"prix +2.80 % vs EMA50",p:"×1.2",k:"mesure"},
+      {n:"AG-11 Marché",f:"marche",s:"b",t:"forex baissier · largeur 71 %",p:"×1.2",k:"mesure"},
+      {n:"AG-10 Miroir",f:"intermarche",s:"b",t:"score intermarché −0.45",p:"×1.0",k:"mesure"},
+      {n:"AG-02 RSI",f:"momentum",s:"h",t:"RSI 58.0",p:"décrit",k:"decrit"}]},
+
+    {nom:"Figures seules", sens:"INDÉTERMINÉE", score:0, certitude:0,
+     base:0, accord:0, nMes:0, nFam:0,
+     motif:"la source disponible est prédictive et non mesurée — poids zéro",
+     avert:"3 figures à l'écran, et aucune direction. Rappel : 90 % des graphiques PUREMENT ALÉATOIRES contiennent au moins une figure. En voir n'est pas une information.",
+     src:[{n:"AG-19 Figures",f:"figure",s:"h",t:"3 figures · le bruit en donnerait 1.7",p:"×0 — prédictive",k:"zero"}]},
+
+    {nom:"Marché calme", sens:"INDÉTERMINÉE", score:0, certitude:0,
+     base:0.3, accord:1.0, nMes:2, nFam:4,
+     motif:"base d'information trop mince (0.3 < 2.0)",
+     src:[
+      {n:"AG-02 Structure",f:"tendance",s:"n",t:"prix +0.10 % vs EMA50",p:"×1.0",k:"mesure"},
+      {n:"AG-11 Marché",f:"marche",s:"n",t:"actions neutre · largeur 20 %",p:"×1.0",k:"mesure"},
+      {n:"AG-10 Miroir",f:"intermarche",s:"n",t:"score intermarché +0.04",p:"décrit",k:"decrit"},
+      {n:"AG-02 RSI",f:"momentum",s:"n",t:"RSI 51.0",p:"décrit",k:"decrit"}]},
+  ];
+
+  const $ = id => document.getElementById(id);
+  const pc = x => `${Math.round(x * 100)} %`;
+
+  function rendre(c) {
+    // --- verdict : la FLÈCHE porte le sens, pas seulement la couleur.
+    // Rouge et vert sont indistinguables en deutéranopie (~8 % des hommes).
+    const cl = c.sens === 'haussier' ? 'h' : c.sens === 'baissier' ? 'b' : 'i';
+    const fl = cl === 'h' ? '▲' : cl === 'b' ? '▼' : '◆';
+    $('verdict').innerHTML =
+      `<div class="fleche" style="color:var(--${cl==='h'?'hausse':cl==='b'?'baisse':'indet'}-marque)">${fl}</div>
+       <div class="sens ${cl}">${c.sens === 'INDÉTERMINÉE' ? 'Indéterminée' : 'Marché ' + c.sens}</div>
+       <div class="motif">${c.motif}</div>`;
+
+    // --- barre : la part haussière contre la part baissière
+    const h = (1 + c.score) / 2, b = 1 - h;
+    $('piste').innerHTML =
+      `<div class="part b" style="width:${(b*100).toFixed(1)}%">${pc(b)}</div>
+       <div class="part h" style="width:${(h*100).toFixed(1)}%">${pc(h)}</div>
+       <div class="milieu"></div>`;
+
+    // --- les trois jauges qui font la certitude
+    const j = [
+      ['Accord', pc(c.accord), c.accord, `${c.nFam} famille(s) · 60 % exigés`,
+       c.accord >= 0.6],
+      ['Base', c.base.toFixed(1), Math.min(1, c.base / 4), 'minimum 2.0',
+       c.base >= 2],
+      ['Certitude', pc(c.certitude), c.certitude,
+       `${c.nMes}/${c.nFam || 0} source(s) mesurée(s)`, c.certitude >= 0.5],
+    ];
+    $('jauges').innerHTML = j.map(([l, v, f, n, ok]) =>
+      `<div class="jauge"><div class="l">${l}</div><div class="v mono">${v}</div>
+       <div class="t"><div class="f ${ok ? 'ok' : 'bas'}" style="width:${(f*100).toFixed(0)}%"></div></div>
+       <div class="n">${n}</div></div>`).join('');
+
+    // --- les sources. Une famille déjà vue est grisée : elle ne vote pas.
+    const vues = new Set();
+    $('sources').innerHTML = c.src.map(s => {
+      const doublon = vues.has(s.f); vues.add(s.f);
+      const signe = s.s === 'h' ? '▲' : s.s === 'b' ? '▼' : '—';
+      return `<div class="src ${doublon ? 'doublon' : ''}">
+        <span class="puce ${s.s}"></span>
+        <span class="nom">${s.n}<small>${signe} ${
+          s.s === 'h' ? 'haussier' : s.s === 'b' ? 'baissier' : 'neutre'}</small></span>
+        <span class="fam">${s.f}</span>
+        <span class="txt">${s.t}</span>
+        <span class="poids ${s.k}">${s.p}</span></div>`;
+    }).join('');
+
+    // --- le raisonnement
+    let t = '';
+    if (c.camps) {
+      t += `<strong>Les deux camps tiennent des faits réels.</strong>`;
+      t += `<ul>${c.camps.h.map(x => `<li>▲ ${x}</li>`).join('')}
+            ${c.camps.b.map(x => `<li>▼ ${x}</li>`).join('')}</ul>`;
+      t += `<p style="margin:10px 0 0;color:var(--encre-2)">Ce n'est pas un
+            manque d'analyse, c'est un marché sans direction — et prendre
+            position dessus revient à jouer à pile ou face.</p>`;
+    } else {
+      t += `<strong>${c.motif}</strong>`;
+    }
+    if (c.bascule) t += `<div class="bascule"><b>Ce qui me ferait changer
+      d'avis :</b> ${c.bascule}</div>`;
+    if (c.avert) t += `<div class="avert">${c.avert}</div>`;
+    $('texte').innerHTML = t;
+  }
+
+  $('cas').innerHTML = CAS.map((c, i) =>
+    `<button class="bt" data-i="${i}" aria-pressed="${i === 0}">${c.nom}</button>`).join('');
+  $('cas').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...$('cas').children].forEach(x => x.setAttribute('aria-pressed', x === b));
+    rendre(CAS[+b.dataset.i]);
+  });
+  rendre(CAS[0]);
+})();
+</script>

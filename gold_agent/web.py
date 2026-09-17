@@ -222,6 +222,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._repondre(corps, "application/json; charset=utf-8")
             return
 
+        if self.path.startswith("/api/cerveau"):
+            # Étape 10.3 : l'état APPRIS du cerveau (jamais « actif parce
+            # que le processus tourne ») — bandeau sur toutes les pages.
+            try:
+                from taches.cerveau_cycle import etat_pour_le_site
+                corps = json.dumps(etat_pour_le_site(),
+                                   ensure_ascii=False).encode()
+            except Exception as e:
+                corps = json.dumps({"statut": "indisponible",
+                                    "couleur": "gris", "version": 0,
+                                    "phrase": str(e)[:80], "n_mesures": 0,
+                                    "n_total_poids": 0,
+                                    "derniers_changements": [],
+                                    "problemes": []}).encode()
+            self._repondre(corps, "application/json; charset=utf-8")
+            return
+
         if self.path.startswith("/api/graphe"):
             g = (getattr(tableau, "DERNIER_PAQUET", None) or {}).get("graphe") \
                 or {"noeuds": [], "liens": []}

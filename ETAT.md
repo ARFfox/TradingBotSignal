@@ -3,7 +3,7 @@
 > **Pour APPLIQUER tout d'un coup, va dans `APPLIQUER.md`.** Ce document-ci
 > répond à une autre question : **qu'est-ce qui existe vraiment ?**
 > Pas ce qui est prévu, pas ce qui est spécifié — ce qui tourne et qui est
-> testé. Mis à jour le 16/09/2026. `python3 verif.py` → **VERT, 222 tests**.
+> testé. Mis à jour le 16/09/2026. `python3 verif.py` → **VERT, 320 tests**.
 
 Trois états, et un seul compte :
 
@@ -22,6 +22,9 @@ Trois états, et un seul compte :
 | `statistiques.py` | hasard · Wilson · Bonferroni · marge de bruit | ✅ | via 3 modules |
 | `pips.py` | **pips gagnés/perdus** par instrument | ✅ | 21 |
 | `vue_instrument.py` | **fiche par instrument** — historique, 5 TF, badges | ✅ | 29 |
+| `figures.py` | **34 figures chartistes** — 98 % du bruit en contient une | ✅ | 35 |
+| `direction.py` · `direction_vue.html` | **AG-19 Directeur** — la direction sur toutes les sources | ✅ | 33 |
+| `cerveau.py` · `cerveau_bandeau.html` | **la boucle vivante** — apprend, journalise, s'affiche partout | ✅ | 30 |
 | `garde_fous.py` | stop minimum · anti-contradiction · suivi des SL | ✅ | 25 |
 | `superviseur_apprenant.py` | AG-00 — audit SL, calibration, poids, seuil | ✅ | 30 |
 | `parametres_agents.py` | réglage automatique, walk-forward | ✅ | 16 |
@@ -51,6 +54,7 @@ Trois états, et un seul compte :
 | AG-15 | Intermarchés | ✅ | `agents_marches.py` |
 | AG-16 | **Avocat du diable** | ✅ **nouveau** | `avocats.py` |
 | AG-18 | **Avocat de la défense** | ✅ **nouveau** | `avocats.py` |
+| AG-19 | **Directeur** — direction du marché | ✅ **nouveau** | `direction.py` |
 | AG-99 | Vérificateur | ✅ | `verif.py` |
 | AG-06 · AG-07 | Probabilité · Opportunités | ⬜ **volontairement abandonnés** |
 | AG-17 | Rattrapage | ⬜ | jamais construit |

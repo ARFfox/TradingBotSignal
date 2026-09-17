@@ -119,6 +119,20 @@ def _carte(r: dict) -> str:
                      + (f' <span style="color:var(--encre-3)">({det})</span>' if det else "")
                      + '</div>')
 
+    di = (r.get("setup") or {}).get("direction")
+    if di:
+        # Étape 6bis : la flèche porte le sens AUTANT que la couleur
+        # (deutéranopie) ; « INDÉTERMINÉE » s'affiche telle quelle — un
+        # module qui trouve toujours une direction n'en trouve aucune.
+        fl, coul_d = {"haussier": ("▲", "var(--gain)"),
+                      "baissier": ("▼", "var(--perte)")}.get(
+            di["sens"], ("◆", "var(--encre-3)"))
+        h.append(f'<div class="ict-ligne">🧭 AG-19 Directeur : '
+                 f'<b style="color:{coul_d}">{fl} {di["sens"]}</b> · '
+                 f'score {di["score"]:+.2f} · certitude {di["certitude"]:.0%} '
+                 f'(base {di["base"]}, accord {di["accord"]:.0%})<br>'
+                 f'<span style="color:var(--encre-3)">{di["texte"][:260]}</span></div>')
+
     im = (r.get("setup") or {}).get("intermarche")
     if im:
         fiab_txt = "" if im.get("fiable") else " · base mince"
@@ -202,6 +216,18 @@ WIDGET_TV = """<div class="chart-tv">
 <div style="position:absolute;bottom:8px;left:12px;font-size:10.5px;color:var(--encre-3);z-index:5">
 Si ce cadre reste vide, un bloqueur filtre tradingview.com — ajoute une exception pour 127.0.0.1.</div>
 </div>"""
+
+
+def _fragment_bandeau_cerveau() -> str:
+    """cerveau_bandeau.html (étape 10.3) lu tel quel — présent sur TOUTES
+    les pages, sous l'en-tête. Le flag __CERVEAU_API__ coupe la démo
+    embarquée du gabarit : les données viennent de GET /api/cerveau."""
+    try:
+        contenu = (Path(__file__).resolve().parent.parent
+                   / "cerveau_bandeau.html").read_text(encoding="utf-8")
+        return "<script>window.__CERVEAU_API__=true</script>" + contenu
+    except Exception:
+        return ""
 
 
 def _fragment_graphe() -> str:

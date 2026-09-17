@@ -153,6 +153,11 @@ def _tour_collecte() -> None:
     tableau.collecter()
 
 
+def _etape_cerveau():
+    from taches.cerveau_cycle import EtapeCerveau
+    return EtapeCerveau()
+
+
 def defaut(intervalle_signaux: int = 300) -> list[Boucle]:
     """Les boucles du serveur. La collecte tourne plus souvent que la
     notification : c'est elle qui resout le journal, nourrit la calibration
@@ -166,4 +171,9 @@ def defaut(intervalle_signaux: int = 300) -> list[Boucle]:
         # grosse data d'apprentissage du Superviseur, instrument par
         # instrument. 10 min par tour, les TTL des feeds bornent le cout.
         Boucle("multi", "Analyse multi-marchés", 600.0, EtapeMulti()),
+        # Étape 10 : le cerveau apprend toutes les heures — PAS plus vite :
+        # recalibrer sur les mêmes données ne crée aucun savoir, et sous
+        # 20 résolus nouveaux le cycle ne bouge rien (règle du module).
+        Boucle("cerveau", "Cerveau — apprentissage", 3600.0,
+               _etape_cerveau()),
     ]
